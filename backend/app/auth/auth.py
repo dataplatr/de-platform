@@ -1,56 +1,109 @@
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
-from app.models.schemas import TokenResponse, LoginRequest
 from app.config import settings
+from app.db.auth_db import get_auth_conn
+from app.models.schemas import LoginRequest, TokenResponse
+from app.services import user_service
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
-# For PoC: single hardcoded user. Replace with DB lookup in production.
-_DEMO_USER = {"username": "admin", "hashed_password": pwd_context.hash("admin")}
+# --- RBAC roles (lowest → highest privilege) ---
+ROLES = ["viewer", "analyst", "admin"]
 
 
-def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+def _role_rank(role: str) -> int:
+    return ROLES.index(role) if role in ROLES else -1
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (
-        expires_delta or timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+def require_role(minimum: str):
+    """Dependency factory: raises 403 if user's role is below minimum."""
+    async def check(current: dict = Depends(get_current_user)):
+        if _role_rank(current["role"]) < _role_rank(minimum):
+            raise HTTPException(status_code=403, detail=f"Requires role: {minimum}")
+        return current
+    return check
+
+
+# --- Token creation ---
+
+def create_access_token(user: dict) -> tuple[str, str]:
+    """Returns (token, jti)."""
+    jti = str(uuid.uuid4())
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
-    to_encode["exp"] = expire
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    payload = {
+        "sub": user["username"],
+        "uid": user["id"],
+        "role": user["role"],
+        "jti": jti,
+        "exp": expire,
+    }
+    token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return token, jti
 
 
-def authenticate_user(username: str, password: str) -> Optional[dict]:
-    if username != _DEMO_USER["username"]:
-        return None
-    if not verify_password(password, _DEMO_USER["hashed_password"]):
-        return None
-    return {"username": username}
+def _store_session(user_id: int, jti: str, expires_at: datetime, ip: str, ua: str) -> None:
+    conn = get_auth_conn()
+    conn.execute(
+        """INSERT INTO sessions (user_id, jti, ip_address, user_agent, expires_at)
+           VALUES (?,?,?,?,?)""",
+        (user_id, jti, ip, ua, expires_at.isoformat()),
+    )
+    conn.commit()
 
 
-def login(req: LoginRequest) -> TokenResponse:
-    user = authenticate_user(req.username, req.password)
-    if not user:
+def _revoke_session(jti: str) -> None:
+    conn = get_auth_conn()
+    conn.execute("UPDATE sessions SET is_revoked = 1 WHERE jti = ?", (jti,))
+    conn.commit()
+
+
+def _is_session_valid(jti: str) -> bool:
+    row = get_auth_conn().execute(
+        "SELECT is_revoked FROM sessions WHERE jti = ?", (jti,)
+    ).fetchone()
+    if row is None:
+        return False
+    return row["is_revoked"] == 0
+
+
+# --- Login / Logout ---
+
+def login(req: LoginRequest, ip: str = "", ua: str = "") -> TokenResponse:
+    user = user_service.get_user_by_username(req.username)
+    if not user or not user_service.verify_password(req.password, user["hashed_password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    token = create_access_token({"sub": user["username"]})
-    return TokenResponse(access_token=token)
 
+    token, jti = create_access_token(user)
+    expire = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+    )
+    _store_session(user["id"], jti, expire, ip, ua)
+    return TokenResponse(
+        access_token=token,
+        username=user["username"],
+        role=user["role"],
+    )
+
+
+def logout(jti: str) -> None:
+    _revoke_session(jti)
+
+
+# --- get_current_user dependency ---
 
 async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)) -> dict:
-    """Dependency — raises 401 if token is missing or invalid."""
     credentials_exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -61,8 +114,18 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)) -> dic
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         username: str = payload.get("sub")
-        if username is None:
+        user_id: int = payload.get("uid")
+        role: str = payload.get("role", "viewer")
+        jti: str = payload.get("jti")
+        if not username or not jti:
             raise credentials_exc
     except JWTError:
         raise credentials_exc
-    return {"username": username}
+
+    if not _is_session_valid(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Session expired or revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return {"username": username, "id": user_id, "role": role, "jti": jti}

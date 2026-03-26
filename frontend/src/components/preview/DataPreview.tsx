@@ -1,4 +1,4 @@
-import { RefreshCw, AlertCircle, Table2 } from 'lucide-react'
+import { RefreshCw, Table2 } from 'lucide-react'
 import { useTransformationStore } from '../../store/transformationStore'
 import clsx from 'clsx'
 

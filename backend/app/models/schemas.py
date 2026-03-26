@@ -7,11 +7,29 @@ from typing import Any, Optional
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    username: str
+    role: str
 
 
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: Optional[str]
+    role: str
+    is_active: int
+    created_at: str
+
+
+class CreateUserRequest(BaseModel):
+    username: str
+    email: Optional[str] = None
+    password: str
+    role: str = "analyst"
 
 
 # --- DuckDB connection ---
@@ -119,3 +137,18 @@ class TransformationPipeline(BaseModel):
 class ExecuteRequest(BaseModel):
     pipeline: TransformationPipeline
     output_table: Optional[str] = None
+
+
+# --- Audit ---
+
+class AuditLogEntry(BaseModel):
+    id: int
+    timestamp: str
+    user_id: Optional[int]
+    username: Optional[str]
+    action: str
+    method: Optional[str]
+    path: Optional[str]
+    status_code: Optional[int]
+    ip_address: Optional[str]
+    details: Optional[str]

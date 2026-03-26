@@ -2,16 +2,18 @@ import { History, Code2 } from 'lucide-react'
 import { StepHistory } from '../history/StepHistory'
 import { SqlViewer } from '../sql/SqlViewer'
 import { useTransformationStore } from '../../store/transformationStore'
+import { useResize } from '../../hooks/useResize'
 import clsx from 'clsx'
-
-const SQL_PANEL_HEIGHT = 220
 
 export function RightPanel() {
   const { rightPanelTab, setRightPanelTab } = useTransformationStore()
 
+  // Vertical: SQL panel height (min 80, max 480, default 220) — inverted (drag up = grow)
+  const sql = useResize(220, 80, 480, 'y', true)
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Top section: Step History / Config */}
+    <div className="flex flex-col h-full border-l border-[#3c3c3c]">
+      {/* Top section: Step History / Config — fills remaining space */}
       <div className="flex-1 flex flex-col overflow-hidden min-h-0">
         {/* Tabs */}
         <div className="flex items-center gap-0 border-b border-[#3c3c3c] bg-[#252526] shrink-0">
@@ -50,11 +52,18 @@ export function RightPanel() {
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="h-px bg-[#3c3c3c] shrink-0" />
+      {/* Vertical resize handle for SQL panel */}
+      <div
+        onMouseDown={sql.onMouseDown}
+        className="h-1.5 shrink-0 bg-[#3c3c3c] hover:bg-accent cursor-row-resize transition-colors flex items-center justify-center gap-1 group"
+      >
+        <div className="w-0.5 h-0.5 rounded-full bg-white/60 opacity-0 group-hover:opacity-100" />
+        <div className="w-0.5 h-0.5 rounded-full bg-white/60 opacity-0 group-hover:opacity-100" />
+        <div className="w-0.5 h-0.5 rounded-full bg-white/60 opacity-0 group-hover:opacity-100" />
+      </div>
 
-      {/* Bottom section: SQL Viewer */}
-      <div className="shrink-0" style={{ height: SQL_PANEL_HEIGHT }}>
+      {/* Bottom: SQL Viewer — resizable height */}
+      <div className="shrink-0 overflow-hidden" style={{ height: sql.size }}>
         <SqlViewer />
       </div>
     </div>

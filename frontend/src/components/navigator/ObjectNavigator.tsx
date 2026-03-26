@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import {
   Database, Table2, FileSpreadsheet, ChevronRight, ChevronDown,
-  Plus, RefreshCw, Search
+  Plus, RefreshCw, Search, Loader2
 } from 'lucide-react'
 import { useTransformationStore } from '../../store/transformationStore'
+import type { Column } from '../../types'
 import clsx from 'clsx'
 
 function ColumnTypeTag({ type }: { type: string }) {
@@ -23,25 +24,20 @@ function ColumnTypeTag({ type }: { type: string }) {
     FLOAT: 'flt', DATE: 'date', TIMESTAMP: 'ts', BOOLEAN: 'bool',
   }
   return (
-    <span className={clsx('text-[10px] font-mono', colors[type] ?? 'text-[#6a6a6a]')}>
+    <span className={clsx('text-[10px] font-mono shrink-0', colors[type] ?? 'text-[#6a6a6a]')}>
       {abbr[type] ?? type.toLowerCase().slice(0, 4)}
     </span>
   )
 }
 
-function TableNode({ dbName, schemaName, tableName }: {
-  dbName: string; schemaName: string; tableName: string
+function TableNode({
+  dbName, schemaName, tableName, columns,
+}: {
+  dbName: string; schemaName: string; tableName: string; columns: Column[]
 }) {
   const [expanded, setExpanded] = useState(false)
   const { selectedTableSchema, setSelectedTableSchema } = useTransformationStore()
   const isSelected = selectedTableSchema?.table === tableName
-
-  // Placeholder columns (real data comes from API in later iterations)
-  const mockColumns = [
-    { name: 'id', type: 'INTEGER' as const },
-    { name: 'name', type: 'VARCHAR' as const },
-    { name: 'created_at', type: 'TIMESTAMP' as const },
-  ]
 
   return (
     <div>
@@ -52,12 +48,7 @@ function TableNode({ dbName, schemaName, tableName }: {
         )}
         onClick={() => {
           setExpanded(!expanded)
-          setSelectedTableSchema({
-            database: dbName,
-            schema: schemaName,
-            table: tableName,
-            columns: mockColumns,
-          })
+          setSelectedTableSchema({ database: dbName, schema: schemaName, table: tableName, columns })
         }}
       >
         <span className="text-[#6a6a6a] w-3 shrink-0">
@@ -66,11 +57,9 @@ function TableNode({ dbName, schemaName, tableName }: {
         <Table2 size={12} className="text-[#4ec9b0] shrink-0" />
         <span className="truncate text-[#cccccc]">{tableName}</span>
         <button
+          type="button"
           className="ml-auto opacity-0 group-hover:opacity-100 text-[#6a6a6a] hover:text-[#cccccc] px-1"
-          onClick={(e) => {
-            e.stopPropagation()
-            // TODO: drag to canvas — for now just select
-          }}
+          onClick={(e) => { e.stopPropagation() }}
           title="Add to canvas"
         >
           <Plus size={10} />
@@ -79,12 +68,18 @@ function TableNode({ dbName, schemaName, tableName }: {
 
       {expanded && (
         <div className="ml-6 border-l border-[#3c3c3c]">
-          {mockColumns.map((col) => (
+          {columns.map((col) => (
             <div key={col.name} className="flex items-center gap-1.5 px-2 py-0.5 text-xs text-[#969696]">
               <ColumnTypeTag type={col.type} />
               <span className="truncate">{col.name}</span>
+              {col.nullable === false && (
+                <span className="ml-auto text-[9px] text-[#6a6a6a]">NN</span>
+              )}
             </div>
           ))}
+          {columns.length === 0 && (
+            <div className="px-2 py-0.5 text-[10px] text-[#6a6a6a]">No columns</div>
+          )}
         </div>
       )}
     </div>
@@ -93,7 +88,7 @@ function TableNode({ dbName, schemaName, tableName }: {
 
 function SchemaNode({ dbName, schema }: {
   dbName: string
-  schema: { name: string; tables: { name: string }[] }
+  schema: { name: string; tables: { name: string; columns: Column[] }[] }
 }) {
   const [expanded, setExpanded] = useState(true)
 
@@ -111,14 +106,21 @@ function SchemaNode({ dbName, schema }: {
       </div>
       {expanded && schema.tables.map((t) => (
         <div key={t.name} className="ml-3">
-          <TableNode dbName={dbName} schemaName={schema.name} tableName={t.name} />
+          <TableNode
+            dbName={dbName}
+            schemaName={schema.name}
+            tableName={t.name}
+            columns={t.columns ?? []}
+          />
         </div>
       ))}
     </div>
   )
 }
 
-function DatabaseNode({ db }: { db: { name: string; schemas: { name: string; tables: { name: string }[] }[] } }) {
+function DatabaseNode({ db }: {
+  db: { name: string; schemas: { name: string; tables: { name: string; columns: Column[] }[] }[] }
+}) {
   const [expanded, setExpanded] = useState(true)
 
   return (
@@ -131,7 +133,7 @@ function DatabaseNode({ db }: { db: { name: string; schemas: { name: string; tab
           {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
         </span>
         <Database size={12} className="text-[#4fc1ff] shrink-0" />
-        <span className="truncate">{db.name}</span>
+        <span className="truncate">{db.name.toUpperCase()}</span>
       </div>
       {expanded && db.schemas.map((s) => (
         <div key={s.name} className="ml-3">
@@ -146,29 +148,17 @@ export function ObjectNavigator() {
   const { databaseTree, csvSources, isConnected } = useTransformationStore()
   const [search, setSearch] = useState('')
 
-  // Placeholder tree until connected
-  const mockTree = isConnected ? databaseTree : [
-    {
-      name: 'DEMO_DB',
-      schemas: [
-        {
-          name: 'PUBLIC',
-          tables: [
-            { name: 'GL_TRANSACTIONS' },
-            { name: 'CHART_OF_ACCOUNTS' },
-            { name: 'COST_CENTERS' },
-          ],
-        },
-        {
-          name: 'RAW',
-          tables: [
-            { name: 'SALES_ORDERS' },
-            { name: 'CUSTOMERS' },
-          ],
-        },
-      ],
-    },
-  ]
+  const filtered = databaseTree.map((db) => ({
+    ...db,
+    schemas: db.schemas.map((s) => ({
+      ...s,
+      tables: s.tables.filter((t) =>
+        !search || t.name.toLowerCase().includes(search.toLowerCase())
+      ),
+    })).filter((s) => s.tables.length > 0),
+  })).filter((db) => db.schemas.length > 0)
+
+  const treeToShow = search ? filtered : databaseTree
 
   return (
     <div className="flex flex-col h-full">
@@ -176,10 +166,13 @@ export function ObjectNavigator() {
       <div className="flex items-center justify-between px-3 py-2 border-b border-[#3c3c3c] bg-[#252526] shrink-0">
         <span className="text-xs font-medium text-[#cccccc] uppercase tracking-wider">Sources</span>
         <div className="flex items-center gap-1">
-          <button className="icon-button" title="Refresh">
+          {!isConnected && (
+            <Loader2 size={11} className="text-[#dcdcaa] animate-spin" />
+          )}
+          <button type="button" className="icon-button" title="Refresh">
             <RefreshCw size={12} />
           </button>
-          <button className="icon-button" title="Add CSV">
+          <button type="button" className="icon-button" title="Add CSV">
             <Plus size={12} />
           </button>
         </div>
@@ -218,21 +211,20 @@ export function ObjectNavigator() {
           </div>
         )}
 
+        {/* Not connected yet */}
+        {!isConnected && databaseTree.length === 0 && (
+          <div className="flex flex-col items-center gap-2 py-8 text-[#6a6a6a]">
+            <Loader2 size={16} className="animate-spin text-[#dcdcaa]" />
+            <span className="text-xs">Connecting to DuckDB…</span>
+          </div>
+        )}
+
         {/* Database tree */}
-        {mockTree.map((db) => (
-          <DatabaseNode key={db.name} db={db} />
+        {treeToShow.map((db) => (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          <DatabaseNode key={db.name} db={db as any} />
         ))}
       </div>
-
-      {/* Bottom: Connect button */}
-      {!isConnected && (
-        <div className="p-2 border-t border-[#3c3c3c] shrink-0">
-          <button className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs bg-[#0e639c] hover:bg-[#1177bb] text-white rounded transition-colors">
-            <Database size={12} />
-            Connect Snowflake
-          </button>
-        </div>
-      )}
     </div>
   )
 }

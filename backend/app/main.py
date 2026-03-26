@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.routes.main_routes import router
 from app.db.connection import get_connection
+from app.db.auth_db import init_auth_db
+from app.middleware.audit_middleware import AuditMiddleware
 
 app = FastAPI(
     title="Lakeflow Designer API",
@@ -11,6 +13,7 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# CORS — allow the Vite dev server (proxy handles it in production)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.origins_list,
@@ -19,10 +22,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Audit every request
+app.add_middleware(AuditMiddleware)
+
 app.include_router(router)
 
 
 @app.on_event("startup")
 def startup():
-    # Eagerly open DuckDB connection and seed demo data
-    get_connection()
+    init_auth_db()        # Create users/sessions/audit tables, seed default users
+    get_connection()      # Open DuckDB and seed demo tables

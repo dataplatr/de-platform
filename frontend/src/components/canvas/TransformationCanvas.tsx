@@ -95,6 +95,7 @@ export function TransformationCanvas() {
         maxZoom={2}
         deleteKeyCode="Delete"
         className="bg-[#1e1e1e]"
+        proOptions={{ hideAttribution: true }}
       >
         <Background
           variant={BackgroundVariant.Dots}

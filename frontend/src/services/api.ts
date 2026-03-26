@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+// With Vite proxy, all /api/* calls go to http://localhost:8000 automatically.
+// No CORS issues, no ngrok needed for local dev.
 export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8000',
+  baseURL: '',
   headers: { 'Content-Type': 'application/json' },
   timeout: 30_000,
 })
@@ -13,13 +15,14 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// ─── Response interceptor: unified error handling ─────────────────────────────
+// ─── Response interceptor: 401 → force logout ────────────────────────────────
 apiClient.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('auth_token')
-      window.location.href = '/login'
+      localStorage.removeItem('auth_user')
+      window.location.href = '/'
     }
     return Promise.reject(err)
   }
@@ -29,47 +32,42 @@ apiClient.interceptors.response.use(
 
 export const api = {
   // Health
-  health: () => apiClient.get<{ status: string }>('/health'),
+  health: () => apiClient.get<{ status: string }>('/api/health'),
 
-  // Connection
-  connectDuckDB: () => apiClient.post('/api/connection/duckdb'),
+  // Auth
+  login: (username: string, password: string) =>
+    apiClient.post<{ access_token: string; username: string; role: string }>('/api/auth/login', { username, password }),
+  logout: () => apiClient.post('/api/auth/logout'),
+  me: () => apiClient.get('/api/auth/me'),
 
-  // Schema browser
-  getDatabases: () => apiClient.get<{ databases: string[] }>('/api/schema/databases'),
-  getSchemas: (db: string) => apiClient.get<{ schemas: string[] }>(`/api/schema/${db}/schemas`),
-  getTables: (db: string, schema: string) =>
-    apiClient.get<{ tables: { name: string; rowCount?: number }[] }>(`/api/schema/${db}/${schema}/tables`),
-  getTableSchema: (db: string, schema: string, table: string) =>
-    apiClient.get(`/api/schema/${db}/${schema}/${table}`),
+  // Users (admin)
+  listUsers: () => apiClient.get('/api/users'),
+  createUser: (payload: { username: string; email?: string; password: string; role: string }) =>
+    apiClient.post('/api/users', payload),
+  deactivateUser: (id: number) => apiClient.delete(`/api/users/${id}`),
 
-  // Preview
-  preview: (payload: { sql: string; limit?: number }) =>
-    apiClient.post('/api/preview', payload),
+  // Audit
+  auditLog: (limit = 200, offset = 0) => apiClient.get(`/api/audit?limit=${limit}&offset=${offset}`),
+  myActivity: () => apiClient.get('/api/audit/me'),
 
-  // CSV upload
+  // DuckDB / Schema
+  connectDuckDB: (path?: string) => apiClient.post('/api/db/connect', { path }),
+  getDbTree: () => apiClient.get('/api/db/tree'),
+  preview: (sql: string, limit = 100) => apiClient.post('/api/db/preview', { sql, limit }),
   uploadCSV: (file: File) => {
     const form = new FormData()
     form.append('file', file)
-    return apiClient.post('/api/upload/csv', form, {
+    return apiClient.post('/api/db/upload-csv', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
+  generateSQL: (payload: {
+    transformation_type: string
+    config: Record<string, unknown>
+    input_tables: string[]
+  }) => apiClient.post('/api/db/generate-sql', payload),
 
-  // SQL generation
-  generateSQL: (nodes: unknown[], edges: unknown[]) =>
-    apiClient.post('/api/sql/generate', { nodes, edges }),
-
-  // Chat / AI
-  chat: (payload: { message: string; schemaContext: unknown; history: unknown[] }) =>
-    apiClient.post('/api/chat', payload),
-
-  // Transformations (CRUD)
-  listTransformations: () => apiClient.get('/api/transformations'),
-  getTransformation: (id: string) => apiClient.get(`/api/transformations/${id}`),
-  saveTransformation: (payload: unknown) => apiClient.post('/api/transformations', payload),
-  updateTransformation: (id: string, payload: unknown) => apiClient.put(`/api/transformations/${id}`, payload),
-  deleteTransformation: (id: string) => apiClient.delete(`/api/transformations/${id}`),
-
-  // Execute
-  executeTransformation: (id: string) => apiClient.post(`/api/transformations/${id}/execute`),
+  // Chat
+  chat: (messages: { role: string; content: string }[], context?: Record<string, unknown>) =>
+    apiClient.post('/api/chat', { messages, context }),
 }

@@ -1,27 +1,122 @@
+import { useEffect } from 'react'
 import { TopBar } from './TopBar'
 import { LeftPanel } from './LeftPanel'
 import { CenterPanel } from './CenterPanel'
 import { RightPanel } from './RightPanel'
+import { useResize } from '../../hooks/useResize'
+import { useTransformationStore } from '../../store/transformationStore'
+import { api } from '../../services/api'
+import type { DatabaseTree } from '../../types'
+
+function ResizeHandle({
+  axis,
+  onMouseDown,
+}: {
+  axis: 'x' | 'y'
+  onMouseDown: (e: React.MouseEvent) => void
+}) {
+  return (
+    <div
+      onMouseDown={onMouseDown}
+      className={
+        axis === 'x'
+          ? 'w-1 shrink-0 bg-[#3c3c3c] hover:bg-accent cursor-col-resize transition-colors group relative z-20'
+          : 'h-1 shrink-0 bg-[#3c3c3c] hover:bg-accent cursor-row-resize transition-colors group relative z-20'
+      }
+    >
+      {/* Visual grip dots */}
+      <div className={
+        axis === 'x'
+          ? 'absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100'
+          : 'absolute inset-x-0 top-1/2 -translate-y-1/2 flex flex-row items-center justify-center gap-1 opacity-0 group-hover:opacity-100'
+      }>
+        <div className="w-0.5 h-0.5 rounded-full bg-white/60" />
+        <div className="w-0.5 h-0.5 rounded-full bg-white/60" />
+        <div className="w-0.5 h-0.5 rounded-full bg-white/60" />
+      </div>
+    </div>
+  )
+}
+
+function normalizeType(duckType: string): string {
+  const t = duckType.toUpperCase()
+  if (t.includes('INT')) return 'INTEGER'
+  if (t.includes('FLOAT') || t.includes('DOUBLE') || t.includes('DECIMAL') || t.includes('NUMERIC')) return 'FLOAT'
+  if (t.includes('VARCHAR') || t.includes('TEXT') || t.includes('CHAR')) return 'VARCHAR'
+  if (t.includes('BOOL')) return 'BOOLEAN'
+  if (t.includes('TIMESTAMP')) return 'TIMESTAMP'
+  if (t === 'DATE') return 'DATE'
+  return 'UNKNOWN'
+}
 
 export function AppShell() {
+  const { setConnected, setDatabaseTree } = useTransformationStore()
+
+  // Horizontal: left panel (min 160, max 480, default 260)
+  const left = useResize(260, 160, 480, 'x', false)
+  // Horizontal: right panel (min 180, max 520, default 288) — inverted (drag left = grow)
+  const right = useResize(288, 180, 520, 'x', true)
+
+  // Auto-connect to backend on mount and load real DB tree
+  useEffect(() => {
+    api.getDbTree()
+      .then(({ data }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const tree: DatabaseTree[] = (data as any[]).map((db) => ({
+          name: db.name,
+          schemas: db.schemas.map((schema: { name: string; tables: { name: string; columns: { name: string; type: string; nullable: boolean }[] }[] }) => ({
+            name: schema.name,
+            tables: schema.tables.map((table) => ({
+              name: table.name,
+              columns: (table.columns ?? []).map((col) => ({
+                name: col.name,
+                type: normalizeType(col.type),
+                nullable: col.nullable,
+              })),
+            })),
+          })),
+        }))
+        setDatabaseTree(tree)
+        setConnected(true)
+      })
+      .catch(() => {
+        // Backend unreachable — keep disconnected state
+        setConnected(false)
+      })
+  }, [setConnected, setDatabaseTree])
+
   return (
-    <div className="flex flex-col h-full bg-[#1e1e1e] text-[#cccccc]">
+    <div className="flex flex-col h-full bg-[#1e1e1e] text-[#cccccc] select-none">
       <TopBar />
 
       {/* Main 3-panel layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel: Object Navigator (fixed ~260px) */}
-        <div className="w-64 shrink-0 border-r border-[#3c3c3c] flex flex-col overflow-hidden">
+        {/* Left Panel */}
+        {/* eslint-disable-next-line react/forbid-component-props */}
+        <div
+          className="shrink-0 flex flex-col overflow-hidden"
+          style={{ width: left.size }}
+        >
           <LeftPanel />
         </div>
 
-        {/* Center Panel: Canvas + Chat Prompt + Preview (flexible) */}
+        {/* Left resize handle */}
+        <ResizeHandle axis="x" onMouseDown={left.onMouseDown} />
+
+        {/* Center Panel */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           <CenterPanel />
         </div>
 
-        {/* Right Panel: Step History + SQL Viewer (fixed ~300px) */}
-        <div className="w-72 shrink-0 border-l border-[#3c3c3c] flex flex-col overflow-hidden">
+        {/* Right resize handle */}
+        <ResizeHandle axis="x" onMouseDown={right.onMouseDown} />
+
+        {/* Right Panel */}
+        {/* eslint-disable-next-line react/forbid-component-props */}
+        <div
+          className="shrink-0 flex flex-col overflow-hidden"
+          style={{ width: right.size }}
+        >
           <RightPanel />
         </div>
       </div>
