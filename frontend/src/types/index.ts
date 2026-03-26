@@ -22,7 +22,7 @@ export interface DatabaseTree {
   name: string
   schemas: {
     name: string
-    tables: { name: string; rowCount?: number }[]
+    tables: { name: string; rowCount?: number; columns: Column[] }[]
   }[]
 }
 
@@ -60,6 +60,7 @@ export interface TransformNode {
   type: NodeType
   label: string
   tableRef?: string       // for source nodes
+  columns?: Column[]      // output schema (filled for source nodes from DB tree)
   config: NodeConfig
   position: { x: number; y: number }
   sql?: string            // generated SQL for this node
@@ -71,6 +72,8 @@ export interface TransformEdge {
   id: string
   source: string
   target: string
+  sourceHandle?: string
+  targetHandle?: string
 }
 
 // ─── Transformation / Pipeline ────────────────────────────────────────────────

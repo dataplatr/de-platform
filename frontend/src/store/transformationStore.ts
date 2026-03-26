@@ -42,6 +42,11 @@ interface TransformationState {
   rightPanelTab: 'history' | 'config'
   bottomPanelTab: 'input' | 'output'
   isSqlViewExpanded: boolean
+
+  // ─── Pipeline ──────────────────────────────────────────────────
+  pipelineName: string
+  pipelineId: string | null
+  editorOpen: boolean
 }
 
 interface TransformationActions {
@@ -79,6 +84,13 @@ interface TransformationActions {
   setRightPanelTab: (tab: 'history' | 'config') => void
   setBottomPanelTab: (tab: 'input' | 'output') => void
   toggleSqlView: () => void
+
+  // Pipeline
+  setPipelineName: (name: string) => void
+  setPipelineId: (id: string | null) => void
+  openEditor: (opts?: { id?: string; name?: string; nodes?: TransformNode[]; edges?: TransformEdge[] }) => void
+  closeEditor: () => void
+  clearCanvas: () => void
 }
 
 export const useTransformationStore = create<TransformationState & TransformationActions>()(
@@ -107,6 +119,10 @@ export const useTransformationStore = create<TransformationState & Transformatio
     rightPanelTab: 'history',
     bottomPanelTab: 'output',
     isSqlViewExpanded: false,
+
+    pipelineName: 'Untitled Pipeline',
+    pipelineId: null,
+    editorOpen: false,
 
     // ─── Actions ──────────────────────────────────────────────────
     setConnected: (connected) => set((s) => { s.isConnected = connected }),
@@ -145,5 +161,23 @@ export const useTransformationStore = create<TransformationState & Transformatio
     setRightPanelTab: (tab) => set((s) => { s.rightPanelTab = tab }),
     setBottomPanelTab: (tab) => set((s) => { s.bottomPanelTab = tab }),
     toggleSqlView: () => set((s) => { s.isSqlViewExpanded = !s.isSqlViewExpanded }),
+
+    setPipelineName: (name) => set((s) => { s.pipelineName = name }),
+    setPipelineId: (id) => set((s) => { s.pipelineId = id }),
+    openEditor: (opts) => set((s) => {
+      s.editorOpen = true
+      s.pipelineId   = opts?.id   ?? null
+      s.pipelineName = opts?.name ?? 'Untitled Pipeline'
+      s.nodes        = opts?.nodes ?? []
+      s.edges        = opts?.edges ?? []
+      s.selectedNodeId = null
+      s.generatedSQL   = ''
+      s.outputPreview  = null
+    }),
+    closeEditor: () => set((s) => { s.editorOpen = false }),
+    clearCanvas: () => set((s) => {
+      s.nodes = []; s.edges = []; s.selectedNodeId = null
+      s.generatedSQL = ''; s.outputPreview = null
+    }),
   }))
 )

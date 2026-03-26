@@ -70,4 +70,16 @@ export const api = {
   // Chat
   chat: (messages: { role: string; content: string }[], context?: Record<string, unknown>) =>
     apiClient.post('/api/chat', { messages, context }),
+
+  // Pipelines
+  listPipelines: () =>
+    apiClient.get<{ id: string; name: string; node_count: number; created_at: string; updated_at: string }[]>('/api/pipelines'),
+  savePipeline: (payload: { name: string; nodes: unknown[]; edges: unknown[] }) =>
+    apiClient.post<{ id: string }>('/api/pipelines', payload),
+  updatePipeline: (id: string, payload: { name: string; nodes: unknown[]; edges: unknown[] }) =>
+    apiClient.put(`/api/pipelines/${id}`, payload),
+  deletePipeline: (id: string) =>
+    apiClient.delete(`/api/pipelines/${id}`),
+  getPipeline: (id: string) =>
+    apiClient.get<{ id: string; name: string; nodes: unknown[]; edges: unknown[] }>(`/api/pipelines/${id}`),
 }

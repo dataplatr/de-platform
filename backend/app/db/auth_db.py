@@ -62,6 +62,18 @@ def init_auth_db() -> None:
             user_agent  TEXT,
             details     TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS pipelines (
+            id         TEXT    PRIMARY KEY,
+            user_id    INTEGER NOT NULL,
+            name       TEXT    NOT NULL,
+            nodes_json TEXT    NOT NULL DEFAULT '[]',
+            edges_json TEXT    NOT NULL DEFAULT '[]',
+            created_at TEXT    NOT NULL DEFAULT (datetime('now')),
+            updated_at TEXT    NOT NULL DEFAULT (datetime('now')),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_pipelines_user ON pipelines(user_id);
     """)
 
     # Seed default users if table is empty

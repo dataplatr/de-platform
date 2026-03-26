@@ -39,11 +39,24 @@ function TableNode({
   const { selectedTableSchema, setSelectedTableSchema } = useTransformationStore()
   const isSelected = selectedTableSchema?.table === tableName
 
+  const tableRef = `${schemaName}.${tableName}`
+
+  const onDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('application/lakeflow-node', JSON.stringify({
+      tableRef,
+      label: tableName,
+      columns,
+    }))
+    e.dataTransfer.effectAllowed = 'copy'
+  }
+
   return (
     <div>
       <div
+        draggable
+        onDragStart={onDragStart}
         className={clsx(
-          'flex items-center gap-1 px-2 py-0.5 cursor-pointer hover:bg-[#2d2d30] rounded-sm group text-xs',
+          'flex items-center gap-1 px-2 py-0.5 cursor-grab active:cursor-grabbing hover:bg-[#2d2d30] rounded-sm group text-xs',
           isSelected && 'bg-[#1e3a5f]'
         )}
         onClick={() => {

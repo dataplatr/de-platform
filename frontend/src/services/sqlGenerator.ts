@@ -1,0 +1,116 @@
+import type {
+  TransformNode, TransformEdge, FilterCondition,
+  JoinConfig, AggregationConfig, SelectConfig, Column,
+} from '../types'
+
+/** Walk upstream from nodeId and return the first Source node's columns */
+export function getUpstreamColumns(
+  nodeId: string,
+  nodes: TransformNode[],
+  edges: TransformEdge[],
+): Column[] {
+  const node = nodes.find(n => n.id === nodeId)
+  if (!node) return []
+  if (node.type === 'source') return node.columns ?? []
+  const incoming = edges.filter(e => e.target === nodeId)
+  if (!incoming.length) return []
+  return getUpstreamColumns(incoming[0].source, nodes, edges)
+}
+
+/** Get columns coming through a specific handle (for Join left/right) */
+export function getColumnsForHandle(
+  nodeId: string,
+  handleId: 'a' | 'b',
+  nodes: TransformNode[],
+  edges: TransformEdge[],
+): Column[] {
+  const incoming = edges.filter(
+    e => e.target === nodeId &&
+      (handleId === 'a' ? (!e.targetHandle || e.targetHandle === 'a') : e.targetHandle === 'b'),
+  )
+  if (!incoming.length) return []
+  return getUpstreamColumns(incoming[0].source, nodes, edges)
+}
+
+/** Recursively build SQL for a node, using nested subqueries */
+export function generateNodeSQL(
+  nodeId: string,
+  nodes: TransformNode[],
+  edges: TransformEdge[],
+): string {
+  const node = nodes.find(n => n.id === nodeId)
+  if (!node) return '-- Node not found'
+
+  const incoming = edges.filter(e => e.target === nodeId)
+  const edgeA = incoming.find(e => !e.targetHandle || e.targetHandle === 'a')
+  const edgeB = incoming.find(e => e.targetHandle === 'b')
+
+  const sql = (id?: string) => (id ? generateNodeSQL(id, nodes, edges) : null)
+
+  switch (node.type) {
+    case 'source':
+      return `SELECT *\nFROM ${node.tableRef ?? 'undefined_table'}`
+
+    case 'filter': {
+      const upstream = sql(edgeA?.source)
+      if (!upstream) return '-- ⚠ Connect a source node'
+      const conds = (node.config as FilterCondition[]) ?? []
+      if (!conds.length) return `SELECT *\nFROM (\n  ${upstream}\n) _f`
+      const logic = conds[0]?.logic ?? 'AND'
+      const where = conds.map(condSQL).join(`\n  ${logic} `)
+      return `SELECT *\nFROM (\n  ${upstream}\n) _f\nWHERE ${where}`
+    }
+
+    case 'join': {
+      const lsql = sql(edgeA?.source)
+      const rsql = sql(edgeB?.source)
+      if (!lsql) return '-- ⚠ Connect the LEFT source (top handle)'
+      if (!rsql) return '-- ⚠ Connect the RIGHT source (bottom handle)'
+      const cfg = (node.config as JoinConfig) ?? { joinType: 'INNER', conditions: [], rightTable: '' }
+      const on = cfg.conditions?.length
+        ? cfg.conditions.map(c => `_l.${c.leftCol} = _r.${c.rightCol}`).join('\n    AND ')
+        : '/* add join conditions in Config tab */'
+      return `SELECT _l.*, _r.*\nFROM (\n  ${lsql}\n) _l\n${cfg.joinType} JOIN (\n  ${rsql}\n) _r\n  ON ${on}`
+    }
+
+    case 'aggregate': {
+      const upstream = sql(edgeA?.source)
+      if (!upstream) return '-- ⚠ Connect a source node'
+      const cfg = (node.config as AggregationConfig) ?? { groupBy: [], measures: [] }
+      const selects = [
+        ...cfg.groupBy,
+        ...cfg.measures.map(m => {
+          const alias = m.alias ?? `${m.func.toLowerCase()}_${m.column}`
+          return `${m.func}(${m.column}) AS ${alias}`
+        }),
+      ]
+      if (!selects.length) return `SELECT *\nFROM (\n  ${upstream}\n) _a`
+      const gb = cfg.groupBy.length ? `\nGROUP BY ${cfg.groupBy.join(', ')}` : ''
+      return `SELECT\n  ${selects.join(',\n  ')}\nFROM (\n  ${upstream}\n) _a${gb}`
+    }
+
+    case 'select': {
+      const upstream = sql(edgeA?.source)
+      if (!upstream) return '-- ⚠ Connect a source node'
+      const cfg = (node.config as SelectConfig) ?? { columns: [] }
+      if (!cfg.columns.length) return `SELECT *\nFROM (\n  ${upstream}\n) _s`
+      const cols = cfg.columns
+        .map(c => (c.alias ? `${c.source} AS ${c.alias}` : c.source))
+        .join(',\n  ')
+      return `SELECT\n  ${cols}\nFROM (\n  ${upstream}\n) _s`
+    }
+
+    default:
+      return '-- Unknown node type'
+  }
+}
+
+function condSQL(c: FilterCondition): string {
+  if (c.operator === 'IS NULL') return `${c.column} IS NULL`
+  if (c.operator === 'IS NOT NULL') return `${c.column} IS NOT NULL`
+  if (c.operator === 'IN' || c.operator === 'NOT IN') {
+    const vals = (c.value?.toString() ?? '').split(',').map(v => `'${v.trim()}'`).join(', ')
+    return `${c.column} ${c.operator} (${vals})`
+  }
+  return `${c.column} ${c.operator} '${c.value ?? ''}'`
+}
