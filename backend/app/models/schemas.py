@@ -1,0 +1,121 @@
+from pydantic import BaseModel, Field
+from typing import Any, Optional
+
+
+# --- Auth ---
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+# --- DuckDB connection ---
+
+class DuckDBConnectRequest(BaseModel):
+    path: Optional[str] = None  # None = in-memory
+
+
+# --- Schema browser ---
+
+class ColumnInfo(BaseModel):
+    name: str
+    type: str
+    nullable: bool = True
+
+
+class TableInfo(BaseModel):
+    name: str
+    columns: list[ColumnInfo]
+
+
+class SchemaInfo(BaseModel):
+    name: str
+    tables: list[TableInfo]
+
+
+class DatabaseInfo(BaseModel):
+    name: str
+    schemas: list[SchemaInfo]
+
+
+# --- Preview ---
+
+class PreviewRequest(BaseModel):
+    sql: str
+    limit: int = Field(default=100, ge=1, le=1000)
+
+
+class PreviewResult(BaseModel):
+    columns: list[str]
+    rows: list[list[Any]]
+    row_count: int
+    execution_time_ms: float
+    is_sampled: bool = False
+
+
+# --- CSV upload ---
+
+class CSVUploadResult(BaseModel):
+    table_name: str
+    row_count: int
+    columns: list[ColumnInfo]
+
+
+# --- SQL generation ---
+
+class SQLGenerateRequest(BaseModel):
+    transformation_type: str  # filter | join | aggregate | select
+    config: dict[str, Any]
+    input_tables: list[str]
+
+
+class SQLGenerateResult(BaseModel):
+    sql: str
+
+
+# --- Chat ---
+
+class ChatMessage(BaseModel):
+    role: str  # user | assistant
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    context: Optional[dict[str, Any]] = None
+
+
+class ChatResponse(BaseModel):
+    message: ChatMessage
+    suggested_nodes: Optional[list[dict[str, Any]]] = None
+
+
+# --- Transformation pipeline ---
+
+class NodeConfig(BaseModel):
+    type: str
+    label: str
+    config: dict[str, Any] = {}
+    position: dict[str, float] = Field(default_factory=lambda: {"x": 0, "y": 0})
+
+
+class EdgeConfig(BaseModel):
+    source: str
+    target: str
+
+
+class TransformationPipeline(BaseModel):
+    id: Optional[str] = None
+    name: str
+    nodes: list[dict[str, Any]] = []
+    edges: list[dict[str, Any]] = []
+
+
+class ExecuteRequest(BaseModel):
+    pipeline: TransformationPipeline
+    output_table: Optional[str] = None
