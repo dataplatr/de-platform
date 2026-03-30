@@ -10,6 +10,7 @@ from app.models.schemas import (
     SchemaInfo,
     TableInfo,
     PreviewResult,
+    PreviewColumnInfo,
     CSVUploadResult,
 )
 
@@ -51,21 +52,61 @@ def get_database_tree() -> list[DatabaseInfo]:
     return result
 
 
+def _map_duckdb_type(dtype: str) -> str:
+    """Map DuckDB type name to our frontend ColumnType enum."""
+    t = dtype.upper().split("(")[0].strip()
+    if t in ("INTEGER", "INT", "INT4", "INT2", "INT1", "BIGINT", "HUGEINT",
+             "SMALLINT", "TINYINT", "UBIGINT", "UINTEGER", "USMALLINT", "UTINYINT"):
+        return "INTEGER"
+    if t in ("DOUBLE", "FLOAT", "FLOAT4", "FLOAT8", "REAL"):
+        return "FLOAT"
+    if t in ("DECIMAL", "NUMERIC"):
+        return "NUMBER"
+    if t in ("VARCHAR", "TEXT", "STRING", "CHAR", "BPCHAR"):
+        return "VARCHAR"
+    if t in ("BOOLEAN", "BOOL", "LOGICAL"):
+        return "BOOLEAN"
+    if t == "DATE":
+        return "DATE"
+    if t.startswith("TIMESTAMP"):
+        return "TIMESTAMP"
+    if t == "JSON":
+        return "OBJECT"
+    if t.endswith("[]") or t.startswith("LIST") or t.startswith("ARRAY"):
+        return "ARRAY"
+    return "UNKNOWN"
+
+
 def preview_sql(sql: str, limit: int = 100) -> PreviewResult:
     conn = get_connection()
     start = time.perf_counter()
 
-    # Wrap the user's SQL in a limit subquery
+    # Get column names + types via DESCRIBE before running
+    try:
+        desc_rows = conn.execute(
+            f"DESCRIBE SELECT * FROM ({sql}) __q"
+        ).fetchall()
+        col_info = [
+            PreviewColumnInfo(name=r[0], type=_map_duckdb_type(r[1]))
+            for r in desc_rows
+        ]
+    except Exception:
+        col_info = []  # fallback — filled from rel.description below
+
+    # Execute with row limit
     wrapped = f"SELECT * FROM ({sql}) __q LIMIT {limit}"
     rel = conn.execute(wrapped)
     rows = rel.fetchall()
-    columns = [desc[0] for desc in rel.description]
+
+    # Fallback: if DESCRIBE failed, build col_info from result description
+    if not col_info:
+        col_info = [PreviewColumnInfo(name=desc[0], type="UNKNOWN") for desc in rel.description]
 
     elapsed_ms = (time.perf_counter() - start) * 1000
     serialized = [[_serialize(v) for v in row] for row in rows]
 
     return PreviewResult(
-        columns=columns,
+        columns=col_info,
         rows=serialized,
         row_count=len(rows),
         execution_time_ms=round(elapsed_ms, 2),
@@ -84,7 +125,6 @@ def _serialize(value: Any) -> Any:
 def upload_csv(file_bytes: bytes, filename: str) -> CSVUploadResult:
     import tempfile, os
 
-    conn = get_connection()
     table_name = os.path.splitext(filename)[0].replace("-", "_").replace(" ", "_").lower()
 
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
@@ -92,21 +132,38 @@ def upload_csv(file_bytes: bytes, filename: str) -> CSVUploadResult:
         tmp_path = tmp.name
 
     try:
-        conn.execute(f"""
-            CREATE OR REPLACE TABLE "{table_name}" AS
-            SELECT * FROM read_csv_auto('{tmp_path}', header=true)
-        """)
-        count = conn.execute(f'SELECT COUNT(*) FROM "{table_name}"').fetchone()[0]
-        cols_raw = conn.execute(f"""
-            SELECT column_name, data_type, is_nullable
-            FROM information_schema.columns
-            WHERE table_name = '{table_name}'
-            ORDER BY ordinal_position
-        """).fetchall()
-        columns = [ColumnInfo(name=r[0], type=r[1], nullable=(r[2] == "YES")) for r in cols_raw]
+        return _do_upload_csv(tmp_path, table_name)
+    except duckdb.TransactionException:
+        # Another process (e.g. VS Code DuckDB extension) holds the write lock.
+        # Reconnect to clear any stale transaction state and retry once.
+        try:
+            reconnect()
+            return _do_upload_csv(tmp_path, table_name)
+        except duckdb.TransactionException as exc:
+            raise RuntimeError(
+                "DuckDB write lock conflict: another process is holding an exclusive "
+                "lock on the database file. If you have a VS Code DuckDB extension "
+                "connected to this file, please disconnect it or set it to read-only "
+                "mode and retry."
+            ) from exc
     finally:
         os.unlink(tmp_path)
 
+
+def _do_upload_csv(tmp_path: str, table_name: str) -> CSVUploadResult:
+    conn = get_connection()
+    conn.execute(f"""
+        CREATE OR REPLACE TABLE "{table_name}" AS
+        SELECT * FROM read_csv_auto('{tmp_path}', header=true)
+    """)
+    count = conn.execute(f'SELECT COUNT(*) FROM "{table_name}"').fetchone()[0]
+    cols_raw = conn.execute(f"""
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns
+        WHERE table_name = '{table_name}'
+        ORDER BY ordinal_position
+    """).fetchall()
+    columns = [ColumnInfo(name=r[0], type=r[1], nullable=(r[2] == "YES")) for r in cols_raw]
     return CSVUploadResult(table_name=table_name, row_count=count, columns=columns)
 
 

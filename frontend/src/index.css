@@ -46,6 +46,11 @@
     @apply p-1.5 rounded hover:bg-[#3c3c3c] transition-colors cursor-pointer text-[#969696] hover:text-[#cccccc];
   }
 
+  /* Transform config column grid */
+  .transform-col-grid {
+    grid-template-columns: 20px 1fr 1fr 80px 20px;
+  }
+
   /* React Flow overrides */
   .react-flow__attribution {
     display: none !important;

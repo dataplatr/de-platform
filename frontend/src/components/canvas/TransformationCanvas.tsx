@@ -20,25 +20,32 @@ import { FilterNode } from './nodes/FilterNode'
 import { JoinNode } from './nodes/JoinNode'
 import { AggregateNode } from './nodes/AggregateNode'
 import { SelectNode } from './nodes/SelectNode'
+import { TransformNode as TransformNodeComponent } from './nodes/TransformNode'
+import { DeduplicateNode } from './nodes/DeduplicateNode'
 import { ContextMenu, type MenuItem } from './ContextMenu'
+import { SourceImportModal } from './SourceImportModal'
 import type { TransformNode } from '../../types'
 
 const nodeTypes: NodeTypes = {
-  source: SourceNode,
-  filter: FilterNode,
-  join: JoinNode,
-  aggregate: AggregateNode,
-  select: SelectNode,
+  source:      SourceNode,
+  filter:      FilterNode,
+  join:        JoinNode,
+  aggregate:   AggregateNode,
+  select:      SelectNode,
+  transform:   TransformNodeComponent,
+  deduplicate: DeduplicateNode,
 }
 
 const makeId = () => `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 
 const DEFAULT_CONFIGS: Record<string, TransformNode['config']> = {
-  filter:    [],
-  join:      { joinType: 'INNER', conditions: [], rightTable: '' },
-  aggregate: { groupBy: [], measures: [] },
-  select:    { columns: [] },
-  source:    null,
+  filter:      [],
+  join:        { joinType: 'INNER', conditions: [], rightTable: '' },
+  aggregate:   { groupBy: [], measures: [] },
+  select:      { columns: [] },
+  transform:   { columns: [] },
+  deduplicate: { partitionBy: [], orderBy: '', orderDir: 'DESC' },
+  source:      null,
 }
 
 export function TransformationCanvas() {
@@ -52,6 +59,12 @@ export function TransformationCanvas() {
   const onInit = useCallback((instance: ReactFlowInstance) => {
     rfInstance.current = instance
   }, [])
+
+  // Cache node dimensions so MiniMap can render them (ReactFlow measures async)
+  const measuredDims = useRef<Map<string, { width: number; height: number }>>(new Map())
+
+  // ── Source import modal ────────────────────────────────────────────────────
+  const [importPos, setImportPos] = useState<{ x: number; y: number } | null>(null)
 
   // ── Context menu ──────────────────────────────────────────────────────────
   const [ctxMenu, setCtxMenu] = useState<{
@@ -112,11 +125,13 @@ export function TransformationCanvas() {
     // Canvas context menu — add nodes
     const addItems: MenuItem[] = (
       [
-        { type: 'source' as const,    label: 'Source',    icon: '🗃️' },
-        { type: 'filter' as const,    label: 'Filter',    icon: '🔽' },
-        { type: 'join' as const,      label: 'Join',      icon: '🔗' },
-        { type: 'aggregate' as const, label: 'Aggregate', icon: '∑'  },
-        { type: 'select' as const,    label: 'Select',    icon: '📋' },
+        { type: 'source' as const,      label: 'Source',      icon: '🗃️' },
+        { type: 'filter' as const,      label: 'Filter',      icon: '🔽' },
+        { type: 'join' as const,        label: 'Join',        icon: '🔗' },
+        { type: 'transform' as const,   label: 'Transform',   icon: '⚡' },
+        { type: 'aggregate' as const,   label: 'Aggregate',   icon: '∑'  },
+        { type: 'deduplicate' as const, label: 'Deduplicate', icon: '⊘'  },
+        { type: 'select' as const,      label: 'Select',      icon: '📋' },
       ] as { type: TransformNode['type']; label: string; icon: string }[]
     ).map(({ type, label, icon }) => ({
       label: `Add ${label}`,
@@ -124,6 +139,10 @@ export function TransformationCanvas() {
       onClick: () => {
         const x = ctxMenu?.flowX ?? 200
         const y = ctxMenu?.flowY ?? 200
+        if (type === 'source') {
+          setImportPos({ x, y })
+          return
+        }
         addNode({
           id: makeId(),
           type,
@@ -182,11 +201,14 @@ export function TransformationCanvas() {
     })
   }, [addEdge])
 
-  // ── onNodesChange: CRITICAL — without this nodes snap back after drag ────
+  // ── onNodesChange: persist positions + cache dimensions for MiniMap ─────
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     changes.forEach(change => {
       if (change.type === 'position' && change.position) {
         updateNode(change.id, { position: change.position })
+      }
+      if (change.type === 'dimensions' && change.dimensions) {
+        measuredDims.current.set(change.id, change.dimensions)
       }
     })
   }, [updateNode])
@@ -208,13 +230,17 @@ export function TransformationCanvas() {
   }, [setSelectedNode, closeCtx])
 
   // ── Map store → ReactFlow ────────────────────────────────────────────────
-  const rfNodes: Node[] = nodes.map(n => ({
-    id: n.id,
-    type: n.type,
-    position: n.position,
-    data: { ...n },
-    selected: n.id === selectedNodeId,
-  }))
+  const rfNodes: Node[] = nodes.map(n => {
+    const dims = measuredDims.current.get(n.id)
+    return {
+      id: n.id,
+      type: n.type,
+      position: n.position,
+      data: { ...n },
+      selected: n.id === selectedNodeId,
+      ...(dims ? { measured: dims } : {}),
+    }
+  })
 
   const rfEdges: Edge[] = edges.map(e => ({
     id: e.id,
@@ -288,6 +314,13 @@ export function TransformationCanvas() {
           y={ctxMenu.y}
           items={buildMenuItems()}
           onClose={closeCtx}
+        />
+      )}
+
+      {importPos !== null && (
+        <SourceImportModal
+          position={importPos}
+          onClose={() => setImportPos(null)}
         />
       )}
     </div>

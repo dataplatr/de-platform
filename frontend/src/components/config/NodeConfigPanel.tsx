@@ -5,35 +5,42 @@ import { FilterConfig } from './FilterConfig'
 import { JoinConfig } from './JoinConfig'
 import { AggregateConfig } from './AggregateConfig'
 import { SelectConfig } from './SelectConfig'
+import { TransformConfig } from './TransformConfig'
+import { DeduplicateConfig } from './DeduplicateConfig'
 import {
   getUpstreamColumns,
   getColumnsForHandle,
   generateNodeSQL,
 } from '../../services/sqlGenerator'
-import type { FilterCondition, JoinConfig as JoinCfg, AggregationConfig, SelectConfig as SelectCfg } from '../../types'
+import type { FilterCondition, JoinConfig as JoinCfg, AggregationConfig, SelectConfig as SelectCfg, TransformConfig as TransformCfg, DeduplicateConfig as DedupCfg, TransformColumnDef } from '../../types'
 import { api } from '../../services/api'
 
 const NODE_COLORS: Record<string, string> = {
-  source:    'text-[#4fc1ff]',
-  filter:    'text-[#dcdcaa]',
-  join:      'text-[#4ec9b0]',
-  aggregate: 'text-[#c39dff]',
-  select:    'text-[#9cdcfe]',
+  source:      'text-[#4fc1ff]',
+  filter:      'text-[#dcdcaa]',
+  join:        'text-[#4ec9b0]',
+  aggregate:   'text-[#c39dff]',
+  select:      'text-[#9cdcfe]',
+  transform:   'text-[#c586c0]',
+  deduplicate: 'text-[#dcdcaa]',
 }
 
 const NODE_ICONS: Record<string, string> = {
-  source: '🗃️', filter: '🔽', join: '🔗', aggregate: '∑', select: '📋',
+  source: '🗃️', filter: '🔽', join: '🔗', aggregate: '∑',
+  select: '📋', transform: '⚡', deduplicate: '⊘',
 }
 
 export function NodeConfigPanel() {
   const {
     selectedNodeId, nodes, edges,
     setGeneratedSQL, setOutputPreview, setPreviewLoading, setBottomPanelTab,
+    updateNode,
   } = useTransformationStore()
 
   const node = nodes.find(n => n.id === selectedNodeId)
 
   // Regenerate SQL whenever the node config or graph changes
+  // Note: must come before early-return so hook order is stable
   useEffect(() => {
     if (!selectedNodeId) { setGeneratedSQL('-- Select a node to see its SQL'); return }
     const sql = generateNodeSQL(selectedNodeId, nodes, edges)
@@ -48,10 +55,13 @@ export function NodeConfigPanel() {
     setBottomPanelTab('output')
     try {
       const { data } = await api.preview(sql, 100)
+      // data.columns is now [{ name, type }] from the backend
+      type ColInfo = { name: string; type: string }
+      const cols = data.columns as ColInfo[]
       setOutputPreview({
-        columns: (data.columns as string[]).map(name => ({ name, type: 'UNKNOWN' })),
+        columns: cols.map(c => ({ name: c.name, type: c.type as import('../../types').ColumnType })),
         rows: (data.rows as unknown[][]).map(row =>
-          Object.fromEntries((data.columns as string[]).map((col, i) => [col, row[i]]))
+          Object.fromEntries(cols.map((c, i) => [c.name, row[i]]))
         ),
         totalRows: data.row_count,
         executionMs: data.execution_time_ms,
@@ -73,8 +83,29 @@ export function NodeConfigPanel() {
     )
   }
 
-  const upstreamCols = getUpstreamColumns(node.id, nodes, edges)
-  const leftCols = getColumnsForHandle(node.id, 'a', nodes, edges)
+  // For the config panel we need the columns flowing INTO this node from its parents,
+  // not the node's own output schema. Follow the incoming edge(s) to the parent.
+  const incomingEdges = edges.filter(e => e.target === node.id)
+  const upstreamCols = node.type === 'source'
+    ? (node.columns ?? [])
+    : incomingEdges.length > 0
+      ? getUpstreamColumns(incomingEdges[0].source, nodes, edges)
+      : []
+
+  // Auto-initialize Transform config from upstream columns when empty
+  if (node.type === 'transform' && upstreamCols.length > 0) {
+    const cfg = node.config as TransformCfg | null
+    if (!cfg || cfg.columns.length === 0) {
+      const init: TransformColumnDef[] = upstreamCols.map(c => ({
+        source: c.name, outputName: c.name, castType: '', expression: '', enabled: true,
+      }))
+      // Use setTimeout to avoid setState-during-render
+      setTimeout(() => updateNode(node.id, { config: { columns: init } as TransformCfg }), 0)
+    }
+  }
+
+  // Join-specific: columns per handle
+  const leftCols  = getColumnsForHandle(node.id, 'a', nodes, edges)
   const rightCols = getColumnsForHandle(node.id, 'b', nodes, edges)
 
   return (
@@ -149,6 +180,22 @@ export function NodeConfigPanel() {
           <SelectConfig
             nodeId={node.id}
             config={(node.config as SelectCfg) ?? { columns: [] }}
+            columns={upstreamCols}
+          />
+        )}
+
+        {node.type === 'transform' && (
+          <TransformConfig
+            nodeId={node.id}
+            config={(node.config as TransformCfg) ?? { columns: [] }}
+            columns={upstreamCols}
+          />
+        )}
+
+        {node.type === 'deduplicate' && (
+          <DeduplicateConfig
+            nodeId={node.id}
+            config={(node.config as DedupCfg) ?? { partitionBy: [], orderBy: '', orderDir: 'DESC' }}
             columns={upstreamCols}
           />
         )}

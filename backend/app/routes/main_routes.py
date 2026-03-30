@@ -120,7 +120,10 @@ def db_preview(req: PreviewRequest):
 
 @router.post("/db/upload-csv", dependencies=[Depends(get_current_user)])
 async def db_upload_csv(file: UploadFile = File(...)):
-    return await db_controller.upload_csv(file)
+    try:
+        return await db_controller.upload_csv(file)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.post("/db/generate-sql", dependencies=[Depends(get_current_user)])

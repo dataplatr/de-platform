@@ -68,8 +68,13 @@ class PreviewRequest(BaseModel):
     limit: int = Field(default=100, ge=1, le=1000)
 
 
+class PreviewColumnInfo(BaseModel):
+    name: str
+    type: str  # mapped to frontend ColumnType string
+
+
 class PreviewResult(BaseModel):
-    columns: list[str]
+    columns: list[PreviewColumnInfo]
     rows: list[list[Any]]
     row_count: int
     execution_time_ms: float

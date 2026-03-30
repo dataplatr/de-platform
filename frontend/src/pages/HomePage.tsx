@@ -146,11 +146,13 @@ export function HomePage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {pipelines.map((p) => (
-              <button
+              <div
                 key={p.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => handleOpen(p)}
-                className="group relative flex flex-col items-start gap-2 p-4 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#4fc1ff] hover:bg-[#2d2d30] transition-all text-left"
+                onKeyDown={(e) => e.key === 'Enter' && handleOpen(p)}
+                className="group relative flex flex-col items-start gap-2 p-4 rounded-lg bg-[#252526] border border-[#3c3c3c] hover:border-[#4fc1ff] hover:bg-[#2d2d30] transition-all text-left cursor-pointer"
               >
                 {/* Delete */}
                 <button
@@ -176,7 +178,7 @@ export function HomePage() {
                   <Clock size={9} />
                   <span>Updated {timeAgo(p.updated_at)}</span>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         )}

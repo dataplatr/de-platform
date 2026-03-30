@@ -28,7 +28,7 @@ export interface DatabaseTree {
 
 // ─── Transformation Node Types ────────────────────────────────────────────────
 
-export type NodeType = 'source' | 'filter' | 'join' | 'aggregate' | 'select'
+export type NodeType = 'source' | 'filter' | 'join' | 'aggregate' | 'select' | 'transform' | 'deduplicate'
 
 export interface FilterCondition {
   id: string
@@ -53,7 +53,26 @@ export interface SelectConfig {
   columns: { source: string; alias?: string }[]
 }
 
-export type NodeConfig = FilterCondition[] | JoinConfig | AggregationConfig | SelectConfig | null
+/** Per-column definition inside a Transform node */
+export interface TransformColumnDef {
+  source: string       // original column name (empty = new derived column)
+  outputName: string   // output name (rename target)
+  castType: string     // '' = no cast; 'VARCHAR' | 'INTEGER' | 'FLOAT' | 'DATE' | 'TIMESTAMP' | 'BOOLEAN'
+  expression: string   // '' = passthrough; otherwise a SQL expression replacing the column value
+  enabled: boolean
+}
+
+export interface TransformConfig {
+  columns: TransformColumnDef[]
+}
+
+export interface DeduplicateConfig {
+  partitionBy: string[]                      // columns that define a unique row
+  orderBy: string                            // column to determine which duplicate to keep
+  orderDir: 'ASC' | 'DESC'                  // ASC = keep lowest value, DESC = keep latest/highest
+}
+
+export type NodeConfig = FilterCondition[] | JoinConfig | AggregationConfig | SelectConfig | TransformConfig | DeduplicateConfig | null
 
 export interface TransformNode {
   id: string
