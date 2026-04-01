@@ -207,6 +207,26 @@ export function generateNodeSQL(
       return `SELECT *\nFROM (\n  SELECT *, ROW_NUMBER() OVER (PARTITION BY ${partBy} ${orderBy}) AS _rn\n  FROM (\n    ${upstream.replace(/\n/g, '\n    ')}\n  ) _d\n) _dedup\nWHERE _rn = 1`
     }
 
+    case 'output': {
+      // Many-to-many: collect all incoming edges and UNION ALL their SQL
+      if (!incoming.length) return '-- ⚠ Connect at least one node to the Output'
+      if (incoming.length === 1) {
+        const upstream = sql(incoming[0].source)
+        if (!upstream) return '-- ⚠ No upstream node'
+        const cfg = node.config as { targetTable?: string } | null
+        const table = cfg?.targetTable || node.label || 'output'
+        return `-- Output: ${table}\n${upstream}`
+      }
+      // Multiple inputs → UNION ALL
+      const parts = incoming
+        .map(e => sql(e.source))
+        .filter((s): s is string => !!s)
+      if (!parts.length) return '-- ⚠ No valid upstream nodes'
+      const cfg = node.config as { targetTable?: string } | null
+      const table = cfg?.targetTable || node.label || 'output'
+      return `-- Output: ${table} (${parts.length} sources)\n${parts.join('\n\nUNION ALL\n\n')}`
+    }
+
     default:
       return '-- Unknown node type'
   }

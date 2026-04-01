@@ -17,14 +17,14 @@ function ColumnTypeTag({ type }: { type: string }) {
     DATE: 'text-[#ce9178]',
     TIMESTAMP: 'text-[#ce9178]',
     BOOLEAN: 'text-[#569cd6]',
-    UNKNOWN: 'text-[#6a6a6a]',
+    UNKNOWN: 'text-muted',
   }
   const abbr: Record<string, string> = {
     TEXT: 'str', VARCHAR: 'str', NUMBER: 'num', INTEGER: 'int',
     FLOAT: 'flt', DATE: 'date', TIMESTAMP: 'ts', BOOLEAN: 'bool',
   }
   return (
-    <span className={clsx('text-[10px] font-mono shrink-0', colors[type] ?? 'text-[#6a6a6a]')}>
+    <span className={clsx('text-[10px] font-mono shrink-0', colors[type] ?? 'text-muted')}>
       {abbr[type] ?? type.toLowerCase().slice(0, 4)}
     </span>
   )
@@ -56,7 +56,7 @@ function TableNode({
         draggable
         onDragStart={onDragStart}
         className={clsx(
-          'flex items-center gap-1 px-2 py-0.5 cursor-grab active:cursor-grabbing hover:bg-[#2d2d30] rounded-sm group text-xs',
+          'flex items-center gap-1 px-2 py-0.5 cursor-grab active:cursor-grabbing hover:bg-elevated rounded-sm group text-xs',
           isSelected && 'bg-[#1e3a5f]'
         )}
         onClick={() => {
@@ -64,14 +64,14 @@ function TableNode({
           setSelectedTableSchema({ database: dbName, schema: schemaName, table: tableName, columns })
         }}
       >
-        <span className="text-[#6a6a6a] w-3 shrink-0">
+        <span className="text-muted w-3 shrink-0">
           {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
         </span>
         <Table2 size={12} className="text-[#4ec9b0] shrink-0" />
-        <span className="truncate text-[#cccccc]">{tableName}</span>
+        <span className="truncate text-primary">{tableName}</span>
         <button
           type="button"
-          className="ml-auto opacity-0 group-hover:opacity-100 text-[#6a6a6a] hover:text-[#cccccc] px-1"
+          className="ml-auto opacity-0 group-hover:opacity-100 text-muted hover:text-primary px-1"
           onClick={(e) => { e.stopPropagation() }}
           title="Add to canvas"
         >
@@ -80,18 +80,18 @@ function TableNode({
       </div>
 
       {expanded && (
-        <div className="ml-6 border-l border-[#3c3c3c]">
+        <div className="ml-6 border-l border-theme">
           {columns.map((col) => (
-            <div key={col.name} className="flex items-center gap-1.5 px-2 py-0.5 text-xs text-[#969696]">
+            <div key={col.name} className="flex items-center gap-1.5 px-2 py-0.5 text-xs text-secondary">
               <ColumnTypeTag type={col.type} />
               <span className="truncate">{col.name}</span>
               {col.nullable === false && (
-                <span className="ml-auto text-[9px] text-[#6a6a6a]">NN</span>
+                <span className="ml-auto text-[9px] text-muted">NN</span>
               )}
             </div>
           ))}
           {columns.length === 0 && (
-            <div className="px-2 py-0.5 text-[10px] text-[#6a6a6a]">No columns</div>
+            <div className="px-2 py-0.5 text-[10px] text-muted">No columns</div>
           )}
         </div>
       )}
@@ -108,14 +108,14 @@ function SchemaNode({ dbName, schema }: {
   return (
     <div>
       <div
-        className="flex items-center gap-1 px-2 py-0.5 cursor-pointer hover:bg-[#2d2d30] rounded-sm text-xs text-[#969696]"
+        className="flex items-center gap-1 px-2 py-0.5 cursor-pointer hover:bg-elevated rounded-sm text-xs text-secondary"
         onClick={() => setExpanded(!expanded)}
       >
         <span className="w-3 shrink-0">
           {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
         </span>
         <span className="truncate">{schema.name}</span>
-        <span className="ml-auto text-[10px] text-[#6a6a6a]">{schema.tables.length}</span>
+        <span className="ml-auto text-[10px] text-muted">{schema.tables.length}</span>
       </div>
       {expanded && schema.tables.map((t) => (
         <div key={t.name} className="ml-3">
@@ -139,13 +139,13 @@ function DatabaseNode({ db }: {
   return (
     <div>
       <div
-        className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-[#2d2d30] rounded-sm text-xs font-medium text-[#cccccc]"
+        className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-elevated rounded-sm text-xs font-medium text-primary"
         onClick={() => setExpanded(!expanded)}
       >
         <span className="w-3 shrink-0">
           {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
         </span>
-        <Database size={12} className="text-[#4fc1ff] shrink-0" />
+        <Database size={12} className="text-[var(--accent-fg)] shrink-0" />
         <span className="truncate">{db.name.toUpperCase()}</span>
       </div>
       {expanded && db.schemas.map((s) => (
@@ -174,10 +174,10 @@ export function ObjectNavigator() {
   const treeToShow = search ? filtered : databaseTree
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="themed-panel flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[#3c3c3c] bg-[#252526] shrink-0">
-        <span className="text-xs font-medium text-[#cccccc] uppercase tracking-wider">Sources</span>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-theme bg-surface shrink-0">
+        <span className="text-xs font-medium text-primary uppercase tracking-wider">Sources</span>
         <div className="flex items-center gap-1">
           {!isConnected && (
             <Loader2 size={11} className="text-[#dcdcaa] animate-spin" />
@@ -192,15 +192,15 @@ export function ObjectNavigator() {
       </div>
 
       {/* Search */}
-      <div className="px-2 py-1.5 border-b border-[#3c3c3c] shrink-0">
-        <div className="flex items-center gap-1.5 bg-[#3c3c3c] rounded px-2 py-1">
-          <Search size={11} className="text-[#6a6a6a] shrink-0" />
+      <div className="px-2 py-1.5 border-b border-theme shrink-0">
+        <div className="flex items-center gap-1.5 bg-elevated rounded px-2 py-1">
+          <Search size={11} className="text-muted shrink-0" />
           <input
             type="text"
             placeholder="Filter tables…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent text-xs text-[#cccccc] placeholder-[#6a6a6a] outline-none w-full"
+            className="bg-transparent text-xs text-primary placeholder-[#6a6a6a] outline-none w-full"
           />
         </div>
       </div>
@@ -210,23 +210,23 @@ export function ObjectNavigator() {
         {/* CSV Files section */}
         {csvSources.length > 0 && (
           <div className="mb-1">
-            <div className="flex items-center gap-1 px-2 py-0.5 text-xs text-[#969696]">
+            <div className="flex items-center gap-1 px-2 py-0.5 text-xs text-secondary">
               <FileSpreadsheet size={11} className="text-[#dcdcaa]" />
               <span className="uppercase tracking-wider text-[10px]">Local Files</span>
             </div>
             {csvSources.map((csv) => (
-              <div key={csv.id} className="flex items-center gap-1.5 px-4 py-0.5 text-xs text-[#cccccc] hover:bg-[#2d2d30] cursor-pointer">
+              <div key={csv.id} className="flex items-center gap-1.5 px-4 py-0.5 text-xs text-primary hover:bg-elevated cursor-pointer">
                 <FileSpreadsheet size={11} className="text-[#dcdcaa]" />
                 <span className="truncate">{csv.filename}</span>
               </div>
             ))}
-            <div className="mx-2 my-1 h-px bg-[#3c3c3c]" />
+            <div className="mx-2 my-1 h-px border-theme" />
           </div>
         )}
 
         {/* Not connected yet */}
         {!isConnected && databaseTree.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-8 text-[#6a6a6a]">
+          <div className="flex flex-col items-center gap-2 py-8 text-muted">
             <Loader2 size={16} className="animate-spin text-[#dcdcaa]" />
             <span className="text-xs">Connecting to DuckDB…</span>
           </div>

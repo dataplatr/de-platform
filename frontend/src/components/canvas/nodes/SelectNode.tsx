@@ -1,8 +1,9 @@
+import { memo } from 'react'
 import type { NodeProps } from '@xyflow/react'
 import { BaseNode } from './BaseNode'
 import type { SelectConfig } from '../../../types'
 
-export function SelectNode({ data, selected }: NodeProps) {
+export const SelectNode = memo(function SelectNode({ data, selected }: NodeProps) {
   const nodeData = data as { label?: string; config?: SelectConfig; status?: 'idle' | 'running' | 'success' | 'error' }
   const cfg = nodeData.config
 
@@ -10,8 +11,7 @@ export function SelectNode({ data, selected }: NodeProps) {
     <BaseNode
       label={nodeData.label ?? 'Select'}
       icon="📋"
-      colorClass="bg-[#1e2b3a]"
-      borderColorClass="border-[#2e3b4a]"
+      nodeClass="node-select"
       selected={selected}
       status={nodeData.status}
     >
@@ -31,4 +31,4 @@ export function SelectNode({ data, selected }: NodeProps) {
       )}
     </BaseNode>
   )
-}
+})

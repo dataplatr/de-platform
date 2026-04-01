@@ -17,37 +17,37 @@ export function DeduplicateConfig({ nodeId, config, columns }: Props) {
   return (
     <div className="flex flex-col gap-4">
       {columns.length === 0 && (
-        <p className="text-[11px] text-[#6a6a6a] italic">Connect a source node first.</p>
+        <p className="text-[11px] text-muted italic">Connect a source node first.</p>
       )}
 
       {/* Partition by */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[10px] text-[#969696] uppercase tracking-wider">
-          Deduplicate on <span className="text-[#6a6a6a] normal-case">(unique key columns)</span>
+        <span className="text-[10px] text-secondary uppercase tracking-wider">
+          Deduplicate on <span className="text-muted normal-case">(unique key columns)</span>
         </span>
         <MultiSelectDropdown
           options={names}
           selected={config.partitionBy}
           onChange={v => set({ partitionBy: v })}
           placeholder="Select key columns…"
-          accent="text-[#4ec9b0]"
+          accent="text-[var(--success)]"
         />
-        <p className="text-[10px] text-[#6a6a6a]">
+        <p className="text-[10px] text-muted">
           Rows with the same values in these columns are duplicates. Leave empty to DISTINCT the entire row.
         </p>
       </div>
 
-      {/* Order by — determines which duplicate to keep */}
+      {/* Order by */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-[10px] text-[#969696] uppercase tracking-wider">
-          Keep <span className="text-[#6a6a6a] normal-case">(order by)</span>
+        <span className="text-[10px] text-secondary uppercase tracking-wider">
+          Keep <span className="text-muted normal-case">(order by)</span>
         </span>
 
         <div className="flex items-center gap-2">
           <select
             value={config.orderBy}
             onChange={e => set({ orderBy: e.target.value })}
-            className="flex-1 bg-[#2d2d30] border border-[#3c3c3c] text-[#9cdcfe] text-xs rounded px-2 py-1 outline-none"
+            className="flex-1 bg-elevated border border-theme text-[var(--step-select)] text-xs rounded px-2 py-1 outline-none"
           >
             <option value="">— no ordering —</option>
             {names.map(n => <option key={n} value={n}>{n}</option>)}
@@ -57,14 +57,14 @@ export function DeduplicateConfig({ nodeId, config, columns }: Props) {
             value={config.orderDir}
             onChange={e => set({ orderDir: e.target.value as Cfg['orderDir'] })}
             disabled={!config.orderBy}
-            className="bg-[#2d2d30] border border-[#3c3c3c] text-[#969696] text-xs rounded px-2 py-1 outline-none disabled:opacity-40"
+            className="bg-elevated border border-theme text-secondary text-xs rounded px-2 py-1 outline-none disabled:opacity-40"
           >
             <option value="DESC">DESC (keep latest/highest)</option>
             <option value="ASC">ASC (keep earliest/lowest)</option>
           </select>
         </div>
 
-        <p className="text-[10px] text-[#6a6a6a]">
+        <p className="text-[10px] text-muted">
           {config.orderBy
             ? `Keeps the row with the ${config.orderDir === 'DESC' ? 'highest' : 'lowest'} ${config.orderBy}.`
             : 'No order column — keeps an arbitrary duplicate.'}

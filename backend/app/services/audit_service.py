@@ -1,4 +1,6 @@
 from typing import Optional
+
+from app.constants import AUDIT_MAX_LIMIT
 from app.db.auth_db import get_auth_conn
 
 
@@ -24,21 +26,18 @@ def log_activity(
 
 
 def get_audit_log(limit: int = 200, offset: int = 0) -> list[dict]:
+    safe_limit = min(max(1, limit), AUDIT_MAX_LIMIT)
     rows = get_auth_conn().execute(
-        """SELECT * FROM audit_log
-           ORDER BY timestamp DESC
-           LIMIT ? OFFSET ?""",
-        (limit, offset),
+        "SELECT * FROM audit_log ORDER BY timestamp DESC LIMIT ? OFFSET ?",
+        (safe_limit, offset),
     ).fetchall()
     return [dict(r) for r in rows]
 
 
 def get_user_activity(user_id: int, limit: int = 100) -> list[dict]:
+    safe_limit = min(max(1, limit), AUDIT_MAX_LIMIT)
     rows = get_auth_conn().execute(
-        """SELECT * FROM audit_log
-           WHERE user_id = ?
-           ORDER BY timestamp DESC
-           LIMIT ?""",
-        (user_id, limit),
+        "SELECT * FROM audit_log WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?",
+        (user_id, safe_limit),
     ).fetchall()
     return [dict(r) for r in rows]

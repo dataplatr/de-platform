@@ -1,8 +1,9 @@
+import { memo } from 'react'
 import type { NodeProps } from '@xyflow/react'
 import { BaseNode } from './BaseNode'
 import type { AggregationConfig } from '../../../types'
 
-export function AggregateNode({ data, selected }: NodeProps) {
+export const AggregateNode = memo(function AggregateNode({ data, selected }: NodeProps) {
   const nodeData = data as { label?: string; config?: AggregationConfig; status?: 'idle' | 'running' | 'success' | 'error' }
   const cfg = nodeData.config
 
@@ -10,8 +11,7 @@ export function AggregateNode({ data, selected }: NodeProps) {
     <BaseNode
       label={nodeData.label ?? 'Aggregate'}
       icon="∑"
-      colorClass="bg-[#2b1e3a]"
-      borderColorClass="border-[#3b2e4a]"
+      nodeClass="node-aggregate"
       selected={selected}
       status={nodeData.status}
     >
@@ -35,4 +35,4 @@ export function AggregateNode({ data, selected }: NodeProps) {
       )}
     </BaseNode>
   )
-}
+})

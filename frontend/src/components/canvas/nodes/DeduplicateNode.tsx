@@ -11,8 +11,7 @@ export const DeduplicateNode = memo(({ data, selected }: NodeProps) => {
     <BaseNode
       label={node.label}
       icon="⊘"
-      colorClass="bg-[#2b2b1e]"
-      borderColorClass="border-[#4a4a2e]"
+      nodeClass="node-deduplicate"
       selected={selected}
       status={node.status ?? 'idle'}
     >

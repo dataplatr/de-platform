@@ -41,7 +41,7 @@ export function JoinConfig({ nodeId, config, leftColumns, rightColumns }: Props)
     <div className="flex flex-col gap-4">
       {/* Join type */}
       <div className="flex flex-col gap-1.5">
-        <label className="text-[10px] text-[#969696] uppercase tracking-wider">Join Type</label>
+        <label className="text-[10px] text-secondary uppercase tracking-wider">Join Type</label>
         <div className="flex gap-1 flex-wrap">
           {JOIN_TYPES.map(t => (
             <button
@@ -50,8 +50,8 @@ export function JoinConfig({ nodeId, config, leftColumns, rightColumns }: Props)
               onClick={() => set({ joinType: t })}
               className={`px-2 py-1 rounded text-[11px] transition-colors ${
                 config.joinType === t
-                  ? 'bg-[#0e639c] text-white'
-                  : 'bg-[#2d2d30] text-[#969696] hover:bg-[#3c3c3c]'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'bg-elevated text-secondary hover:bg-[var(--bg-input)]'
               }`}
             >
               {t}
@@ -61,25 +61,25 @@ export function JoinConfig({ nodeId, config, leftColumns, rightColumns }: Props)
       </div>
 
       {/* Connection hint */}
-      <div className="bg-[#1e3a2b] border border-[#2e4a3b] rounded p-2 text-[11px] text-[#4ec9b0]">
+      <div className="bg-[var(--node-join-bg)] border border-[var(--node-join-border)] rounded p-2 text-[11px] text-[var(--success)]">
         🔗 Connect <strong>Left</strong> (top handle) and <strong>Right</strong> (bottom handle) source nodes on the canvas.
       </div>
 
       {/* Join conditions */}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-[#969696] uppercase tracking-wider">On</span>
+          <span className="text-[10px] text-secondary uppercase tracking-wider">On</span>
           <button
             type="button"
             onClick={addCondition}
-            className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-[#0e639c] hover:bg-[#1177bb] text-white transition-colors"
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors"
           >
             <Plus size={11} /> Add
           </button>
         </div>
 
         {config.conditions.length === 0 && (
-          <p className="text-[11px] text-[#6a6a6a] italic">No conditions — will cross join.</p>
+          <p className="text-[11px] text-muted italic">No conditions — will cross join.</p>
         )}
 
         {config.conditions.map((cond, i) => (
@@ -87,21 +87,21 @@ export function JoinConfig({ nodeId, config, leftColumns, rightColumns }: Props)
             <select
               value={cond.leftCol}
               onChange={e => updateCond(i, { leftCol: e.target.value })}
-              className="flex-1 bg-[#2d2d30] border border-[#3c3c3c] text-[#9cdcfe] text-xs rounded px-1.5 py-1 outline-none"
+              className="flex-1 bg-elevated border border-theme text-[var(--step-select)] text-xs rounded px-1.5 py-1 outline-none"
             >
               {leftColumns.length === 0 && <option value="">-- connect left --</option>}
               {leftColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
             </select>
-            <span className="text-[#6a6a6a] text-xs shrink-0">=</span>
+            <span className="text-muted text-xs shrink-0">=</span>
             <select
               value={cond.rightCol}
               onChange={e => updateCond(i, { rightCol: e.target.value })}
-              className="flex-1 bg-[#2d2d30] border border-[#3c3c3c] text-[#4ec9b0] text-xs rounded px-1.5 py-1 outline-none"
+              className="flex-1 bg-elevated border border-theme text-[var(--success)] text-xs rounded px-1.5 py-1 outline-none"
             >
               {rightColumns.length === 0 && <option value="">-- connect right --</option>}
               {rightColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
             </select>
-            <button type="button" onClick={() => removeCond(i)} className="p-1 rounded hover:bg-[#3a1e1e] text-[#6a6a6a] hover:text-[#f44747] transition-colors">
+            <button type="button" onClick={() => removeCond(i)} className="p-1 rounded hover:bg-[var(--node-filter-bg)] text-muted hover:text-error transition-colors">
               <X size={12} />
             </button>
           </div>

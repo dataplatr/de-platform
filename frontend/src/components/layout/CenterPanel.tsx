@@ -45,15 +45,15 @@ export function CenterPanel() {
 
       {/* Vertical resize handle */}
       <div
-        className={`flex items-center justify-center h-1.5 border-t border-b border-[#3c3c3c] cursor-row-resize shrink-0 hover:bg-[#3c3c3c] transition-colors ${isDragging ? 'bg-[#3c3c3c]' : 'bg-[#1e1e1e]'}`}
+        className={`center-divider flex items-center justify-center h-1.5 cursor-row-resize shrink-0 ${isDragging ? 'bg-[var(--accent)]' : ''}`}
         onMouseDown={handleDividerMouseDown}
       >
-        <GripHorizontal size={12} className="text-[#6a6a6a]" />
+        <GripHorizontal size={12} className="text-muted" />
       </div>
 
       {/* Preview panel */}
       {/* eslint-disable-next-line react/forbid-component-props */}
-      <div className="shrink-0 border-t border-[#3c3c3c] overflow-hidden" style={{ height: previewHeight }}>
+      <div className="shrink-0 overflow-hidden" style={{ height: previewHeight }}>
         <DataPreview />
       </div>
     </div>

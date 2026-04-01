@@ -18,45 +18,45 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-surface">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-app">
       {/* Card */}
-      <div className="w-full max-w-sm bg-surface-1 border border-border rounded-lg px-8 py-10 flex flex-col gap-6 shadow-2xl">
+      <div className="w-full max-w-sm bg-surface border border-theme rounded-lg px-8 py-10 flex flex-col gap-6 shadow-2xl">
 
         {/* Logo + product name */}
         <div className="flex flex-col items-center gap-3">
           <img src={logoWhite} alt="Company logo" className="h-9 w-auto object-contain" />
           <div className="text-center">
-            <p className="text-text-dim text-xs tracking-widest uppercase mt-1">Lakeflow Designer</p>
+            <p className="text-muted text-xs tracking-widest uppercase mt-1">Lakeflow Designer</p>
           </div>
         </div>
 
         {/* Title */}
-        <h1 className="text-text-bright text-lg font-semibold text-center">Sign in to your account</h1>
+        <h1 className="text-primary text-lg font-semibold text-center">Sign in to your account</h1>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-text-dim text-xs font-medium uppercase tracking-wide">Username</label>
+            <label className="text-muted text-xs font-medium uppercase tracking-wide">Username</label>
             <input
               type="text"
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              className="bg-surface border border-border rounded px-3 py-2 text-sm text-text placeholder-text-dim focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+              className="bg-elevated border border-theme rounded px-3 py-2 text-sm text-primary placeholder-[var(--text-3)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
               placeholder="admin"
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-text-dim text-xs font-medium uppercase tracking-wide">Password</label>
+            <label className="text-muted text-xs font-medium uppercase tracking-wide">Password</label>
             <input
               type="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="bg-surface border border-border rounded px-3 py-2 text-sm text-text placeholder-text-dim focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+              className="bg-elevated border border-theme rounded px-3 py-2 text-sm text-primary placeholder-[var(--text-3)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)]"
               placeholder="••••••••"
             />
           </div>
@@ -68,7 +68,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className="mt-1 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded px-4 py-2 transition-colors"
+            className="login-submit-btn mt-1 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded px-4 py-2 transition-colors"
           >
             {isLoading ? 'Signing in…' : 'Sign in'}
           </button>
@@ -76,9 +76,9 @@ export function LoginPage() {
 
         {/* Divider */}
         <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-border" />
-          <span className="text-text-dim text-xs">or continue with</span>
-          <div className="flex-1 h-px bg-border" />
+          <div className="flex-1 h-px bg-elevated" />
+          <span className="text-muted text-xs">or continue with</span>
+          <div className="flex-1 h-px bg-elevated" />
         </div>
 
         {/* OAuth buttons — UI only, logic coming soon */}
@@ -87,7 +87,7 @@ export function LoginPage() {
             type="button"
             disabled
             title="Coming soon"
-            className="flex items-center justify-center gap-3 border border-border rounded px-4 py-2 text-sm text-text-dim cursor-not-allowed opacity-50 select-none"
+            className="flex items-center justify-center gap-3 border border-theme rounded px-4 py-2 text-sm text-muted cursor-not-allowed opacity-50 select-none"
           >
             {/* Google G icon */}
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -97,14 +97,14 @@ export function LoginPage() {
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
             <span>Google Workspace</span>
-            <span className="ml-auto text-[10px] bg-surface-2 text-text-dim rounded px-1.5 py-0.5">Soon</span>
+            <span className="ml-auto text-[10px] bg-elevated text-muted rounded px-1.5 py-0.5">Soon</span>
           </button>
 
           <button
             type="button"
             disabled
             title="Coming soon"
-            className="flex items-center justify-center gap-3 border border-border rounded px-4 py-2 text-sm text-text-dim cursor-not-allowed opacity-50 select-none"
+            className="flex items-center justify-center gap-3 border border-theme rounded px-4 py-2 text-sm text-muted cursor-not-allowed opacity-50 select-none"
           >
             {/* Microsoft icon */}
             <svg className="w-4 h-4 shrink-0" viewBox="0 0 21 21" fill="none" aria-hidden>
@@ -114,12 +114,12 @@ export function LoginPage() {
               <rect x="11" y="11" width="9" height="9" fill="#FFB900"/>
             </svg>
             <span>Microsoft Workspace</span>
-            <span className="ml-auto text-[10px] bg-surface-2 text-text-dim rounded px-1.5 py-0.5">Soon</span>
+            <span className="ml-auto text-[10px] bg-elevated text-muted rounded px-1.5 py-0.5">Soon</span>
           </button>
         </div>
 
-        <p className="text-text-dim text-[11px] text-center">
-          Default credentials: <span className="font-mono text-text-default">admin / admin</span>
+        <p className="text-muted text-[11px] text-center">
+          Default credentials: <span className="font-mono text-primary">admin / admin</span>
         </p>
       </div>
     </div>

@@ -7,6 +7,7 @@ import { useResize } from '../../hooks/useResize'
 import { useTransformationStore } from '../../store/transformationStore'
 import { api } from '../../services/api'
 import type { DatabaseTree } from '../../types'
+import { normalizeColumnType } from '../../utils/typeUtils'
 
 function ResizeHandle({
   axis,
@@ -20,8 +21,8 @@ function ResizeHandle({
       onMouseDown={onMouseDown}
       className={
         axis === 'x'
-          ? 'w-1 shrink-0 bg-[#3c3c3c] hover:bg-accent cursor-col-resize transition-colors group relative z-20'
-          : 'h-1 shrink-0 bg-[#3c3c3c] hover:bg-accent cursor-row-resize transition-colors group relative z-20'
+          ? 'w-1 shrink-0 resize-handle cursor-col-resize group relative z-20'
+          : 'h-1 shrink-0 resize-handle cursor-row-resize group relative z-20'
       }
     >
       {/* Visual grip dots */}
@@ -36,17 +37,6 @@ function ResizeHandle({
       </div>
     </div>
   )
-}
-
-function normalizeType(duckType: string): string {
-  const t = duckType.toUpperCase()
-  if (t.includes('INT')) return 'INTEGER'
-  if (t.includes('FLOAT') || t.includes('DOUBLE') || t.includes('DECIMAL') || t.includes('NUMERIC')) return 'FLOAT'
-  if (t.includes('VARCHAR') || t.includes('TEXT') || t.includes('CHAR')) return 'VARCHAR'
-  if (t.includes('BOOL')) return 'BOOLEAN'
-  if (t.includes('TIMESTAMP')) return 'TIMESTAMP'
-  if (t === 'DATE') return 'DATE'
-  return 'UNKNOWN'
 }
 
 export function AppShell() {
@@ -70,7 +60,7 @@ export function AppShell() {
               name: table.name,
               columns: (table.columns ?? []).map((col) => ({
                 name: col.name,
-                type: normalizeType(col.type),
+                type: normalizeColumnType(col.type),
                 nullable: col.nullable,
               })),
             })),
@@ -86,7 +76,7 @@ export function AppShell() {
   }, [setConnected, setDatabaseTree])
 
   return (
-    <div className="flex flex-col h-full bg-[#1e1e1e] text-[#cccccc] select-none">
+    <div className="app-shell flex flex-col h-full select-none">
       <TopBar />
 
       {/* Main 3-panel layout */}

@@ -51,12 +51,12 @@ export function ChatPromptBar() {
   }
 
   return (
-    <div className="border-t border-[#3c3c3c] bg-[#252526] shrink-0 px-3 py-2">
+    <div className="chat-bar shrink-0 px-3 py-2 border-t border-theme bg-surface">
       <div className={clsx(
-        'flex items-end gap-2 bg-[#1e1e1e] border rounded-md px-3 py-2 transition-colors',
-        'border-[#3c3c3c] focus-within:border-[#0e639c]'
+        'flex items-end gap-2 bg-elevated border rounded-md px-3 py-2 transition-colors',
+        'border-theme focus-within:border-[var(--accent)]'
       )}>
-        <Sparkles size={14} className="text-[#4fc1ff] shrink-0 mb-0.5" />
+        <Sparkles size={14} className="text-[var(--accent-fg)] shrink-0 mb-0.5" />
         <textarea
           ref={textareaRef}
           value={input}
@@ -65,17 +65,19 @@ export function ChatPromptBar() {
           placeholder={PLACEHOLDER_EXAMPLES[placeholderIdx]}
           rows={1}
           disabled={isChatLoading}
-          className="flex-1 bg-transparent text-xs text-[#cccccc] placeholder-[#6a6a6a] outline-none resize-none leading-5 max-h-24 overflow-y-auto scrollbar-thin disabled:opacity-50"
+          aria-label="AI prompt"
+          className="flex-1 bg-transparent text-xs text-primary placeholder-[var(--text-3)] outline-none resize-none leading-5 max-h-24 overflow-y-auto scrollbar-thin disabled:opacity-50"
           style={{ minHeight: '20px' }}
         />
         <button
           onClick={handleSubmit}
           disabled={!input.trim() || isChatLoading}
+          type="button"
           className={clsx(
             'shrink-0 mb-0.5 p-1 rounded transition-colors',
             input.trim() && !isChatLoading
-              ? 'text-[#4fc1ff] hover:bg-[#3c3c3c]'
-              : 'text-[#6a6a6a] cursor-not-allowed'
+              ? 'text-[var(--accent-fg)] hover:bg-elevated'
+              : 'text-muted cursor-not-allowed'
           )}
           title="Send (Enter)"
         >
@@ -85,7 +87,7 @@ export function ChatPromptBar() {
           }
         </button>
       </div>
-      <div className="mt-1 text-[10px] text-[#6a6a6a] text-right">
+      <div className="mt-1 text-[10px] text-muted text-right">
         Enter to send · Shift+Enter for new line
       </div>
     </div>

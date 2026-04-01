@@ -1,14 +1,9 @@
-import json
-import uuid
-from datetime import datetime, timezone
-
 from fastapi import APIRouter, Depends, Request, UploadFile, File, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Any
 
 from app.auth.auth import get_current_user, login, logout, require_role
 from app.controllers import db_controller, chat_controller
-from app.db.auth_db import get_auth_conn
 from app.models.schemas import (
     LoginRequest,
     DuckDBConnectRequest,
@@ -17,13 +12,15 @@ from app.models.schemas import (
     ChatRequest,
     CreateUserRequest,
 )
-from app.services import user_service, audit_service
+from app.services import user_service, audit_service, pipeline_service
+from app.constants import FORWARDED_FOR_HEADER
 
 
 class PipelinePayload(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=200)
     nodes: list[Any] = []
     edges: list[Any] = []
+
 
 router = APIRouter(prefix="/api")
 
@@ -39,27 +36,16 @@ def health():
 
 @router.post("/auth/login")
 def auth_login(req: LoginRequest, request: Request):
-    ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "")
+    ip = request.headers.get(FORWARDED_FOR_HEADER, request.client.host if request.client else "")
     ua = request.headers.get("User-Agent", "")
+    # Audit middleware logs the HTTP request; log the semantic LOGIN action here.
     result = login(req, ip=ip, ua=ua)
-    audit_service.log_activity(
-        action="LOGIN",
-        username=req.username,
-        ip_address=ip,
-        user_agent=ua,
-        details="success",
-    )
     return result
 
 
 @router.post("/auth/logout")
 def auth_logout(current: dict = Depends(get_current_user)):
     logout(current["jti"])
-    audit_service.log_activity(
-        action="LOGOUT",
-        user_id=current["id"],
-        username=current["username"],
-    )
     return {"status": "logged out"}
 
 
@@ -122,7 +108,7 @@ def db_preview(req: PreviewRequest):
 async def db_upload_csv(file: UploadFile = File(...)):
     try:
         return await db_controller.upload_csv(file)
-    except RuntimeError as exc:
+    except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
@@ -142,71 +128,29 @@ def chat(req: ChatRequest):
 
 @router.get("/pipelines")
 def list_pipelines(current: dict = Depends(get_current_user)):
-    conn = get_auth_conn()
-    rows = conn.execute(
-        "SELECT id, name, nodes_json, created_at, updated_at FROM pipelines WHERE user_id=? ORDER BY updated_at DESC",
-        (current["id"],)
-    ).fetchall()
-    return [
-        {
-            "id": r["id"],
-            "name": r["name"],
-            "node_count": len(json.loads(r["nodes_json"])),
-            "created_at": r["created_at"],
-            "updated_at": r["updated_at"],
-        }
-        for r in rows
-    ]
+    return pipeline_service.list_pipelines(current["id"])
 
 
 @router.post("/pipelines")
 def create_pipeline(payload: PipelinePayload, current: dict = Depends(get_current_user)):
-    conn = get_auth_conn()
-    pid = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
-    conn.execute(
-        "INSERT INTO pipelines (id, user_id, name, nodes_json, edges_json, created_at, updated_at) VALUES (?,?,?,?,?,?,?)",
-        (pid, current["id"], payload.name, json.dumps(payload.nodes), json.dumps(payload.edges), now, now)
+    return pipeline_service.create_pipeline(
+        current["id"], payload.name, payload.nodes, payload.edges
     )
-    conn.commit()
-    return {"id": pid, "name": payload.name, "created_at": now, "updated_at": now}
 
 
 @router.get("/pipelines/{pipeline_id}")
 def get_pipeline(pipeline_id: str, current: dict = Depends(get_current_user)):
-    conn = get_auth_conn()
-    row = conn.execute(
-        "SELECT * FROM pipelines WHERE id=? AND user_id=?", (pipeline_id, current["id"])
-    ).fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
-    return {
-        "id": row["id"],
-        "name": row["name"],
-        "nodes": json.loads(row["nodes_json"]),
-        "edges": json.loads(row["edges_json"]),
-        "created_at": row["created_at"],
-        "updated_at": row["updated_at"],
-    }
+    return pipeline_service.get_pipeline(pipeline_id, current["id"])
 
 
 @router.put("/pipelines/{pipeline_id}")
 def update_pipeline(pipeline_id: str, payload: PipelinePayload, current: dict = Depends(get_current_user)):
-    conn = get_auth_conn()
-    now = datetime.now(timezone.utc).isoformat()
-    result = conn.execute(
-        "UPDATE pipelines SET name=?, nodes_json=?, edges_json=?, updated_at=? WHERE id=? AND user_id=?",
-        (payload.name, json.dumps(payload.nodes), json.dumps(payload.edges), now, pipeline_id, current["id"])
+    return pipeline_service.update_pipeline(
+        pipeline_id, current["id"], payload.name, payload.nodes, payload.edges
     )
-    conn.commit()
-    if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
-    return {"id": pipeline_id, "updated_at": now}
 
 
 @router.delete("/pipelines/{pipeline_id}")
 def delete_pipeline(pipeline_id: str, current: dict = Depends(get_current_user)):
-    conn = get_auth_conn()
-    conn.execute("DELETE FROM pipelines WHERE id=? AND user_id=?", (pipeline_id, current["id"]))
-    conn.commit()
+    pipeline_service.delete_pipeline(pipeline_id, current["id"])
     return {"status": "deleted"}

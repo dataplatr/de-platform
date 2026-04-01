@@ -13,8 +13,7 @@ export const TransformNode = memo(({ data, selected }: NodeProps) => {
     <BaseNode
       label={node.label}
       icon="⚡"
-      colorClass="bg-[#1e2b1e]"
-      borderColorClass="border-[#2e4a2e]"
+      nodeClass="node-transform"
       selected={selected}
       status={node.status ?? 'idle'}
       columnCount={enabledCount || undefined}

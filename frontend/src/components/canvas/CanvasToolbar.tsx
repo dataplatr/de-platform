@@ -1,74 +1,78 @@
 import { useCallback, useState } from 'react'
 import { useTransformationStore } from '../../store/transformationStore'
-import type { TransformNode } from '../../types'
 import { SourceImportModal } from './SourceImportModal'
-
-const NODE_DEFS: { type: TransformNode['type']; label: string; icon: string; color: string }[] = [
-  { type: 'source',      label: 'Source',      icon: '🗃️', color: 'bg-[#1e3a5f] hover:bg-[#1e4a7a]' },
-  { type: 'filter',      label: 'Filter',      icon: '🔽', color: 'bg-[#3a2b1e] hover:bg-[#4a3b2e]' },
-  { type: 'join',        label: 'Join',        icon: '🔗', color: 'bg-[#1e3a2b] hover:bg-[#2e4a3b]' },
-  { type: 'transform',   label: 'Transform',   icon: '⚡', color: 'bg-[#1e2b1e] hover:bg-[#2e3b2e]' },
-  { type: 'aggregate',   label: 'Aggregate',   icon: '∑',  color: 'bg-[#2b1e3a] hover:bg-[#3b2e4a]' },
-  { type: 'deduplicate', label: 'Deduplicate', icon: '⊘',  color: 'bg-[#2b2b1e] hover:bg-[#3b3b2e]' },
-  { type: 'select',      label: 'Select',      icon: '📋', color: 'bg-[#1e2b3a] hover:bg-[#2e3b4a]' },
-]
-
-const DEFAULT_CONFIGS: Record<string, TransformNode['config']> = {
-  filter:      [],
-  join:        { joinType: 'INNER', conditions: [], rightTable: '' },
-  aggregate:   { groupBy: [], measures: [] },
-  select:      { columns: [] },
-  transform:   { columns: [] },
-  deduplicate: { partitionBy: [], orderBy: '', orderDir: 'DESC' },
-  source:      null,
-}
-
-function makeId() {
-  return `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
-}
+import { DEFAULT_CONFIGS, makeNodeId } from '../../constants/nodeDefaults'
+import { TOOLBAR_STEP_DEFS } from '../../constants/nodeMetadata'
+import type { TransformNode } from '../../types'
 
 export function CanvasToolbar() {
   const { addNode, nodes } = useTransformationStore()
   const [showImport, setShowImport] = useState(false)
 
   const addNodeType = useCallback((type: TransformNode['type']) => {
-    if (type === 'source') {
-      setShowImport(true)
-      return
-    }
+    if (type === 'source') { setShowImport(true); return }
     const offset = nodes.length * 20
-    const base: Record<string, number> = { filter: 320, join: 540, aggregate: 760, select: 980 }
+    const baseX: Record<string, number> = {
+      filter: 320, join: 540, aggregate: 760, select: 980,
+      transform: 200, deduplicate: 420, output: 700,
+    }
     addNode({
-      id: makeId(),
+      id: makeNodeId(),
       type,
-      label: `${type.charAt(0).toUpperCase() + type.slice(1)} ${nodes.filter(n => n.type === type).length + 1}`,
+      label: type === 'output'
+        ? `output_${nodes.filter(n => n.type === 'output').length + 1}`
+        : `${type.charAt(0).toUpperCase() + type.slice(1)} ${nodes.filter(n => n.type === type).length + 1}`,
       config: DEFAULT_CONFIGS[type],
-      position: { x: (base[type] ?? 100) + offset, y: 200 + offset },
+      position: { x: (baseX[type] ?? 100) + offset, y: 200 + offset },
     })
   }, [addNode, nodes])
 
   return (
     <>
-      <div className="flex items-center gap-1 px-2 py-1 bg-[#252526] border-b border-[#3c3c3c] shrink-0">
-        <span className="text-[10px] text-[#6a6a6a] uppercase tracking-wider mr-1">Add:</span>
-        {NODE_DEFS.map(({ type, label, icon, color }) => (
+      <div className="toolbar-wrap flex items-center gap-1 px-2 py-1 shrink-0">
+        {/* Source */}
+        <button
+          type="button"
+          onClick={() => setShowImport(true)}
+          title="Add Source table"
+          className="toolbar-btn-source flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors"
+        >
+          <span>🗃️</span>
+          <span>Source</span>
+        </button>
+
+        <div className="toolbar-divider" />
+
+        {/* Transformation steps */}
+        {TOOLBAR_STEP_DEFS.map(({ type, label, icon }) => (
           <button
             key={type}
             type="button"
             onClick={() => addNodeType(type)}
-            title={`Add ${label} node`}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-[11px] text-[#cccccc] transition-colors ${color}`}
+            title={`Add ${label} step`}
+            className={`toolbar-btn-${type} flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors`}
           >
             <span>{icon}</span>
             <span>{label}</span>
           </button>
         ))}
+
+        <div className="toolbar-divider" />
+
+        {/* Output */}
+        <button
+          type="button"
+          onClick={() => addNodeType('output')}
+          title="Add Output (target table)"
+          className="toolbar-btn-output flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors"
+        >
+          <span>🎯</span>
+          <span>Output</span>
+        </button>
       </div>
 
       {showImport && (
-        <SourceImportModal
-          onClose={() => setShowImport(false)}
-        />
+        <SourceImportModal onClose={() => setShowImport(false)} />
       )}
     </>
   )

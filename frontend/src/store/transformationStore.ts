@@ -42,6 +42,7 @@ interface TransformationState {
   rightPanelTab: 'history' | 'config'
   bottomPanelTab: 'input' | 'output'
   isSqlViewExpanded: boolean
+  expandedOutputId: string | null
 
   // ─── Pipeline ──────────────────────────────────────────────────
   pipelineName: string
@@ -84,6 +85,7 @@ interface TransformationActions {
   setRightPanelTab: (tab: 'history' | 'config') => void
   setBottomPanelTab: (tab: 'input' | 'output') => void
   toggleSqlView: () => void
+  setExpandedOutputId: (id: string | null) => void
 
   // Pipeline
   setPipelineName: (name: string) => void
@@ -119,6 +121,7 @@ export const useTransformationStore = create<TransformationState & Transformatio
     rightPanelTab: 'history',
     bottomPanelTab: 'output',
     isSqlViewExpanded: false,
+    expandedOutputId: null,
 
     pipelineName: 'Untitled Pipeline',
     pipelineId: null,
@@ -161,6 +164,7 @@ export const useTransformationStore = create<TransformationState & Transformatio
     setRightPanelTab: (tab) => set((s) => { s.rightPanelTab = tab }),
     setBottomPanelTab: (tab) => set((s) => { s.bottomPanelTab = tab }),
     toggleSqlView: () => set((s) => { s.isSqlViewExpanded = !s.isSqlViewExpanded }),
+    setExpandedOutputId: (id) => set((s) => { s.expandedOutputId = id }),
 
     setPipelineName: (name) => set((s) => { s.pipelineName = name }),
     setPipelineId: (id) => set((s) => { s.pipelineId = id }),
@@ -170,11 +174,12 @@ export const useTransformationStore = create<TransformationState & Transformatio
       s.pipelineName = opts?.name ?? 'Untitled Pipeline'
       s.nodes        = opts?.nodes ?? []
       s.edges        = opts?.edges ?? []
-      s.selectedNodeId = null
-      s.generatedSQL   = ''
-      s.outputPreview  = null
+      s.selectedNodeId   = null
+      s.generatedSQL     = ''
+      s.outputPreview    = null
+      s.expandedOutputId = null
     }),
-    closeEditor: () => set((s) => { s.editorOpen = false }),
+    closeEditor: () => set((s) => { s.editorOpen = false; s.expandedOutputId = null }),
     clearCanvas: () => set((s) => {
       s.nodes = []; s.edges = []; s.selectedNodeId = null
       s.generatedSQL = ''; s.outputPreview = null

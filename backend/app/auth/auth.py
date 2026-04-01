@@ -7,18 +7,16 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
 from app.config import settings
+from app.constants import ROLES_ORDERED
 from app.db.auth_db import get_auth_conn
 from app.models.schemas import LoginRequest, TokenResponse
 from app.services import user_service
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
-# --- RBAC roles (lowest → highest privilege) ---
-ROLES = ["viewer", "analyst", "admin"]
-
 
 def _role_rank(role: str) -> int:
-    return ROLES.index(role) if role in ROLES else -1
+    return ROLES_ORDERED.index(role) if role in ROLES_ORDERED else -1
 
 
 def require_role(minimum: str):

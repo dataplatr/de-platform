@@ -26,7 +26,7 @@ async def upload_csv(file: UploadFile):
 
 
 def generate_sql(req: SQLGenerateRequest) -> SQLGenerateResult:
-    sql = duckdb_service.generate_sql(
+    sql, _params = duckdb_service.generate_sql(
         req.transformation_type, req.config, req.input_tables
     )
     return SQLGenerateResult(sql=sql)

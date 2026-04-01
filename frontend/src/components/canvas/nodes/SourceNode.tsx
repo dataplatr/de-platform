@@ -1,14 +1,14 @@
+import { memo } from 'react'
 import type { NodeProps } from '@xyflow/react'
 import { BaseNode } from './BaseNode'
 
-export function SourceNode({ data, selected }: NodeProps) {
+export const SourceNode = memo(function SourceNode({ data, selected }: NodeProps) {
   const nodeData = data as { label?: string; tableRef?: string; status?: 'idle' | 'running' | 'success' | 'error' }
   return (
     <BaseNode
       label={nodeData.label ?? 'Source'}
       icon="🗃️"
-      colorClass="bg-[#1e3a5f]"
-      borderColorClass="border-[#1e4a7a]"
+      nodeClass="node-source"
       hasInput={false}
       selected={selected}
       status={nodeData.status}
@@ -18,4 +18,4 @@ export function SourceNode({ data, selected }: NodeProps) {
       )}
     </BaseNode>
   )
-}
+})

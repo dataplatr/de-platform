@@ -1,0 +1,166 @@
+{
+  "name": "Seed Pipeline",
+  "nodes": [
+    {"id": "src_orders",    "type": "source", "label": "orders",    "tableRef": "demo.orders",
+     "position": {"x": 60,  "y": 200},
+     "columns": [
+       {"name": "order_id",    "type": "INTEGER"}, {"name": "customer_id", "type": "INTEGER"},
+       {"name": "product",     "type": "VARCHAR"}, {"name": "amount",      "type": "FLOAT"},
+       {"name": "status",      "type": "VARCHAR"}, {"name": "order_date",  "type": "DATE"}
+     ], "config": null},
+
+    {"id": "src_customers", "type": "source", "label": "customers", "tableRef": "demo.customers",
+     "position": {"x": 60,  "y": 60},
+     "columns": [
+       {"name": "customer_id", "type": "INTEGER"}, {"name": "name",    "type": "VARCHAR"},
+       {"name": "country",     "type": "VARCHAR"}, {"name": "segment", "type": "VARCHAR"}
+     ], "config": null},
+
+    {"id": "src_products",  "type": "source", "label": "products",  "tableRef": "demo.products",
+     "position": {"x": 60,  "y": 370},
+     "columns": [
+       {"name": "product_id",   "type": "INTEGER"}, {"name": "product_name", "type": "VARCHAR"},
+       {"name": "category",     "type": "VARCHAR"}, {"name": "unit_price",   "type": "FLOAT"},
+       {"name": "cost",         "type": "FLOAT"},   {"name": "sku",          "type": "VARCHAR"}
+     ], "config": null},
+
+    {"id": "src_returns",   "type": "source", "label": "returns",   "tableRef": "demo.returns",
+     "position": {"x": 60,  "y": 530},
+     "columns": [
+       {"name": "return_id",  "type": "INTEGER"}, {"name": "order_id",   "type": "INTEGER"},
+       {"name": "reason",     "type": "VARCHAR"}, {"name": "return_date","type": "DATE"},
+       {"name": "refund_amt", "type": "FLOAT"}
+     ], "config": null},
+
+    {"id": "src_campaigns", "type": "source", "label": "campaigns", "tableRef": "demo.campaigns",
+     "position": {"x": 60,  "y": 680},
+     "columns": [
+       {"name": "campaign_id",   "type": "INTEGER"}, {"name": "customer_id",  "type": "INTEGER"},
+       {"name": "channel",       "type": "VARCHAR"}, {"name": "campaign_date","type": "DATE"},
+       {"name": "spend",         "type": "FLOAT"},   {"name": "impressions",  "type": "INTEGER"}
+     ], "config": null},
+
+    {"id": "flt_active_orders", "type": "filter", "label": "Active Orders",
+     "position": {"x": 310, "y": 200},
+     "config": [
+       {"id": "c1", "column": "status", "operator": "!=", "value": "cancelled", "logic": "AND"}
+     ]},
+
+    {"id": "flt_customers", "type": "filter", "label": "Valid Customers",
+     "position": {"x": 310, "y": 60},
+     "config": [
+       {"id": "c2", "column": "customer_id", "operator": "IS NOT NULL", "value": null, "logic": "AND"}
+     ]},
+
+    {"id": "sel_products", "type": "select", "label": "Product Fields",
+     "position": {"x": 310, "y": 370},
+     "config": {"columns": [
+       {"source": "product_name", "alias": ""},
+       {"source": "category",     "alias": ""},
+       {"source": "unit_price",   "alias": ""},
+       {"source": "cost",         "alias": ""}
+     ]}},
+
+    {"id": "trn_orders", "type": "transform", "label": "Enrich Orders",
+     "position": {"x": 560, "y": 200},
+     "config": {"columns": [
+       {"source": "order_id",    "outputName": "order_id",    "castType": "", "expression": "", "enabled": true},
+       {"source": "customer_id", "outputName": "customer_id", "castType": "", "expression": "", "enabled": true},
+       {"source": "product",     "outputName": "product",     "castType": "", "expression": "", "enabled": true},
+       {"source": "amount",      "outputName": "amount",      "castType": "", "expression": "", "enabled": true},
+       {"source": "status",      "outputName": "status",      "castType": "", "expression": "", "enabled": true},
+       {"source": "order_date",  "outputName": "order_date",  "castType": "", "expression": "", "enabled": true},
+       {"source": "",            "outputName": "order_year",  "castType": "INTEGER", "expression": "YEAR(order_date)", "enabled": true},
+       {"source": "",            "outputName": "order_month", "castType": "INTEGER", "expression": "MONTH(order_date)", "enabled": true}
+     ]}},
+
+    {"id": "join_ord_cust", "type": "join", "label": "Orders \u00d7 Customers",
+     "position": {"x": 820, "y": 130},
+     "config": {"joinType": "LEFT", "rightTable": "", "conditions": [
+       {"leftCol": "customer_id", "rightCol": "customer_id"}
+     ]}},
+
+    {"id": "join_prod", "type": "join", "label": "Add Product Info",
+     "position": {"x": 1080, "y": 200},
+     "config": {"joinType": "LEFT", "rightTable": "", "conditions": [
+       {"leftCol": "product", "rightCol": "product_name"}
+     ]}},
+
+    {"id": "dedup_orders", "type": "deduplicate", "label": "Dedup Orders",
+     "position": {"x": 1340, "y": 200},
+     "config": {"partitionBy": ["customer_id", "product"], "orderBy": "order_date", "orderDir": "DESC"}},
+
+    {"id": "join_returns", "type": "join", "label": "Left Join Returns",
+     "position": {"x": 1600, "y": 270},
+     "config": {"joinType": "LEFT", "rightTable": "", "conditions": [
+       {"leftCol": "order_id", "rightCol": "order_id"}
+     ]}},
+
+    {"id": "agg_campaigns", "type": "aggregate", "label": "Campaign Spend",
+     "position": {"x": 310, "y": 680},
+     "config": {"groupBy": ["customer_id", "channel"], "measures": [
+       {"column": "spend",       "func": "SUM", "alias": "total_spend"},
+       {"column": "impressions", "func": "SUM", "alias": "total_impressions"}
+     ]}},
+
+    {"id": "join_campaigns", "type": "join", "label": "Add Campaign Data",
+     "position": {"x": 1860, "y": 350},
+     "config": {"joinType": "LEFT", "rightTable": "", "conditions": [
+       {"leftCol": "customer_id", "rightCol": "customer_id"}
+     ]}},
+
+    {"id": "sel_final", "type": "select", "label": "Final Columns",
+     "position": {"x": 2100, "y": 350},
+     "config": {"columns": [
+       {"source": "order_id",         "alias": ""},
+       {"source": "customer_id",       "alias": ""},
+       {"source": "name",              "alias": "customer_name"},
+       {"source": "country",           "alias": ""},
+       {"source": "segment",           "alias": ""},
+       {"source": "product",           "alias": ""},
+       {"source": "category",          "alias": ""},
+       {"source": "amount",            "alias": "gross_revenue"},
+       {"source": "cost",              "alias": ""},
+       {"source": "status",            "alias": ""},
+       {"source": "order_date",        "alias": ""},
+       {"source": "order_year",        "alias": ""},
+       {"source": "order_month",       "alias": ""},
+       {"source": "refund_amt",        "alias": ""},
+       {"source": "total_spend",       "alias": "campaign_spend"},
+       {"source": "total_impressions", "alias": ""}
+     ]}},
+
+    {"id": "agg_kpis", "type": "aggregate", "label": "Revenue KPIs",
+     "position": {"x": 2360, "y": 350},
+     "config": {"groupBy": ["country", "segment", "order_year", "order_month"], "measures": [
+       {"column": "gross_revenue",  "func": "SUM",   "alias": "total_revenue"},
+       {"column": "order_id",       "func": "COUNT", "alias": "order_count"},
+       {"column": "cost",           "func": "SUM",   "alias": "total_cost"},
+       {"column": "campaign_spend", "func": "SUM",   "alias": "total_campaign_spend"},
+       {"column": "refund_amt",     "func": "SUM",   "alias": "total_refunds"}
+     ]}},
+
+    {"id": "out_revenue_kpis", "type": "output", "label": "revenue_kpis",
+     "position": {"x": 2640, "y": 350},
+     "config": {"targetTable": "revenue_kpis"}}
+  ],
+  "edges": [
+    {"id": "e1",  "source": "src_orders",       "target": "flt_active_orders"},
+    {"id": "e2",  "source": "src_customers",     "target": "flt_customers"},
+    {"id": "e3",  "source": "src_products",      "target": "sel_products"},
+    {"id": "e4",  "source": "flt_active_orders", "target": "trn_orders"},
+    {"id": "e5",  "source": "trn_orders",        "target": "join_ord_cust",  "targetHandle": "a"},
+    {"id": "e6",  "source": "flt_customers",     "target": "join_ord_cust",  "targetHandle": "b"},
+    {"id": "e7",  "source": "join_ord_cust",     "target": "join_prod",      "targetHandle": "a"},
+    {"id": "e8",  "source": "sel_products",      "target": "join_prod",      "targetHandle": "b"},
+    {"id": "e9",  "source": "join_prod",         "target": "dedup_orders"},
+    {"id": "e10", "source": "dedup_orders",      "target": "join_returns",   "targetHandle": "a"},
+    {"id": "e11", "source": "src_returns",       "target": "join_returns",   "targetHandle": "b"},
+    {"id": "e12", "source": "src_campaigns",     "target": "agg_campaigns"},
+    {"id": "e13", "source": "join_returns",      "target": "join_campaigns", "targetHandle": "a"},
+    {"id": "e14", "source": "agg_campaigns",     "target": "join_campaigns", "targetHandle": "b"},
+    {"id": "e15", "source": "join_campaigns",    "target": "sel_final"},
+    {"id": "e16", "source": "sel_final",         "target": "agg_kpis"},
+    {"id": "e17", "source": "agg_kpis",          "target": "out_revenue_kpis"}
+  ]
+}

@@ -1,26 +1,28 @@
+import logging
 import time
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from jose import jwt, JWTError
 
 from app.config import settings
+from app.constants import AUDIT_SKIP_PATHS, FORWARDED_FOR_HEADER
+
+logger = logging.getLogger(__name__)
 
 
 class AuditMiddleware(BaseHTTPMiddleware):
     """Logs every API request to the audit_log table after the response is sent."""
-
-    # Paths to skip (health checks, docs)
-    _SKIP = {"/api/health", "/docs", "/openapi.json", "/redoc"}
 
     async def dispatch(self, request: Request, call_next):
         start = time.perf_counter()
         response = await call_next(request)
         elapsed_ms = round((time.perf_counter() - start) * 1000, 1)
 
-        if request.url.path in self._SKIP:
+        if request.url.path in AUDIT_SKIP_PATHS:
             return response
 
-        # Resolve user from JWT (best-effort — don't fail the response)
+        # Resolve user from JWT (best-effort — never fail the response)
         user_id, username = None, None
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
@@ -31,9 +33,9 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 username = payload.get("sub")
                 user_id = payload.get("uid")
             except JWTError:
-                pass
+                pass  # anonymous or invalid token — user_id/username stay None
 
-        ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
+        ip = request.headers.get(FORWARDED_FOR_HEADER, request.client.host if request.client else None)
         ua = request.headers.get("User-Agent")
         action = f"{request.method} {request.url.path}"
 
@@ -51,6 +53,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
                 details=f"{elapsed_ms}ms",
             )
         except Exception:
-            pass  # Never let audit logging break the response
+            # Audit logging must never break an API response — log and continue.
+            logger.exception("Audit logging failed for %s %s", request.method, request.url.path)
 
         return response

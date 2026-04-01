@@ -2,6 +2,130 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Theme Variables ──────────────────────────────────────────────────────── */
+
+:root {
+  /* Dark theme (default — VS Code inspired) */
+  --bg-app:          #1e1e1e;
+  --bg-surface:      #252526;
+  --bg-elevated:     #2d2d30;
+  --bg-input:        #3c3c3c;
+  --border:          #3c3c3c;
+  --border-subtle:   #2d2d30;
+  --text-1:          #cccccc;
+  --text-2:          #969696;
+  --text-3:          #6a6a6a;
+  --accent:          #0e639c;
+  --accent-hover:    #1177bb;
+  --accent-fg:       #4fc1ff;
+  --success:         #4ec9b0;
+  --warning:         #dcdcaa;
+  --error:           #f44747;
+
+  /* Pipeline edge */
+  --pipe-stroke:     #1C5FFD;
+  --pipe-label-bg:   #1e2d4a;
+  --pipe-label-text: #7eb8f7;
+
+  /* Selection highlight */
+  --selected-bg:     #1e3a5f;
+
+  /* Step type semantic colors */
+  --step-filter:      #dcdcaa;
+  --step-join:        #4ec9b0;
+  --step-aggregate:   #c586c0;
+  --step-select:      #9cdcfe;
+  --step-transform:   #f48771;
+  --step-deduplicate: #e2c08d;
+
+  /* Canvas */
+  --canvas-bg:        #1e1e1e;
+  --canvas-dot:       #3c3c3c;
+  --canvas-text-1:    #cccccc;
+  --canvas-text-2:    #969696;
+  --canvas-divider:   rgba(255,255,255,0.08);
+
+  /* Canvas node backgrounds */
+  --node-source-bg:        #1e3a5f;
+  --node-source-border:    #1e4a7a;
+  --node-filter-bg:        #3a2b1e;
+  --node-filter-border:    #4a3b2e;
+  --node-join-bg:          #1e3a2b;
+  --node-join-border:      #2e4a3b;
+  --node-aggregate-bg:     #2b1e3a;
+  --node-aggregate-border: #3b2e4a;
+  --node-select-bg:        #1e2b3a;
+  --node-select-border:    #2e3b4a;
+  --node-transform-bg:     #2a1e1e;
+  --node-transform-border: #3a2e2e;
+  --node-deduplicate-bg:   #1e2a2a;
+  --node-deduplicate-border:#2e3a3a;
+  --node-output-bg:        #0d2b1e;
+  --node-output-border:    #1e4a3b;
+}
+
+[data-theme="light"] {
+  /* Light theme — Dataplatr blue + Anthropic warm off-white */
+  --bg-app:          #F6F5F1;
+  --bg-surface:      #FEFEFE;
+  --bg-elevated:     #EEECEA;
+  --bg-input:        #F0EFEB;
+  --border:          #E2E0DB;
+  --border-subtle:   #ECEAE6;
+  --text-1:          #101828;
+  --text-2:          #344054;
+  --text-3:          #667085;
+  --accent:          #1C5FFD;
+  --accent-hover:    #1550E0;
+  --accent-fg:       #1C5FFD;
+  --success:         #027A48;
+  --warning:         #B54708;
+  --error:           #B42318;
+
+  /* Pipeline edge */
+  --pipe-stroke:     #1C5FFD;
+  --pipe-label-bg:   #EFF4FF;
+  --pipe-label-text: #1C5FFD;
+
+  /* Selection highlight */
+  --selected-bg:     #dbeafe;
+
+  /* Step type semantic colors */
+  --step-filter:      #92400e;
+  --step-join:        #065f46;
+  --step-aggregate:   #6b21a8;
+  --step-select:      #1e40af;
+  --step-transform:   #9f1239;
+  --step-deduplicate: #78350f;
+
+  /* Canvas — light mode */
+  --canvas-bg:        #f0eeea;
+  --canvas-dot:       #c8c5bf;
+  --canvas-text-1:    #1a1a1a;
+  --canvas-text-2:    #444444;
+  --canvas-divider:   rgba(0,0,0,0.12);
+
+  /* Canvas node backgrounds — light mode */
+  --node-source-bg:        #dbeafe;
+  --node-source-border:    #3b82f6;
+  --node-filter-bg:        #fef3c7;
+  --node-filter-border:    #d97706;
+  --node-join-bg:          #d1fae5;
+  --node-join-border:      #059669;
+  --node-aggregate-bg:     #f3e8ff;
+  --node-aggregate-border: #9333ea;
+  --node-select-bg:        #dbeafe;
+  --node-select-border:    #2563eb;
+  --node-transform-bg:     #ffe4e6;
+  --node-transform-border: #e11d48;
+  --node-deduplicate-bg:   #fef9c3;
+  --node-deduplicate-border:#ca8a04;
+  --node-output-bg:        #d1fae5;
+  --node-output-border:    #10b981;
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────────── */
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -16,8 +140,8 @@
   }
 
   body {
-    background-color: #1e1e1e;
-    color: #cccccc;
+    background-color: var(--bg-app);
+    color: var(--text-1);
     font-family: 'Inter', system-ui, sans-serif;
     font-size: 13px;
     -webkit-font-smoothing: antialiased;
@@ -25,30 +149,51 @@
   }
 }
 
+/* ─── Components ────────────────────────────────────────────────────────────── */
+
 @layer components {
   .panel-header {
-    @apply flex items-center justify-between px-3 py-2 border-b border-[#3c3c3c] bg-[#252526] text-xs font-medium text-[#cccccc] uppercase tracking-wider;
+    @apply flex items-center justify-between px-3 py-2 text-xs font-medium uppercase tracking-wider;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-1);
   }
 
   .panel-section {
-    @apply border-r border-[#3c3c3c] flex flex-col overflow-hidden;
+    flex-direction: column;
+    display: flex;
+    overflow: hidden;
+    border-right: 1px solid var(--border);
   }
 
   .tab-button {
-    @apply px-3 py-1.5 text-xs rounded hover:bg-[#3c3c3c] transition-colors cursor-pointer;
+    @apply px-3 py-1.5 text-xs rounded transition-colors cursor-pointer;
+    color: var(--text-2);
   }
-
+  .tab-button:hover {
+    background: var(--bg-elevated);
+    color: var(--text-1);
+  }
   .tab-button.active {
-    @apply bg-[#0e639c] text-white;
+    background: var(--accent);
+    color: #fff;
   }
 
   .icon-button {
-    @apply p-1.5 rounded hover:bg-[#3c3c3c] transition-colors cursor-pointer text-[#969696] hover:text-[#cccccc];
+    @apply p-1.5 rounded transition-colors cursor-pointer;
+    color: var(--text-3);
+  }
+  .icon-button:hover {
+    background: var(--bg-elevated);
+    color: var(--text-1);
   }
 
   /* Transform config column grid */
   .transform-col-grid {
     grid-template-columns: 20px 1fr 1fr 80px 20px;
+  }
+  .transform-col-row {
+    min-height: 30px;
   }
 
   /* React Flow overrides */
@@ -56,37 +201,554 @@
     display: none !important;
   }
   .react-flow__background {
-    background-color: #1e1e1e;
+    background-color: var(--canvas-bg) !important;
   }
+  /* Controls — use CSS variables so they respond to theme */
   .react-flow__controls {
-    background: #252526;
-    border: 1px solid #3c3c3c;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
   }
   .react-flow__controls-button {
-    background: #252526;
-    border-bottom: 1px solid #3c3c3c;
-    color: #cccccc;
-    fill: #cccccc;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-1);
+    fill: var(--text-1);
   }
   .react-flow__controls-button:hover {
-    background: #3c3c3c;
+    background: var(--bg-elevated);
   }
+  /* Minimap — use CSS variables */
+  .react-flow__minimap {
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .react-flow__minimap-svg {
+    background: var(--bg-surface) !important;
+  }
+
+  /* Remove ReactFlow's default white node backgrounds */
+  .react-flow__node-default,
+  .react-flow__node-input,
+  .react-flow__node-output,
+  .react-flow__node-default.selected,
+  .react-flow__node-input.selected,
+  .react-flow__node-output.selected {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* ── App shell ── */
+  .app-shell {
+    background: var(--bg-app);
+    color: var(--text-1);
+  }
+
+  /* ── HomePage ── */
+  .home-page {
+    background: var(--bg-app);
+    color: var(--text-1);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .home-topbar {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .home-heading   { color: var(--text-1); }
+  .home-subtext   { color: var(--text-3); }
+  .home-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    transition: border-color 0.15s, background 0.15s;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1rem;
+    text-align: left;
+  }
+  .home-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-elevated);
+  }
+  .home-card-skeleton {
+    height: 7rem;
+    border-radius: 0.5rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  .home-empty-icon { color: var(--text-3); }
+  .home-new-btn {
+    background: var(--accent);
+    color: #fff;
+    border-radius: 0.375rem;
+    transition: background 0.15s;
+  }
+  .home-new-btn:hover { background: var(--accent-hover); }
+
+  /* ── Login page ── */
+  .login-submit-btn {
+    background: var(--accent);
+    transition: background 0.15s;
+  }
+  .login-submit-btn:hover:not(:disabled) {
+    background: var(--accent-hover);
+  }
+
+  /* ── DuckDB status chip ── */
+  .db-chip-connected {
+    background: var(--node-output-bg);
+    color: var(--success);
+  }
+  .db-chip-disconnected {
+    background: var(--node-filter-bg);
+    color: var(--warning);
+  }
+
+  /* ── CSV export button ── */
+  .csv-export-btn {
+    background: var(--node-output-bg);
+    color: var(--success);
+    border: 1px solid var(--node-output-border);
+    transition: background 0.15s;
+  }
+  .csv-export-btn:hover {
+    background: var(--node-join-border);
+    color: #fff;
+  }
+
+  /* ── TopBar ── */
+  .topbar {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-divider {
+    width: 1px;
+    height: 1rem;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  .topbar-breadcrumb    { color: var(--text-2); }
+  .topbar-db-icon       { color: var(--accent-fg); }
+  .topbar-app-name      { color: var(--text-1); }
+  .topbar-chevron       { color: var(--text-3); }
+  .topbar-pipeline-name { color: var(--accent-fg); }
+  .topbar-rename-input {
+    background: var(--bg-elevated);
+    color: var(--accent-fg);
+    border: 1px solid var(--accent-fg);
+  }
+  .topbar-user      { color: var(--text-1); }
+  .topbar-user-role { color: var(--text-3); }
+  .topbar-run-btn {
+    background: var(--accent);
+    color: #fff;
+  }
+  .topbar-run-btn-disabled {
+    background: var(--bg-elevated);
+    color: var(--text-3);
+  }
+
+  /* ── CanvasToolbar ── */
+  .toolbar-wrap {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar-divider {
+    width: 1px;
+    height: 1rem;
+    background: var(--border);
+    flex-shrink: 0;
+    margin: 0 0.25rem;
+  }
+  .toolbar-btn-source {
+    background: #1e3a5f;
+    color: #cccccc;
+  }
+  [data-theme="light"] .toolbar-btn-source {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .toolbar-btn-step {
+    background: var(--bg-elevated);
+    color: var(--text-2);
+  }
+  .toolbar-btn-output {
+    background: #0d2b1e;
+    color: #4ec9b0;
+  }
+  [data-theme="light"] .toolbar-btn-output {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  /* Per-step-type colors */
+  .toolbar-btn-filter      { background: #2d2a1e; color: var(--step-filter);      }
+  .toolbar-btn-join        { background: #162624; color: var(--step-join);        }
+  .toolbar-btn-aggregate   { background: #221a29; color: var(--step-aggregate);   }
+  .toolbar-btn-select      { background: #1a2035; color: var(--step-select);      }
+  .toolbar-btn-transform   { background: #2a1e1e; color: var(--step-transform);   }
+  .toolbar-btn-deduplicate { background: #29211a; color: var(--step-deduplicate); }
+
+  [data-theme="light"] .toolbar-btn-filter      { background: #fef9c3; color: #92400e; }
+  [data-theme="light"] .toolbar-btn-join        { background: #d1fae5; color: #065f46; }
+  [data-theme="light"] .toolbar-btn-aggregate   { background: #f3e8ff; color: #6b21a8; }
+  [data-theme="light"] .toolbar-btn-select      { background: #dbeafe; color: #1e40af; }
+  [data-theme="light"] .toolbar-btn-transform   { background: #ffe4e6; color: #9f1239; }
+  [data-theme="light"] .toolbar-btn-deduplicate { background: #fef3c7; color: #78350f; }
+
+  /* Canvas wrapper */
+  .canvas-bg {
+    background: var(--canvas-bg) !important;
+  }
+
+  /* ── Canvas empty state text ── */
+  .canvas-empty-title  { color: var(--canvas-text-2); }
+  .canvas-empty-hint   { color: var(--text-3); }
+
+  /* ── Canvas node bases ── */
+  .node-source      { background: var(--node-source-bg);        border-color: var(--node-source-border);        }
+  .node-filter      { background: var(--node-filter-bg);        border-color: var(--node-filter-border);        }
+  .node-join        { background: var(--node-join-bg);          border-color: var(--node-join-border);          }
+  .node-aggregate   { background: var(--node-aggregate-bg);     border-color: var(--node-aggregate-border);     }
+  .node-select      { background: var(--node-select-bg);        border-color: var(--node-select-border);        }
+  .node-transform   { background: var(--node-transform-bg);     border-color: var(--node-transform-border);     }
+  .node-deduplicate { background: var(--node-deduplicate-bg);   border-color: var(--node-deduplicate-border);   }
+  .node-output      { background: var(--node-output-bg);        border-color: var(--node-output-border);        }
+
+  /* Node shared styles */
+  .node-base {
+    border-radius: 0.375rem;
+    border-width: 1px;
+    border-style: solid;
+    min-width: 170px;
+    max-width: 230px;
+    font-size: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4);
+  }
+  [data-theme="light"] .node-base {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .node-selected {
+    border-color: #0e639c !important;
+    box-shadow: 0 0 0 1px rgba(79,193,255,0.4), 0 4px 6px -1px rgba(0,0,0,0.4);
+  }
+  .node-header {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem;
+    border-bottom: 1px solid var(--canvas-divider);
+  }
+  .node-header-label {
+    font-weight: 500;
+    color: var(--canvas-text-1);
+    font-size: 0.75rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .node-body {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.6875rem;
+    color: var(--canvas-text-2);
+  }
+  .node-col-count {
+    font-size: 0.5625rem;
+    color: var(--canvas-text-2);
+    background: var(--canvas-divider);
+    padding: 0 0.25rem;
+    border-radius: 0.125rem;
+  }
+
+  /* ── DataPreview panel ── */
+  .preview-panel {
+    background: var(--bg-app);
+    border-color: var(--border);
+  }
+  .preview-header {
+    background: var(--bg-surface);
+    border-color: var(--border);
+  }
+  .preview-tab {
+    border-bottom: 2px solid transparent;
+    color: var(--text-2);
+    transition: color 0.15s;
+  }
+  .preview-tab:hover { color: var(--text-1); }
+  .preview-tab.active {
+    border-color: var(--accent);
+    color: var(--text-1);
+  }
+  .preview-th {
+    background: var(--bg-surface);
+    color: var(--text-2);
+    border-color: var(--border);
+  }
+  .preview-td {
+    color: var(--text-1);
+    border-color: var(--border-subtle);
+  }
+  .preview-tr:hover { background: var(--bg-elevated); }
+  .preview-empty   { color: var(--text-3); }
+
+  /* ── CenterPanel divider ── */
+  .center-divider {
+    background: var(--border);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .center-divider:hover { background: var(--accent); }
+
+  /* ── ContextMenu ── */
+  .ctx-menu {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  .ctx-menu-sep    { background: var(--border); }
+  .ctx-menu-item   { color: var(--text-1); }
+  .ctx-menu-item:hover { background: var(--accent); color: #fff; }
+  .ctx-menu-danger { color: var(--error); }
+  .ctx-menu-danger:hover { background: rgba(180,35,24,0.15); }
+
+  /* Resize handle */
+  .resize-handle {
+    background: var(--border);
+    transition: background 0.15s;
+  }
+  .resize-handle:hover {
+    background: var(--accent);
+  }
+
+  /* ── Step History ── */
+  .step-circle {
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-3);
+  }
+  .step-circle--selected {
+    border: 1px solid var(--accent-fg);
+    background: var(--selected-bg);
+    color: var(--accent-fg);
+  }
+  .step-connector {
+    background: var(--border);
+  }
+
+  /* Step type label colors (used in StepHistory) */
+  .step-label-source      { color: var(--accent-fg);       }
+  .step-label-filter      { color: var(--step-filter);      }
+  .step-label-join        { color: var(--step-join);        }
+  .step-label-aggregate   { color: var(--step-aggregate);   }
+  .step-label-select      { color: var(--step-select);      }
+  .step-label-transform   { color: var(--step-transform);   }
+  .step-label-deduplicate { color: var(--step-deduplicate); }
+  .step-label-output      { color: var(--success);          }
+
+  /* Abstraction mode hint pill */
+  .abstraction-hint {
+    background: var(--pipe-label-bg);
+    border: 1px solid var(--pipe-stroke);
+    color: var(--pipe-label-text);
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.85;
+  }
+
+  /* ── Pipeline edge SVG paths ── */
+  .pipeline-hit-area {
+    cursor: pointer;
+    fill: none;
+    stroke: transparent;
+    stroke-width: 24;
+  }
+
+  .pipeline-edge-path {
+    cursor: pointer;
+    fill: none;
+    stroke: var(--pipe-stroke);
+    stroke-width: 2;
+    transition: stroke 0.15s, stroke-width 0.15s, filter 0.15s;
+  }
+  .pipeline-edge-path.hovered {
+    stroke: var(--accent-fg);
+    stroke-width: 3;
+    filter: drop-shadow(0 0 6px var(--pipe-stroke));
+  }
+
+  /* ── Pipeline edge label pill ── */
+  .pipeline-edge-label-anchor {
+    position: absolute;
+    pointer-events: all;
+  }
+  .pipeline-edge-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    border: 1px solid var(--pipe-stroke);
+    background: var(--pipe-label-bg);
+    color: var(--pipe-label-text);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    box-shadow: 0 2px 12px rgba(28,95,253,0.25);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    transition: transform 0.1s;
+  }
+  .pipeline-edge-pill:hover  { transform: scale(1.05); }
+  .pipeline-edge-pill:active { transform: scale(0.95); }
+  .pipeline-edge-badge {
+    margin-left: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--pipe-stroke);
+    color: #fff;
+  }
+
+  /* ── FigJam Pipeline Group Node ── */
+  .pipeline-group-node {
+    position: relative;
+    border: 2px dashed var(--pipe-stroke);
+    border-radius: 12px;
+    background: rgba(28, 95, 253, 0.05);
+    pointer-events: none;
+    min-width: 100px;
+    min-height: 60px;
+  }
+
+  .pipeline-group-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    pointer-events: none;
+  }
+
+  .pipeline-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--pipe-stroke);
+    opacity: 0.75;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .pipeline-group-close {
+    pointer-events: all;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--pipe-stroke);
+    background: var(--bg-elevated);
+    color: var(--pipe-label-text);
+    font-size: 10px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .pipeline-group-close:hover {
+    background: var(--pipe-stroke);
+    color: #fff;
+  }
+
+  /* ── Themed panels (light mode overrides) ── */
+  .themed-panel {
+    background: var(--bg-surface);
+    color: var(--text-1);
+    border-color: var(--border);
+  }
+  .themed-panel .border-\[\#3c3c3c\] { border-color: var(--border) !important; }
+  .themed-panel .bg-\[\#252526\]     { background: var(--bg-surface) !important; }
+  .themed-panel .bg-\[\#2d2d30\]     { background: var(--bg-elevated) !important; }
+  .themed-panel .bg-\[\#3c3c3c\]     { background: var(--bg-input) !important; }
+  .themed-panel .hover\:bg-\[\#2d2d30\]:hover { background: var(--bg-elevated) !important; }
+  .themed-panel .text-\[\#cccccc\]   { color: var(--text-1) !important; }
+  .themed-panel .text-\[\#969696\]   { color: var(--text-2) !important; }
+  .themed-panel .text-\[\#6a6a6a\]   { color: var(--text-3) !important; }
+  .themed-panel .text-\[\#4fc1ff\]   { color: var(--accent-fg) !important; }
+  .themed-panel .border-\[\#0e639c\] { border-color: var(--accent) !important; }
+  .themed-panel .bg-\[\#0e639c\]     { background: var(--accent) !important; }
+  .themed-panel .placeholder-\[\#6a6a6a\]::placeholder { color: var(--text-3) !important; }
 }
+
+/* ─── Utilities ─────────────────────────────────────────────────────────────── */
 
 @layer utilities {
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #3c3c3c #1e1e1e;
+    scrollbar-color: var(--border) var(--bg-app);
   }
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   .scrollbar-thin::-webkit-scrollbar-track {
-    background: #1e1e1e;
+    background: var(--bg-app);
   }
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: #3c3c3c;
+    background-color: var(--border);
     border-radius: 3px;
   }
+
+  /* Theme-aware convenience classes */
+  .bg-app         { background: var(--bg-app); }
+  .bg-surface     { background: var(--bg-surface); }
+  .bg-elevated    { background: var(--bg-elevated); }
+  .border-theme   { border-color: var(--border); }
+  .text-primary   { color: var(--text-1); }
+  .text-secondary { color: var(--text-2); }
+  .text-muted     { color: var(--text-3); }
+  .text-success   { color: var(--success); }
+  .text-warning   { color: var(--warning); }
+  .text-error     { color: var(--error); }
+}
+
+/* ─── Hard overrides (outside @layer so they always win) ───────────────────── */
+
+/* ReactFlow injects its own stylesheet outside any @layer, so we need to
+   override here (outside our layers) to guarantee transparent node wrappers */
+.react-flow__node-default,
+.react-flow__node-input,
+.react-flow__node-output {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Canvas background must always match the theme */
+.react-flow__background {
+  background-color: var(--canvas-bg) !important;
 }

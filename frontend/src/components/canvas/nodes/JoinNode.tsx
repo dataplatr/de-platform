@@ -1,8 +1,9 @@
+import { memo } from 'react'
 import type { NodeProps } from '@xyflow/react'
 import { BaseNode } from './BaseNode'
 import type { JoinConfig } from '../../../types'
 
-export function JoinNode({ data, selected }: NodeProps) {
+export const JoinNode = memo(function JoinNode({ data, selected }: NodeProps) {
   const nodeData = data as { label?: string; config?: JoinConfig; status?: 'idle' | 'running' | 'success' | 'error' }
   const cfg = nodeData.config
 
@@ -10,8 +11,7 @@ export function JoinNode({ data, selected }: NodeProps) {
     <BaseNode
       label={nodeData.label ?? 'Join'}
       icon="🔗"
-      colorClass="bg-[#1e3a2b]"
-      borderColorClass="border-[#2e4a3b]"
+      nodeClass="node-join"
       hasInput="dual"
       selected={selected}
       status={nodeData.status}
@@ -50,4 +50,4 @@ export function JoinNode({ data, selected }: NodeProps) {
       )}
     </BaseNode>
   )
-}
+})

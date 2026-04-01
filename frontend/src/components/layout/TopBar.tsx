@@ -1,16 +1,12 @@
 import { useCallback, useRef, useState } from 'react'
-import { Play, Save, Settings, Database, ChevronRight, LogOut, User, ShieldCheck, Home } from 'lucide-react'
+import { Play, Save, Database, ChevronRight, LogOut, User, ShieldCheck, Home, Sun, Moon } from 'lucide-react'
 import { useTransformationStore } from '../../store/transformationStore'
 import { useAuthStore, isAdmin } from '../../store/authStore'
+import { useTheme } from '../../context/ThemeContext'
 import { api } from '../../services/api'
 import clsx from 'clsx'
 import logoWhite from '../../assets/logo-white.png'
-
-const ROLE_COLOR: Record<string, string> = {
-  admin:   'text-[#f44747]',
-  analyst: 'text-accent-light',
-  viewer:  'text-text-dim',
-}
+import { ROLE_COLOR } from '../../constants/nodeMetadata'
 
 export function TopBar() {
   const {
@@ -19,9 +15,10 @@ export function TopBar() {
     setPipelineName, setPipelineId, closeEditor,
   } = useTransformationStore()
   const { user, logout } = useAuthStore()
+  const { theme, toggleTheme } = useTheme()
 
   // ── Inline rename ───────────────────────────────────────────────────────────
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing]     = useState(false)
   const [draftName, setDraftName] = useState(pipelineName)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -38,7 +35,7 @@ export function TopBar() {
   }, [draftName, setPipelineName])
 
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') commitRename()
+    if (e.key === 'Enter')  commitRename()
     if (e.key === 'Escape') setEditing(false)
   }, [commitRename])
 
@@ -56,9 +53,7 @@ export function TopBar() {
         const res = await api.savePipeline(payload)
         setPipelineId(res.data.id)
       }
-    } catch {
-      // silent — user sees Save button return to normal
-    } finally {
+    } catch { /* silent */ } finally {
       setSaving(false)
     }
   }, [saving, pipelineName, pipelineId, nodes, edges, setPipelineId])
@@ -66,26 +61,25 @@ export function TopBar() {
   const hasNodes = nodes.length > 0
 
   return (
-    <div className="flex items-center justify-between h-10 px-3 bg-[#1e1e1e] border-b border-[#3c3c3c] shrink-0 z-10">
+    <div className="topbar flex items-center justify-between h-10 px-3 shrink-0 z-10">
 
       {/* Left: Logo + Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs text-[#969696] min-w-0">
+      <div className="topbar-breadcrumb flex items-center gap-2 text-xs min-w-0">
         <img src={logoWhite} alt="Logo" className="h-5 w-auto object-contain shrink-0" />
-        <div className="w-px h-4 bg-border-default mx-1 shrink-0" />
-        <Database size={14} className="text-accent-light shrink-0" />
-        <span className="text-[#cccccc] font-medium shrink-0">dataplatr</span>
-        <ChevronRight size={12} className="shrink-0" />
+        <div className="topbar-divider mx-1 shrink-0" />
+        <Database size={14} className="topbar-db-icon shrink-0" />
+        <span className="topbar-app-name font-medium shrink-0">dataplatr</span>
+        <ChevronRight size={12} className="topbar-chevron shrink-0" />
 
-        {/* Editable pipeline name */}
         {editing ? (
           <input
             ref={inputRef}
             value={draftName}
-            onChange={(e) => setDraftName(e.target.value)}
+            onChange={e => setDraftName(e.target.value)}
             onBlur={commitRename}
             onKeyDown={onKeyDown}
             aria-label="Pipeline name"
-            className="bg-[#3c3c3c] text-[#4fc1ff] text-xs px-1.5 py-0.5 rounded outline-none border border-[#4fc1ff] min-w-0 w-40"
+            className="topbar-rename-input text-xs px-1.5 py-0.5 rounded outline-none min-w-0 w-40"
             maxLength={80}
           />
         ) : (
@@ -93,7 +87,7 @@ export function TopBar() {
             type="button"
             onClick={startEdit}
             title="Click to rename"
-            className="text-[#4fc1ff] hover:underline truncate max-w-[200px] text-left"
+            className="topbar-pipeline-name hover:underline truncate max-w-[200px] text-left text-xs"
           >
             {pipelineName}
           </button>
@@ -104,25 +98,16 @@ export function TopBar() {
       <div className="flex items-center gap-2 shrink-0">
         <div className={clsx(
           'flex items-center gap-1.5 px-2 py-1 rounded text-xs',
-          isConnected ? 'bg-[#1e3a2b] text-[#4ec9b0]' : 'bg-[#3a2b1e] text-[#dcdcaa]'
+          isConnected ? 'db-chip-connected' : 'db-chip-disconnected'
         )}>
-          <div className={clsx(
-            'w-1.5 h-1.5 rounded-full',
-            isConnected ? 'bg-[#4ec9b0]' : 'bg-[#dcdcaa]'
-          )} />
+          <div className={clsx('w-1.5 h-1.5 rounded-full', isConnected ? 'bg-[var(--success)]' : 'bg-[var(--warning)]')} />
           {isConnected ? 'DuckDB Connected' : 'No Connection'}
         </div>
       </div>
 
       {/* Right: Actions + User */}
       <div className="flex items-center gap-1 shrink-0">
-        {/* Home */}
-        <button
-          type="button"
-          onClick={closeEditor}
-          className="icon-button"
-          title="Back to pipelines"
-        >
+        <button type="button" onClick={closeEditor} className="icon-button" title="Back to pipelines">
           <Home size={14} />
         </button>
 
@@ -131,10 +116,8 @@ export function TopBar() {
           onClick={handleSave}
           disabled={saving}
           className={clsx(
-            'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors',
-            saving
-              ? 'text-[#6a6a6a] cursor-wait'
-              : 'hover:bg-[#3c3c3c] text-[#cccccc]'
+            'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors icon-button',
+            saving && 'opacity-50 cursor-wait'
           )}
           title="Save pipeline"
         >
@@ -148,9 +131,7 @@ export function TopBar() {
           disabled={!hasNodes}
           className={clsx(
             'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded transition-colors',
-            hasNodes
-              ? 'bg-[#0e639c] hover:bg-[#1177bb] text-white'
-              : 'bg-[#2d2d30] text-[#6a6a6a] cursor-not-allowed'
+            hasNodes ? 'topbar-run-btn' : 'topbar-run-btn-disabled cursor-not-allowed opacity-40'
           )}
           title="Run pipeline"
         >
@@ -158,33 +139,35 @@ export function TopBar() {
           <span>Run</span>
         </button>
 
-        <button type="button" className="icon-button ml-1" title="Settings">
-          <Settings size={14} />
+        <div className="topbar-divider mx-1" />
+
+        {/* Theme toggle */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="icon-button"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
         </button>
 
-        {/* Divider */}
-        <div className="w-px h-4 bg-border-default mx-1" />
+        <div className="topbar-divider mx-1" />
 
         {/* User pill */}
         {user && (
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-[#cccccc]">
+          <div className="topbar-user flex items-center gap-1.5 px-2 py-1 rounded text-xs">
             {isAdmin(user.role)
               ? <ShieldCheck size={13} className="text-[#f44747]" />
-              : <User size={13} className="text-text-dim" />
+              : <User size={13} className="topbar-chevron" />
             }
             <span className="font-medium">{user.username}</span>
-            <span className={clsx('text-[10px] uppercase font-semibold', ROLE_COLOR[user.role] ?? 'text-text-dim')}>
+            <span className={clsx('topbar-user-role text-[10px] uppercase font-semibold', ROLE_COLOR[user.role])}>
               {user.role}
             </span>
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={logout}
-          className="icon-button"
-          title="Sign out"
-        >
+        <button type="button" onClick={logout} className="icon-button" title="Sign out">
           <LogOut size={13} />
         </button>
       </div>

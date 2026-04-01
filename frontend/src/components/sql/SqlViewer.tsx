@@ -2,9 +2,11 @@ import { useState } from 'react'
 import Editor from '@monaco-editor/react'
 import { Copy, Maximize2, Minimize2, Code2 } from 'lucide-react'
 import { useTransformationStore } from '../../store/transformationStore'
+import { useTheme } from '../../context/ThemeContext'
 
 export function SqlViewer() {
   const { generatedSQL, isSqlViewExpanded, toggleSqlView } = useTransformationStore()
+  const { theme } = useTheme()
   const [copied, setCopied] = useState(false)
 
   const handleCopy = () => {
@@ -21,8 +23,8 @@ export function SqlViewer() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-[#3c3c3c] bg-[#252526] shrink-0">
-        <div className="flex items-center gap-1.5 text-xs text-[#969696]">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-theme bg-surface shrink-0">
+        <div className="flex items-center gap-1.5 text-xs text-secondary">
           <Code2 size={12} />
           <span>Generated SQL</span>
         </div>
@@ -54,7 +56,7 @@ export function SqlViewer() {
         <Editor
           language="sql"
           value={generatedSQL || placeholder}
-          theme="vs-dark"
+          theme={theme === 'light' ? 'vs' : 'vs-dark'}
           options={{
             readOnly: true,
             minimap: { enabled: false },

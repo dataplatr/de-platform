@@ -1,8 +1,9 @@
+import { memo } from 'react'
 import type { NodeProps } from '@xyflow/react'
 import { BaseNode } from './BaseNode'
 import type { FilterCondition } from '../../../types'
 
-export function FilterNode({ data, selected }: NodeProps) {
+export const FilterNode = memo(function FilterNode({ data, selected }: NodeProps) {
   const nodeData = data as { label?: string; config?: FilterCondition[]; status?: 'idle' | 'running' | 'success' | 'error' }
   const conditions = nodeData.config ?? []
 
@@ -10,8 +11,7 @@ export function FilterNode({ data, selected }: NodeProps) {
     <BaseNode
       label={nodeData.label ?? 'Filter'}
       icon="🔽"
-      colorClass="bg-[#3a2b1e]"
-      borderColorClass="border-[#4a3b2e]"
+      nodeClass="node-filter"
       selected={selected}
       status={nodeData.status}
     >
@@ -34,4 +34,4 @@ export function FilterNode({ data, selected }: NodeProps) {
       )}
     </BaseNode>
   )
-}
+})

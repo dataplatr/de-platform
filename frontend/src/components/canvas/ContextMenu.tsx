@@ -40,13 +40,13 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   return (
     <div
       ref={ref}
-      className="fixed z-50 bg-[#252526] border border-[#3c3c3c] rounded shadow-2xl py-1 min-w-[190px] text-xs"
+      className="ctx-menu fixed z-50 rounded py-1 min-w-[190px] text-xs"
       style={{ left: clampedX, top: clampedY }}
       onMouseDown={e => e.stopPropagation()}
     >
       {items.map((item, i) => {
         if (item.separator) {
-          return <div key={i} className="h-px bg-[#3c3c3c] my-1" />
+          return <div key={i} className="ctx-menu-sep h-px my-1" />
         }
         return (
           <button
@@ -56,9 +56,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
             onClick={() => { item.onClick(); onClose() }}
             className={clsx(
               'w-full flex items-center gap-2.5 px-3 py-1.5 text-left transition-colors',
-              item.danger
-                ? 'text-[#f44747] hover:bg-[#3a1e1e]'
-                : 'text-[#cccccc] hover:bg-[#094771]',
+              item.danger ? 'ctx-menu-danger' : 'ctx-menu-item',
               item.disabled && 'opacity-40 cursor-not-allowed pointer-events-none',
             )}
           >

@@ -15,10 +15,9 @@ import { useTransformationStore } from '../../store/transformationStore'
 import { api } from '../../services/api'
 import type { ColumnType } from '../../types'
 import clsx from 'clsx'
+import { makeNodeId } from '../../constants/nodeDefaults'
 
 type Tab = 'local' | 'databricks' | 'snowflake'
-
-const makeId = () => `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
 
 const MAX_WARN_MB = 100
 
@@ -65,7 +64,7 @@ export function SourceImportModal({ onClose, position }: Props) {
       // Add a Source node to the canvas
       const pos = position ?? { x: 200 + nodes.filter(n => n.type === 'source').length * 60, y: 200 }
       addNode({
-        id: makeId(),
+        id: makeNodeId(),
         type: 'source',
         label: data.table_name,
         tableRef: data.table_name,

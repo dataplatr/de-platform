@@ -28,7 +28,11 @@ export interface DatabaseTree {
 
 // ─── Transformation Node Types ────────────────────────────────────────────────
 
-export type NodeType = 'source' | 'filter' | 'join' | 'aggregate' | 'select' | 'transform' | 'deduplicate'
+export type NodeType = 'source' | 'filter' | 'join' | 'aggregate' | 'select' | 'transform' | 'deduplicate' | 'output'
+
+export interface OutputConfig {
+  targetTable: string   // name of the destination table / model
+}
 
 export interface FilterCondition {
   id: string
@@ -72,7 +76,7 @@ export interface DeduplicateConfig {
   orderDir: 'ASC' | 'DESC'                  // ASC = keep lowest value, DESC = keep latest/highest
 }
 
-export type NodeConfig = FilterCondition[] | JoinConfig | AggregationConfig | SelectConfig | TransformConfig | DeduplicateConfig | null
+export type NodeConfig = FilterCondition[] | JoinConfig | AggregationConfig | SelectConfig | TransformConfig | DeduplicateConfig | OutputConfig | null
 
 export interface TransformNode {
   id: string
