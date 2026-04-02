@@ -8,7 +8,7 @@ import threading
 import uuid
 from pathlib import Path
 
-from app.config import settings
+from app.config import settings  # used for ENV check in init_auth_db
 
 _local = threading.local()
 
@@ -82,8 +82,9 @@ def init_auth_db() -> None:
         CREATE INDEX IF NOT EXISTS idx_pipelines_user ON pipelines(user_id);
     """)
 
-    _seed_users(conn)
-    _seed_demo_pipeline(conn)
+    if settings.ENV == "development":
+        _seed_users(conn)
+        _seed_demo_pipeline(conn)
 
 
 def _seed_users(conn: sqlite3.Connection) -> None:

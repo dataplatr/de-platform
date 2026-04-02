@@ -73,7 +73,7 @@ def update_pipeline(pipeline_id: str, user_id: int, name: str, nodes: list, edge
     conn.commit()
     if result.rowcount == 0:
         raise HTTPException(status_code=404, detail="Pipeline not found")
-    return {"id": pipeline_id, "updated_at": now}
+    return {"id": pipeline_id, "name": name, "updated_at": now}
 
 
 def delete_pipeline(pipeline_id: str, user_id: int) -> None:

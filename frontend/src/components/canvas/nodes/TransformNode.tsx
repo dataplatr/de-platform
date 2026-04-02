@@ -4,7 +4,7 @@ import { BaseNode } from './BaseNode'
 import type { TransformNode as TNode, TransformConfig } from '../../../types'
 
 export const TransformNode = memo(({ data, selected }: NodeProps) => {
-  const node = data as TNode
+  const node = data as unknown as TNode
   const cfg = node.config as TransformConfig | null
   const enabledCount = cfg?.columns.filter(c => c.enabled).length ?? 0
   const hasExpr = cfg?.columns.some(c => c.expression) ?? false

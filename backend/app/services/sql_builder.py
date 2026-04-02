@@ -45,6 +45,9 @@ def generate_sql(transformation_type: str, config: dict, input_tables: list[str]
     if not input_tables:
         raise ValueError("At least one input table is required")
 
+    for tbl in input_tables:
+        _validate_identifier(tbl, "table")
+
     if transformation_type == "filter":
         return _build_filter_sql(input_tables[0], config)
     if transformation_type == "join":

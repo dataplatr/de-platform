@@ -2,7 +2,7 @@ import { Handle, Position } from '@xyflow/react'
 import clsx from 'clsx'
 import { memo, useEffect, useState } from 'react'
 import { useTransformationStore } from '../../../store/transformationStore'
-import { generateNodeSQL } from '../../../services/sqlGenerator'
+import { api } from '../../../services/api'
 import type { TransformNode } from '../../../types'
 
 interface OutputNodeProps {
@@ -22,15 +22,12 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
   const inputEdges = edges.filter(e => e.target === data.id)
   const inputCount = inputEdges.length
 
-  // Generate SQL from all upstream paths and expose it when this node is selected
+  // Compile SQL from all upstream paths and expose it when this node is selected
   useEffect(() => {
     if (inputCount === 0) return
-    try {
-      const sql = generateNodeSQL(data.id, nodes, edges)
-      setGeneratedSQL(sql)
-    } catch {
-      // ignore generation errors
-    }
+    api.compilePipeline(nodes, edges, data.id)
+      .then(({ data: res }) => setGeneratedSQL(res.sql))
+      .catch(() => { /* ignore compile errors — node may not be fully connected yet */ })
   }, [data.id, nodes, edges, inputCount, setGeneratedSQL])
 
   const startEdit = () => {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getBezierPath, EdgeLabelRenderer, MarkerType, type EdgeProps } from '@xyflow/react'
+import { getBezierPath, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 import { useTransformationStore } from '../../../store/transformationStore'
 import clsx from 'clsx'
 import { NODE_META } from '../../../constants/nodeMetadata'
@@ -8,7 +8,7 @@ interface PipelineStep { type: string; label: string }
 
 export function PipelineEdge({
   id, sourceX, sourceY, targetX, targetY,
-  sourcePosition, targetPosition, data,
+  sourcePosition, targetPosition, data, markerEnd,
 }: EdgeProps) {
   const { setRightPanelTab } = useTransformationStore()
   const [isHovered, setIsHovered] = useState(false)
@@ -56,7 +56,7 @@ export function PipelineEdge({
         d={edgePath}
         className={clsx('pipeline-edge-path react-flow__edge-path', isHovered && 'hovered')}
         onClick={handleClick}
-        markerEnd={{ type: MarkerType.ArrowClosed, color: 'var(--pipe-stroke)', width: 10, height: 10 }}
+        markerEnd={markerEnd}
         {...hover}
       />
 

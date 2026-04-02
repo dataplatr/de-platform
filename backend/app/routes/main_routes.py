@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Any
 
 from app.auth.auth import get_current_user, login, logout, require_role
-from app.controllers import db_controller, chat_controller
+from app.controllers import chat_controller
 from app.models.schemas import (
     LoginRequest,
     DuckDBConnectRequest,
@@ -11,8 +11,15 @@ from app.models.schemas import (
     SQLGenerateRequest,
     ChatRequest,
     CreateUserRequest,
+    CompileRequest,
+    PipelinePreviewRequest,
 )
-from app.services import user_service, audit_service, pipeline_service
+from app.services import user_service, audit_service, pipeline_service, compile_service
+from app.services.csv_service import upload_csv
+from app.services.query_service import preview_sql
+from app.services.schema_service import get_database_tree
+from app.services.sql_builder import generate_sql
+from app.db.connection import reconnect
 from app.constants import FORWARDED_FOR_HEADER
 
 
@@ -91,30 +98,41 @@ def my_activity(current: dict = Depends(get_current_user)):
 
 @router.post("/db/connect", dependencies=[Depends(get_current_user)])
 def db_connect(req: DuckDBConnectRequest):
-    return db_controller.connect(req)
+    path = req.path or ":memory:"
+    conn = reconnect(path)
+    version = conn.execute("SELECT version()").fetchone()[0]
+    return {"status": "connected", "duckdb_version": version, "path": path}
 
 
 @router.get("/db/tree", dependencies=[Depends(get_current_user)])
 def db_tree():
-    return db_controller.get_tree()
+    return get_database_tree()
 
 
 @router.post("/db/preview", dependencies=[Depends(get_current_user)])
 def db_preview(req: PreviewRequest):
-    return db_controller.preview(req)
+    return preview_sql(req.sql, req.limit)
 
 
 @router.post("/db/upload-csv", dependencies=[Depends(get_current_user)])
 async def db_upload_csv(file: UploadFile = File(...)):
     try:
-        return await db_controller.upload_csv(file)
+        content = await file.read()
+        return upload_csv(content, file.filename)
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
-@router.post("/db/generate-sql", dependencies=[Depends(get_current_user)])
+@router.post(
+    "/db/generate-sql",
+    dependencies=[Depends(get_current_user)],
+    deprecated=True,
+    summary="[DEPRECATED] Use /pipelines/compile instead",
+)
 def db_generate_sql(req: SQLGenerateRequest):
-    return db_controller.generate_sql(req)
+    sql, _params = generate_sql(req.transformation_type, req.config, req.input_tables)
+    from app.models.schemas import SQLGenerateResult
+    return SQLGenerateResult(sql=sql)
 
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
@@ -122,6 +140,26 @@ def db_generate_sql(req: SQLGenerateRequest):
 @router.post("/chat", dependencies=[Depends(get_current_user)])
 def chat(req: ChatRequest):
     return chat_controller.chat(req)
+
+
+# ── Pipeline compile / preview ────────────────────────────────────────────────
+
+@router.post("/pipelines/compile", dependencies=[Depends(get_current_user)])
+def compile_pipeline_route(req: CompileRequest):
+    try:
+        sql = compile_service.compile_pipeline(req.nodes, req.edges, req.target_node_id)
+        return {"sql": sql, "target_node_id": req.target_node_id}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post("/pipelines/preview", dependencies=[Depends(get_current_user)])
+def preview_pipeline_route(req: PipelinePreviewRequest):
+    try:
+        sql = compile_service.compile_pipeline(req.nodes, req.edges, req.target_node_id)
+        return preview_sql(sql, req.limit)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 # ── Pipelines ─────────────────────────────────────────────────────────────────

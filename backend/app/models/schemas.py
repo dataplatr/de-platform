@@ -144,6 +144,26 @@ class ExecuteRequest(BaseModel):
     output_table: Optional[str] = None
 
 
+# --- Pipeline compile / preview ---
+
+class CompileRequest(BaseModel):
+    nodes: list[dict[str, Any]]
+    edges: list[dict[str, Any]]
+    target_node_id: str
+
+
+class CompileResult(BaseModel):
+    sql: str
+    target_node_id: str
+
+
+class PipelinePreviewRequest(BaseModel):
+    nodes: list[dict[str, Any]]
+    edges: list[dict[str, Any]]
+    target_node_id: str
+    limit: int = Field(default=100, ge=1, le=1000)
+
+
 # --- Audit ---
 
 class AuditLogEntry(BaseModel):

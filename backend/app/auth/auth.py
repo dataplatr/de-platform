@@ -10,7 +10,7 @@ from app.config import settings
 from app.constants import ROLES_ORDERED
 from app.db.auth_db import get_auth_conn
 from app.models.schemas import LoginRequest, TokenResponse
-from app.services import user_service
+from app.services import user_service  # also used for is_active check in get_current_user
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
@@ -65,11 +65,14 @@ def _revoke_session(jti: str) -> None:
 
 def _is_session_valid(jti: str) -> bool:
     row = get_auth_conn().execute(
-        "SELECT is_revoked FROM sessions WHERE jti = ?", (jti,)
+        "SELECT is_revoked, expires_at FROM sessions WHERE jti = ?", (jti,)
     ).fetchone()
     if row is None:
         return False
-    return row["is_revoked"] == 0
+    if row["is_revoked"] != 0:
+        return False
+    expires_at = datetime.fromisoformat(row["expires_at"]).replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) < expires_at
 
 
 # --- Login / Logout ---
@@ -124,6 +127,13 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)) -> dic
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired or revoked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = user_service.get_user_by_id(user_id)
+    if user is None or not user["is_active"]:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account inactive",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return {"username": username, "id": user_id, "role": role, "jti": jti}

@@ -24,7 +24,8 @@ def _create_connection(path: str) -> duckdb.DuckDBPyConnection:
         db_path = Path(path)
         db_path.parent.mkdir(parents=True, exist_ok=True)
         conn = duckdb.connect(str(db_path))
-    _seed_demo_data(conn)
+    if settings.ENV == "development":
+        _seed_demo_data(conn)
     return conn
 
 

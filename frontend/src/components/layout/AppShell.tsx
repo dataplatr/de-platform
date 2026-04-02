@@ -6,8 +6,7 @@ import { RightPanel } from './RightPanel'
 import { useResize } from '../../hooks/useResize'
 import { useTransformationStore } from '../../store/transformationStore'
 import { api } from '../../services/api'
-import type { DatabaseTree } from '../../types'
-import { normalizeColumnType } from '../../utils/typeUtils'
+import { mapDatabaseTree } from '../../services/apiMapper'
 
 function ResizeHandle({
   axis,
@@ -51,22 +50,7 @@ export function AppShell() {
   useEffect(() => {
     api.getDbTree()
       .then(({ data }) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const tree: DatabaseTree[] = (data as any[]).map((db) => ({
-          name: db.name,
-          schemas: db.schemas.map((schema: { name: string; tables: { name: string; columns: { name: string; type: string; nullable: boolean }[] }[] }) => ({
-            name: schema.name,
-            tables: schema.tables.map((table) => ({
-              name: table.name,
-              columns: (table.columns ?? []).map((col) => ({
-                name: col.name,
-                type: normalizeColumnType(col.type),
-                nullable: col.nullable,
-              })),
-            })),
-          })),
-        }))
-        setDatabaseTree(tree)
+        setDatabaseTree(mapDatabaseTree(data))
         setConnected(true)
       })
       .catch(() => {

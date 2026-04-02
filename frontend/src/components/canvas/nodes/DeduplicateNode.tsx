@@ -4,7 +4,7 @@ import { BaseNode } from './BaseNode'
 import type { TransformNode as TNode, DeduplicateConfig } from '../../../types'
 
 export const DeduplicateNode = memo(({ data, selected }: NodeProps) => {
-  const node = data as TNode
+  const node = data as unknown as TNode
   const cfg = node.config as DeduplicateConfig | null
 
   return (

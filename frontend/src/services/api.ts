@@ -67,6 +67,21 @@ export const api = {
     input_tables: string[]
   }) => apiClient.post('/api/db/generate-sql', payload),
 
+  // Pipeline compile / preview (server-side SQL generation)
+  compilePipeline: (nodes: unknown[], edges: unknown[], targetNodeId: string) =>
+    apiClient.post<{ sql: string; target_node_id: string }>('/api/pipelines/compile', {
+      nodes,
+      edges,
+      target_node_id: targetNodeId,
+    }),
+  previewPipeline: (nodes: unknown[], edges: unknown[], targetNodeId: string, limit = 100) =>
+    apiClient.post('/api/pipelines/preview', {
+      nodes,
+      edges,
+      target_node_id: targetNodeId,
+      limit,
+    }),
+
   // Chat
   chat: (messages: { role: string; content: string }[], context?: Record<string, unknown>) =>
     apiClient.post('/api/chat', { messages, context }),

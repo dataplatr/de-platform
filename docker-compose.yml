@@ -1,0 +1,40 @@
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    env_file:
+      - ./backend/.env          # SECRET_KEY, ALGORITHM, tokens — live here
+    environment:
+      # Override the two path values that differ inside the container
+      - DUCKDB_PATH=/app/data/lakeflow.duckdb
+      - AUTH_DB_PATH=/app/data/auth.db
+      # Nginx proxies /api/* so the browser never cross-origins,
+      # but keep this accurate for the CORS middleware
+      - ALLOWED_ORIGINS=http://localhost:${FRONTEND_PORT:-3000}
+    volumes:
+      # Persist DuckDB and auth.db across restarts
+      - app_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  app_data:
+    name: lakeflow_data

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { Play, Info, Workflow } from 'lucide-react'
 import type { TransformNode as TNode, TransformEdge as TEdge } from '../../types'
 import { useTransformationStore } from '../../store/transformationStore'
@@ -8,11 +8,7 @@ import { AggregateConfig } from './AggregateConfig'
 import { SelectConfig } from './SelectConfig'
 import { TransformConfig } from './TransformConfig'
 import { DeduplicateConfig } from './DeduplicateConfig'
-import {
-  getUpstreamColumns,
-  getColumnsForHandle,
-  generateNodeSQL,
-} from '../../services/sqlGenerator'
+import { getAllUpstream } from '../../utils/graphUtils'
 import type {
   FilterCondition,
   JoinConfig as JoinCfg,
@@ -20,25 +16,10 @@ import type {
   SelectConfig as SelectCfg,
   TransformConfig as TransformCfg,
   DeduplicateConfig as DedupCfg,
-  TransformColumnDef,
 } from '../../types'
-import { api } from '../../services/api'
+import { useNodePreview } from '../../hooks/useNodePreview'
+import { useUpstreamColumns } from '../../hooks/useUpstreamColumns'
 import { NODE_META } from '../../constants/nodeMetadata'
-
-/** Walk the upstream DAG from a node, returning all reachable nodes in topo order */
-function getAllUpstream(startId: string, nodes: TNode[], edges: TEdge[]): TNode[] {
-  const result: TNode[] = []
-  const visited = new Set<string>()
-  const walk = (id: string) => {
-    if (visited.has(id)) return
-    visited.add(id)
-    edges.filter(e => e.target === id).forEach(e => walk(e.source))
-    const n = nodes.find(x => x.id === id)
-    if (n) result.push(n)
-  }
-  walk(startId)
-  return result.filter(n => n.id !== startId)
-}
 
 function PipelineTree({ chain }: { chain: TNode[] }) {
   return (
@@ -72,14 +53,10 @@ function OutputConfig({ nodeId, nodes, edges }: { nodeId: string; nodes: TNode[]
   const node = nodes.find(n => n.id === nodeId)
   const cfg = node?.config as { targetTable?: string } | null
 
-  const [name, setName] = [cfg?.targetTable || node?.label || 'output', (v: string) => {
-    updateNode(nodeId, { label: v, config: { ...(cfg ?? {}), targetTable: v } })
-  }]
-
   const isCanvasExpanded = expandedOutputId === nodeId
   const toggleCanvas = useCallback(
     () => setExpandedOutputId(isCanvasExpanded ? null : nodeId),
-    [isCanvasExpanded, nodeId, setExpandedOutputId]
+    [isCanvasExpanded, nodeId, setExpandedOutputId],
   )
 
   const allUpstream = useMemo(() => getAllUpstream(nodeId, nodes, edges), [nodeId, nodes, edges])
@@ -165,81 +142,11 @@ function OutputConfig({ nodeId, nodes, edges }: { nodeId: string; nodes: TNode[]
 }
 
 export function NodeConfigPanel() {
-  const {
-    selectedNodeId, nodes, edges,
-    setGeneratedSQL, setOutputPreview, setPreviewLoading, setBottomPanelTab,
-    updateNode,
-  } = useTransformationStore()
-
+  const { selectedNodeId, nodes, edges } = useTransformationStore()
   const node = nodes.find(n => n.id === selectedNodeId)
 
-  // Regenerate SQL whenever the node config or graph changes
-  useEffect(() => {
-    if (!selectedNodeId) { setGeneratedSQL('-- Select a node to see its SQL'); return }
-    const sql = generateNodeSQL(selectedNodeId, nodes, edges)
-    setGeneratedSQL(sql)
-  }, [selectedNodeId, nodes, edges, setGeneratedSQL])
-
-  // Auto-initialize Transform config from upstream columns when empty.
-  // Runs in useEffect to avoid setState-during-render.
-  const incomingEdges = useMemo(
-    () => edges.filter(e => e.target === selectedNodeId),
-    [edges, selectedNodeId]
-  )
-  const upstreamCols = useMemo(() => {
-    if (!node) return []
-    if (node.type === 'source') return node.columns ?? []
-    return incomingEdges.length > 0
-      ? getUpstreamColumns(incomingEdges[0].source, nodes, edges)
-      : []
-  }, [node, incomingEdges, nodes, edges])
-
-  useEffect(() => {
-    if (!node || node.type !== 'transform' || upstreamCols.length === 0) return
-    const cfg = node.config as TransformCfg | null
-    if (!cfg || cfg.columns.length === 0) {
-      const init: TransformColumnDef[] = upstreamCols.map(c => ({
-        source: c.name, outputName: c.name, castType: '', expression: '', enabled: true,
-      }))
-      updateNode(node.id, { config: { columns: init } as TransformCfg })
-    }
-  }, [node, upstreamCols, updateNode])
-
-  const leftCols  = useMemo(
-    () => node ? getColumnsForHandle(node.id, 'a', nodes, edges) : [],
-    [node, nodes, edges]
-  )
-  const rightCols = useMemo(
-    () => node ? getColumnsForHandle(node.id, 'b', nodes, edges) : [],
-    [node, nodes, edges]
-  )
-
-  const runPreview = useCallback(async () => {
-    if (!selectedNodeId) return
-    const rawSql = generateNodeSQL(selectedNodeId, nodes, edges)
-    const sql = rawSql.replace(/^(--[^\n]*\n)+/, '').trim()
-    if (!sql || sql.startsWith('--')) return
-    setPreviewLoading(true)
-    setBottomPanelTab('output')
-    try {
-      const { data } = await api.preview(sql, 100)
-      type ColInfo = { name: string; type: string }
-      const cols = data.columns as ColInfo[]
-      setOutputPreview({
-        columns: cols.map(c => ({ name: c.name, type: c.type as import('../../types').ColumnType })),
-        rows: (data.rows as unknown[][]).map(row =>
-          Object.fromEntries(cols.map((c, i) => [c.name, row[i]]))
-        ),
-        totalRows: data.row_count,
-        executionMs: data.execution_time_ms,
-        sampled: data.is_sampled,
-      })
-    } catch {
-      setOutputPreview(null)
-    } finally {
-      setPreviewLoading(false)
-    }
-  }, [selectedNodeId, nodes, edges, setPreviewLoading, setBottomPanelTab, setOutputPreview])
+  const { runPreview } = useNodePreview()
+  const { upstreamCols, leftCols, rightCols } = useUpstreamColumns(node)
 
   if (!node) {
     return (
