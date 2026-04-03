@@ -752,3 +752,17 @@
 .react-flow__background {
   background-color: var(--canvas-bg) !important;
 }
+
+/* Drag-select rectangle — Figma-like translucent blue */
+.react-flow__selection {
+  background: rgba(28, 95, 253, 0.08) !important;
+  border: 1px solid var(--pipe-stroke) !important;
+  border-radius: 2px !important;
+}
+
+/* Multi-select bounding box around selected nodes */
+.react-flow__nodesselection-rect {
+  background: rgba(28, 95, 253, 0.06) !important;
+  border: 1px dashed var(--pipe-stroke) !important;
+  border-radius: 4px !important;
+}

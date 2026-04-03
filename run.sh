@@ -44,21 +44,21 @@ cleanup() {
 }
 trap cleanup INT TERM
 
-# ── Banner ────────────────────────────────────────────────────────────────────
-echo ""
-echo "  ┌─────────────────────────────────────────────┐"
-echo "  │           Lakeflow Designer                  │"
-echo "  ├─────────────────────────────────────────────┤"
-echo "  │                                              │"
-echo "  │  App   →  http://localhost:${FRONTEND_PORT}              │"
-echo "  │  API   →  http://localhost:${BACKEND_PORT}              │"
-echo "  │                                              │"
-echo "  │  First run takes ~2 min (building images).   │"
-echo "  │  Subsequent runs start in seconds.           │"
-echo "  │                                              │"
-echo "  │  Press Ctrl+C to stop.                       │"
-echo "  └─────────────────────────────────────────────┘"
-echo ""
+# # ── Banner ────────────────────────────────────────────────────────────────────
+# echo ""
+# echo "  ┌──────────────────────────────────────────────┐"
+# echo "  │           Lakeflow Designer                  │"
+# echo "  ├──────────────────────────────────────────────┤"
+# echo "  │                                              │"
+# echo "  │  App   →  http://localhost:${FRONTEND_PORT}  │"
+# echo "  │  API   →  http://localhost:${BACKEND_PORT}   │"
+# echo "  │                                              │"
+# echo "  │  First run takes ~2 min (building images).   │"
+# echo "  │  Subsequent runs start in seconds.           │"
+# echo "  │                                              │"
+# echo "  │  Press Ctrl+C to stop.                       │"
+# echo "  └──────────────────────────────────────────────┘"
+# echo ""
 
 # ── Start ─────────────────────────────────────────────────────────────────────
 docker compose up --build

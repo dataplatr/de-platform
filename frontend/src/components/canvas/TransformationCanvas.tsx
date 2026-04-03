@@ -5,9 +5,15 @@ import {
   Controls,
   MiniMap,
   BackgroundVariant,
+  SelectionMode,
+  applyNodeChanges,
+  applyEdgeChanges,
   type NodeTypes,
   type EdgeTypes,
   type Node,
+  type Edge,
+  type NodeChange,
+  type EdgeChange,
   type ReactFlowInstance,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
@@ -45,33 +51,94 @@ const edgeTypes: EdgeTypes = {
 }
 
 export function TransformationCanvas() {
-  const { nodes, edges, selectedNodeId } = useTransformationStore()
+  const { nodes, edges, updateNode, removeNode, removeEdge, setSelectedNode } = useTransformationStore()
 
   const rfInstance = useRef<ReactFlowInstance | null>(null)
   const onInit = useCallback((instance: ReactFlowInstance) => { rfInstance.current = instance }, [])
-  const measuredDims = useRef<Map<string, { width: number; height: number }>>(new Map())
 
   const [importPos, setImportPos] = useState<{ x: number; y: number } | null>(null)
   const [ctxMenu, setCtxMenu] = useState<{
     x: number; y: number; flowX: number; flowY: number; nodeId?: string
   } | null>(null)
 
-  const toRfNode = useCallback((n: TransformNode): Node => {
-    const dims = measuredDims.current.get(n.id)
-    return {
-      id: n.id, type: n.type, position: n.position,
-      data: { ...n }, selected: n.id === selectedNodeId,
-      ...(dims ? { measured: dims } : {}),
-    }
-  }, [selectedNodeId])
+  const toRfNode = useCallback((n: TransformNode): Node => ({
+    id: n.id, type: n.type, position: n.position,
+    data: { ...n },
+  }), [])
 
   const { rfNodes, rfEdges } = usePipelineExpansion(nodes, edges, toRfNode)
 
+  // ── ReactFlow controlled mode ──────────────────────────────────────────────
+  // We keep RF nodes/edges in local state derived from the pipeline expansion hook.
+  // applyNodeChanges/applyEdgeChanges handle selection, position, dimensions, removal
+  // natively — this is what makes multi-select, drag-select, and delete actually work.
+  const [localNodes, setLocalNodes] = useState<Node[]>([])
+  const [localEdges, setLocalEdges] = useState<Edge[]>([])
+
+  // Sync pipeline expansion output → local RF state.
+  // We merge: keep RF-managed fields (selected, measured) but update position/data from store.
+  const prevRfNodesRef = useRef<string>('')
+  const prevRfEdgesRef = useRef<string>('')
+
+  const rfNodesKey = JSON.stringify(rfNodes.map(n => ({ id: n.id, type: n.type, px: n.position.x, py: n.position.y })))
+  const rfEdgesKey = JSON.stringify(rfEdges.map(e => ({ id: e.id, s: e.source, t: e.target })))
+
+  if (rfNodesKey !== prevRfNodesRef.current) {
+    prevRfNodesRef.current = rfNodesKey
+    const oldById = new Map(localNodes.map(n => [n.id, n]))
+    setLocalNodes(rfNodes.map(n => {
+      const old = oldById.get(n.id)
+      return {
+        ...n,
+        // Preserve RF-managed state if the node existed before
+        selected: old?.selected ?? false,
+        measured: old?.measured ?? n.measured,
+      }
+    }))
+  }
+
+  if (rfEdgesKey !== prevRfEdgesRef.current) {
+    prevRfEdgesRef.current = rfEdgesKey
+    setLocalEdges(rfEdges)
+  }
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setLocalNodes(prev => applyNodeChanges(changes, prev))
+
+    // Sync meaningful changes back to the zustand store
+    for (const c of changes) {
+      if (c.type === 'position' && c.position) {
+        updateNode(c.id, { position: c.position })
+      }
+      if (c.type === 'remove') {
+        removeNode(c.id)
+      }
+      if (c.type === 'select' && c.selected) {
+        setSelectedNode(c.id)
+      }
+    }
+
+    // If everything was deselected
+    const anySelected = changes.some(c => c.type === 'select' && c.selected)
+    const allDeselected = changes.every(c => c.type !== 'select' || !c.selected) && changes.some(c => c.type === 'select')
+    if (allDeselected && !anySelected) {
+      setSelectedNode(null)
+    }
+  }, [updateNode, removeNode, setSelectedNode])
+
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
+    setLocalEdges(prev => applyEdgeChanges(changes, prev))
+
+    for (const c of changes) {
+      if (c.type === 'remove') removeEdge(c.id)
+    }
+  }, [removeEdge])
+
   const {
-    closeCtx, onConnect, onNodesChange, onEdgesChange,
+    closeCtx, onConnect,
     onNodeClick, onPaneClick, onPaneContextMenu, onNodeContextMenu,
     onDragOver, onDrop, buildMenuItems,
-  } = useCanvasEventHandlers(rfInstance, measuredDims, setImportPos, setCtxMenu)
+  } = useCanvasEventHandlers(rfInstance, setImportPos, setCtxMenu)
 
   return (
     <div className="flex-1 relative overflow-hidden min-h-0 canvas-bg" onDrop={onDrop} onDragOver={onDragOver}>
@@ -88,8 +155,8 @@ export function TransformationCanvas() {
       )}
 
       <ReactFlow
-        nodes={rfNodes}
-        edges={rfEdges}
+        nodes={localNodes}
+        edges={localEdges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onInit={onInit}
@@ -105,7 +172,12 @@ export function TransformationCanvas() {
         fitViewOptions={{ padding: 0.3 }}
         minZoom={0.2}
         maxZoom={2.5}
-        deleteKeyCode="Delete"
+        deleteKeyCode={['Delete', 'Backspace']}
+        multiSelectionKeyCode="Shift"
+        selectionOnDrag
+        selectionMode={SelectionMode.Partial}
+        panOnScroll
+        zoomOnPinch
         className="canvas-bg"
         proOptions={{ hideAttribution: true }}
       >

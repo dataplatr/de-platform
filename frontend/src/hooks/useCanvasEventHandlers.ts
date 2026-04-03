@@ -1,9 +1,9 @@
 /**
- * Canvas event handler hooks — connection, node/edge changes, click, drag-drop,
- * and context menu. Extracted from TransformationCanvas.tsx.
+ * Canvas event handler hooks — connection, click, drag-drop, and context menu.
+ * Node/edge change handlers live in TransformationCanvas (they need local RF state).
  */
 import { useCallback } from 'react'
-import type { NodeChange, EdgeChange, Connection, ReactFlowInstance } from '@xyflow/react'
+import type { Connection, ReactFlowInstance } from '@xyflow/react'
 import type { MutableRefObject } from 'react'
 import { useTransformationStore } from '../store/transformationStore'
 import { makeNodeId, DEFAULT_CONFIGS } from '../constants/nodeDefaults'
@@ -11,13 +11,12 @@ import type { TransformNode } from '../types'
 
 export function useCanvasEventHandlers(
   rfInstance: MutableRefObject<ReactFlowInstance | null>,
-  measuredDims: MutableRefObject<Map<string, { width: number; height: number }>>,
   setImportPos: (pos: { x: number; y: number } | null) => void,
   setCtxMenu: (menu: { x: number; y: number; flowX: number; flowY: number; nodeId?: string } | null) => void,
 ) {
   const {
-    nodes, addNode, removeNode, addEdge, updateNode, removeEdge,
-    selectedNodeId, setSelectedNode, setRightPanelTab,
+    nodes, addNode, removeNode, addEdge,
+    setSelectedNode, setRightPanelTab,
   } = useTransformationStore()
 
   const closeCtx = useCallback(() => setCtxMenu(null), [setCtxMenu])
@@ -34,23 +33,6 @@ export function useCanvasEventHandlers(
       })
     },
     [addEdge],
-  )
-
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      changes.forEach(change => {
-        if (change.type === 'position' && change.position) updateNode(change.id, { position: change.position })
-        if (change.type === 'dimensions' && change.dimensions) measuredDims.current.set(change.id, change.dimensions)
-      })
-    },
-    [updateNode, measuredDims],
-  )
-
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => {
-      changes.forEach(change => { if (change.type === 'remove') removeEdge(change.id) })
-    },
-    [removeEdge],
   )
 
   const onNodeClick = useCallback(
@@ -128,7 +110,7 @@ export function useCanvasEventHandlers(
           { label: '', onClick: () => {}, separator: true },
           {
             label: 'Delete node', icon: '🗑', danger: true,
-            onClick: () => { removeNode(nid); if (selectedNodeId === nid) setSelectedNode(null) },
+            onClick: () => removeNode(nid),
           },
         ]
       }
@@ -165,12 +147,12 @@ export function useCanvasEventHandlers(
         })),
       ]
     },
-    [nodes, addNode, removeNode, selectedNodeId, setSelectedNode, setImportPos],
+    [nodes, addNode, removeNode, setSelectedNode, setImportPos],
   )
 
   return {
     closeCtx,
-    onConnect, onNodesChange, onEdgesChange,
+    onConnect,
     onNodeClick, onPaneClick,
     onPaneContextMenu, onNodeContextMenu,
     onDragOver, onDrop,
