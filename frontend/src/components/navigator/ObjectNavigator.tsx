@@ -46,6 +46,7 @@ function TableNode({
       tableRef,
       label: tableName,
       columns,
+      sourceType: 'table',
     }))
     e.dataTransfer.effectAllowed = 'copy'
   }

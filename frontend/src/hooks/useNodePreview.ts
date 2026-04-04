@@ -6,6 +6,7 @@ import { useCallback, useEffect } from 'react'
 import { useTransformationStore } from '../store/transformationStore'
 import { api } from '../services/api'
 import { mapPreviewResult } from '../services/apiMapper'
+import { notify } from '../services/notify'
 
 export function useNodePreview() {
   const {
@@ -28,8 +29,12 @@ export function useNodePreview() {
     try {
       const { data } = await api.previewPipeline(nodes, edges, selectedNodeId, 100)
       setOutputPreview(mapPreviewResult(data))
-    } catch {
+    } catch (err: unknown) {
       setOutputPreview(null)
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+        ?? 'Preview failed — check node connections and config.'
+      notify('error', detail)
     } finally {
       setPreviewLoading(false)
     }

@@ -7,6 +7,7 @@ import type { Connection, ReactFlowInstance } from '@xyflow/react'
 import type { MutableRefObject } from 'react'
 import { useTransformationStore } from '../store/transformationStore'
 import { makeNodeId, DEFAULT_CONFIGS } from '../constants/nodeDefaults'
+import { notify } from '../services/notify'
 import type { TransformNode } from '../types'
 
 export function useCanvasEventHandlers(
@@ -15,7 +16,7 @@ export function useCanvasEventHandlers(
   setCtxMenu: (menu: { x: number; y: number; flowX: number; flowY: number; nodeId?: string } | null) => void,
 ) {
   const {
-    nodes, addNode, removeNode, addEdge,
+    nodes, edges, addNode, removeNode, addEdge,
     setSelectedNode, setRightPanelTab,
   } = useTransformationStore()
 
@@ -23,23 +24,57 @@ export function useCanvasEventHandlers(
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      if (!connection.source || !connection.target) return
+      const { source, target, sourceHandle, targetHandle } = connection
+      if (!source || !target) return
+
+      // Self-loop
+      if (source === target) {
+        notify('warning', 'Cannot connect a node to itself.')
+        return
+      }
+
+      // Duplicate edge (same source → same target handle)
+      const duplicate = edges.some(
+        e => e.source === source && e.target === target && (e.targetHandle ?? null) === (targetHandle ?? null),
+      )
+      if (duplicate) {
+        notify('warning', 'These nodes are already connected.')
+        return
+      }
+
+      // Join validation: both inputs must come from different source nodes
+      const targetNode = nodes.find(n => n.id === target)
+      if (targetNode?.type === 'join') {
+        const existingJoinEdges = edges.filter(e => e.target === target)
+        const otherHandle = targetHandle === 'a' ? 'b' : 'a'
+        const conflicting = existingJoinEdges.find(
+          e => e.targetHandle === otherHandle && e.source === source,
+        )
+        if (conflicting) {
+          notify('error', 'Both Join inputs cannot come from the same source node.')
+          return
+        }
+      }
+
       addEdge({
-        id: `e-${connection.source}-${connection.target}-${connection.targetHandle ?? ''}`,
-        source: connection.source,
-        target: connection.target,
-        sourceHandle: connection.sourceHandle ?? undefined,
-        targetHandle: connection.targetHandle ?? undefined,
+        id: `e-${source}-${target}-${targetHandle ?? ''}`,
+        source,
+        target,
+        sourceHandle: sourceHandle ?? undefined,
+        targetHandle: targetHandle ?? undefined,
       })
     },
-    [addEdge],
+    [addEdge, edges, nodes],
   )
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: { id: string; type?: string }) => {
       if (node.type === 'pipelineGroup') return
       setSelectedNode(node.id)
-      if (node.type === 'output') setRightPanelTab('config')
+      // Transformation nodes and output nodes open the config panel on click.
+      // Source nodes just select (schema visible in config panel too).
+      const opensConfig = new Set(['output', 'filter', 'join', 'aggregate', 'select', 'transform', 'deduplicate'])
+      if (node.type && opensConfig.has(node.type)) setRightPanelTab('config')
     },
     [setSelectedNode, setRightPanelTab],
   )
@@ -77,12 +112,13 @@ export function useCanvasEventHandlers(
       const raw = e.dataTransfer.getData('application/lakeflow-node')
       if (!raw || !rfInstance.current) return
       const data = JSON.parse(raw) as {
-        tableRef: string; label: string
+        tableRef: string; label: string; sourceType?: 'table' | 'view' | 'csv'
         columns: { name: string; type: string; nullable: boolean }[]
       }
       const position = rfInstance.current.screenToFlowPosition({ x: e.clientX, y: e.clientY })
       addNode({
         id: makeNodeId(), type: 'source', label: data.label, tableRef: data.tableRef,
+        sourceType: data.sourceType ?? 'table',
         columns: data.columns.map(c => ({ name: c.name, type: c.type as TransformNode['columns'] extends { type: infer T }[] ? T : never, nullable: c.nullable })),
         config: null, position,
       })
@@ -95,43 +131,45 @@ export function useCanvasEventHandlers(
       if (ctxMenu?.nodeId) {
         const nid = ctxMenu.nodeId
         const node = nodes.find(n => n.id === nid)
+        const typeLabel = node?.type
+          ? node.type.charAt(0).toUpperCase() + node.type.slice(1)
+          : 'Node'
         return [
-          { label: node?.label ?? 'Node', icon: '⬡', onClick: () => {}, disabled: true },
+          { label: node?.label ?? 'Node', onClick: () => {}, disabled: true },
           { label: '', onClick: () => {}, separator: true },
-          { label: 'Configure', icon: '⚙️', onClick: () => setSelectedNode(nid) },
-          { label: 'Preview data', icon: '👁', onClick: () => setSelectedNode(nid) },
+          { label: `Configure ${typeLabel}`, onClick: () => { setSelectedNode(nid); setRightPanelTab('config') } },
+          { label: 'Preview data', onClick: () => { setSelectedNode(nid); setRightPanelTab('history') } },
           {
-            label: 'Duplicate', icon: '⧉',
+            label: 'Duplicate',
             onClick: () => {
               if (!node) return
-              addNode({ ...node, id: makeNodeId(), label: `${node.label} (copy)`, position: { x: node.position.x + 40, y: node.position.y + 40 } })
+              addNode({ ...node, id: makeNodeId(), label: `${node.label} copy`, position: { x: node.position.x + 40, y: node.position.y + 40 } })
             },
           },
           { label: '', onClick: () => {}, separator: true },
           {
-            label: 'Delete node', icon: '🗑', danger: true,
+            label: 'Delete node', danger: true,
             onClick: () => removeNode(nid),
           },
         ]
       }
 
-      const addTypes: { type: TransformNode['type']; label: string; icon: string }[] = [
-        { type: 'source',      label: 'Source',      icon: '🗃️' },
-        { type: 'filter',      label: 'Filter',      icon: '🔽' },
-        { type: 'join',        label: 'Join',        icon: '🔗' },
-        { type: 'transform',   label: 'Transform',   icon: '⚡' },
-        { type: 'aggregate',   label: 'Aggregate',   icon: '∑'  },
-        { type: 'deduplicate', label: 'Deduplicate', icon: '⊘'  },
-        { type: 'select',      label: 'Select',      icon: '📋' },
-        { type: 'output',      label: 'Output',      icon: '🎯' },
+      const addTypes: { type: TransformNode['type']; label: string }[] = [
+        { type: 'source',      label: 'Source'      },
+        { type: 'filter',      label: 'Filter'      },
+        { type: 'join',        label: 'Join'        },
+        { type: 'transform',   label: 'Transform'   },
+        { type: 'aggregate',   label: 'Aggregate'   },
+        { type: 'deduplicate', label: 'Deduplicate' },
+        { type: 'select',      label: 'Select'      },
+        { type: 'output',      label: 'Output'      },
       ]
 
       return [
-        { label: 'Add to canvas', onClick: () => {}, disabled: true, icon: '⊕' },
+        { label: 'Add to canvas', onClick: () => {}, disabled: true },
         { label: '', onClick: () => {}, separator: true },
-        ...addTypes.map(({ type, label, icon }) => ({
+        ...addTypes.map(({ type, label }) => ({
           label: `Add ${label}`,
-          icon,
           onClick: () => {
             const x = ctxMenu?.flowX ?? 200
             const y = ctxMenu?.flowY ?? 200
@@ -147,7 +185,7 @@ export function useCanvasEventHandlers(
         })),
       ]
     },
-    [nodes, addNode, removeNode, setSelectedNode, setImportPos],
+    [nodes, addNode, removeNode, setSelectedNode, setRightPanelTab, setImportPos],
   )
 
   return {

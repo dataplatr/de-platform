@@ -83,6 +83,7 @@ export interface TransformNode {
   type: NodeType
   label: string
   tableRef?: string       // for source nodes
+  sourceType?: 'table' | 'view' | 'csv'  // source nodes: which data object variant to render
   columns?: Column[]      // output schema (filled for source nodes from DB tree)
   config: NodeConfig
   position: { x: number; y: number }

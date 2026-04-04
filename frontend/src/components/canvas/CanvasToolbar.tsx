@@ -1,9 +1,34 @@
 import { useCallback, useState } from 'react'
+import {
+  Database, Filter, Merge, BarChart3, Columns2, Wand2, ScanLine, ArrowRightToLine,
+} from 'lucide-react'
 import { useTransformationStore } from '../../store/transformationStore'
 import { SourceImportModal } from './SourceImportModal'
 import { DEFAULT_CONFIGS, makeNodeId } from '../../constants/nodeDefaults'
-import { TOOLBAR_STEP_DEFS } from '../../constants/nodeMetadata'
 import type { TransformNode } from '../../types'
+
+const TOOL_DEFS: {
+  type: TransformNode['type']
+  label: string
+  Icon: React.ComponentType<{ size?: number; className?: string }>
+  colorClass: string
+}[] = [
+  { type: 'filter',      label: 'Filter',      Icon: Filter,           colorClass: 'toolbar-chip-filter'      },
+  { type: 'join',        label: 'Join',         Icon: Merge,            colorClass: 'toolbar-chip-join'        },
+  { type: 'transform',   label: 'Transform',    Icon: Wand2,            colorClass: 'toolbar-chip-transform'   },
+  { type: 'aggregate',   label: 'Aggregate',    Icon: BarChart3,        colorClass: 'toolbar-chip-aggregate'   },
+  { type: 'deduplicate', label: 'Deduplicate',  Icon: ScanLine,         colorClass: 'toolbar-chip-deduplicate' },
+  { type: 'select',      label: 'Select',       Icon: Columns2,         colorClass: 'toolbar-chip-select'      },
+]
+
+/** Set drag data so the canvas can distinguish a tool-drag from a node-drag. */
+function onChipDragStart(e: React.DragEvent, type: TransformNode['type'], label: string) {
+  e.dataTransfer.effectAllowed = 'copy'
+  e.dataTransfer.setData(
+    'application/lakeflow-tool',
+    JSON.stringify({ type, label }),
+  )
+}
 
 export function CanvasToolbar() {
   const { addNode, nodes } = useTransformationStore()
@@ -30,43 +55,48 @@ export function CanvasToolbar() {
   return (
     <>
       <div className="toolbar-wrap flex items-center gap-1 px-2 py-1 shrink-0">
-        {/* Source */}
+
+        {/* Source — no snap-drag, just click */}
         <button
           type="button"
           onClick={() => setShowImport(true)}
           title="Add Source table"
-          className="toolbar-btn-source flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors"
+          className="toolbar-chip toolbar-chip-source flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-colors"
         >
-          <span>🗃️</span>
+          <Database size={12} className="shrink-0" />
           <span>Source</span>
         </button>
 
         <div className="toolbar-divider" />
 
-        {/* Transformation steps */}
-        {TOOLBAR_STEP_DEFS.map(({ type, label, icon }) => (
+        {/* Transformation steps — draggable for edge-snap */}
+        {TOOL_DEFS.map(({ type, label, Icon, colorClass }) => (
           <button
             key={type}
             type="button"
+            draggable
+            onDragStart={e => onChipDragStart(e, type, label)}
             onClick={() => addNodeType(type)}
-            title={`Add ${label} step`}
-            className={`toolbar-btn-${type} flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors`}
+            title={`Add ${label} — drag onto an edge to insert`}
+            className={`toolbar-chip ${colorClass} flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-grab active:cursor-grabbing`}
           >
-            <span>{icon}</span>
+            <Icon size={12} className="shrink-0" />
             <span>{label}</span>
           </button>
         ))}
 
         <div className="toolbar-divider" />
 
-        {/* Output */}
+        {/* Output — draggable for free placement */}
         <button
           type="button"
+          draggable
+          onDragStart={e => onChipDragStart(e, 'output', 'output')}
           onClick={() => addNodeType('output')}
-          title="Add Output (target table)"
-          className="toolbar-btn-output flex items-center gap-1 px-2 py-1 rounded text-[11px] transition-colors"
+          title="Add Output — drag to place"
+          className="toolbar-chip toolbar-chip-output flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-grab active:cursor-grabbing"
         >
-          <span>🎯</span>
+          <ArrowRightToLine size={12} className="shrink-0" />
           <span>Output</span>
         </button>
       </div>

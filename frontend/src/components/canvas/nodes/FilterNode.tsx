@@ -1,37 +1,31 @@
 import { memo } from 'react'
 import type { NodeProps } from '@xyflow/react'
-import { BaseNode } from './BaseNode'
+import { TransformChipNode } from './TransformChipNode'
 import type { FilterCondition } from '../../../types'
 
-export const FilterNode = memo(function FilterNode({ data, selected }: NodeProps) {
-  const nodeData = data as { label?: string; config?: FilterCondition[]; status?: 'idle' | 'running' | 'success' | 'error' }
-  const conditions = nodeData.config ?? []
+export const FilterNode = memo(function FilterNode({ id, data, selected }: NodeProps) {
+  const conditions = (data.config as FilterCondition[] | null) ?? []
+
+  let summary: string
+  if (conditions.length === 0) {
+    summary = 'No conditions'
+  } else if (conditions.length === 1) {
+    const c = conditions[0]
+    const val = Array.isArray(c.value) ? c.value.join(', ') : String(c.value ?? '')
+    summary = `${c.column} ${c.operator} ${val}`
+  } else {
+    summary = `${conditions.length} conditions`
+  }
 
   return (
-    <BaseNode
-      label={nodeData.label ?? 'Filter'}
-      icon="🔽"
-      nodeClass="node-filter"
+    <TransformChipNode
+      nodeId={id}
+      nodeType="filter"
+      label={(data.label as string) ?? 'Filter'}
+      summary={summary}
       selected={selected}
-      status={nodeData.status}
-    >
-      {conditions.length > 0 ? (
-        <div className="space-y-0.5">
-          {conditions.slice(0, 2).map((c: FilterCondition, i: number) => (
-            <div key={c.id} className="flex items-center gap-1 text-[10px]">
-              {i > 0 && <span className="text-[#dcdcaa] text-[9px]">{c.logic ?? 'AND'}</span>}
-              <span className="text-[#9cdcfe]">{c.column}</span>
-              <span className="text-[#6a6a6a]">{c.operator}</span>
-              <span className="text-[#ce9178]">{String(c.value)}</span>
-            </div>
-          ))}
-          {conditions.length > 2 && (
-            <div className="text-[10px] text-[#6a6a6a]">+{conditions.length - 2} more</div>
-          )}
-        </div>
-      ) : (
-        <span className="text-[#6a6a6a] italic">No conditions</span>
-      )}
-    </BaseNode>
+    />
   )
 })
+
+FilterNode.displayName = 'FilterNode'

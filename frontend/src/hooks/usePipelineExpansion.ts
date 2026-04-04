@@ -9,6 +9,11 @@
  *   5. Orphan nodes (not part of any segment) are ALWAYS visible.
  *   6. Edges between ANY two visible nodes are ALWAYS rendered.
  *   7. No auto-expand. Ever. The user controls what's open.
+ *
+ * Edge visual model:
+ *   - Transformation step nodes render as colored chip pills (TransformChipNode).
+ *   - Edges are plain arrows — the chip is the node, not an edge overlay.
+ *   - Join secondary edge (handle b) → dashed style via TransformChipEdge.
  */
 import { useCallback, useMemo, useState } from 'react'
 import type { Node, Edge } from '@xyflow/react'
@@ -26,6 +31,37 @@ export interface PipelinePair {
   intermediateIds: string[]
   stepNodes: TransformNode[]
 }
+
+/**
+ * Build a plain ReactFlow edge.
+ * Transformation chip nodes render the step identity themselves — edges are
+ * just arrows. Only exception: Join's secondary (handle b) input gets the
+ * dashed style via TransformChipEdge.
+ */
+function buildRfEdge(e: TransformEdge): Edge {
+  if (e.targetHandle === 'b') {
+    return {
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      sourceHandle: e.sourceHandle,
+      targetHandle: e.targetHandle,
+      type: 'transformChip',
+      data: { isSecondaryJoin: true },
+    }
+  }
+
+  return {
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    sourceHandle: e.sourceHandle,
+    targetHandle: e.targetHandle,
+    style: { stroke: 'var(--pipe-stroke)', strokeWidth: 1.5 },
+  }
+}
+
+// ── Hook ───────────────────────────────────────────────────────────────────
 
 export function usePipelineExpansion(
   nodes: TransformNode[],
@@ -97,11 +133,7 @@ export function usePipelineExpansion(
     if (!showAbstraction) {
       return {
         rfNodes: nodes.map(toRfNode),
-        rfEdges: edges.map(e => ({
-          id: e.id, source: e.source, target: e.target,
-          sourceHandle: e.sourceHandle, targetHandle: e.targetHandle,
-          style: { stroke: 'var(--pipe-stroke)', strokeWidth: 1.5 },
-        })) as Edge[],
+        rfEdges: edges.map(e => buildRfEdge(e)),
       }
     }
 
@@ -232,11 +264,7 @@ export function usePipelineExpansion(
     const realEdges: Edge[] = edges
       .filter(e => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
       .filter(e => !chipEndpoints.has(`${e.source}:::${e.target}`))
-      .map(e => ({
-        id: e.id, source: e.source, target: e.target,
-        sourceHandle: e.sourceHandle, targetHandle: e.targetHandle,
-        style: { stroke: 'var(--pipe-stroke)', strokeWidth: 1.5 },
-      }))
+      .map(e => buildRfEdge(e))
 
     return { rfNodes: builtNodes, rfEdges: [...pipelineRfEdges, ...realEdges] }
   }, [

@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from './components/layout/AppShell'
 import { LoginPage } from './pages/LoginPage'
 import { HomePage } from './pages/HomePage'
+import { Toaster } from './components/Toaster'
 import { useAuthStore } from './store/authStore'
 import { useTransformationStore } from './store/transformationStore'
 import { ThemeProvider } from './context/ThemeContext'
@@ -27,6 +28,7 @@ function App() {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <AppRouter />
+        <Toaster />
       </QueryClientProvider>
     </ThemeProvider>
   )

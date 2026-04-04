@@ -71,7 +71,11 @@ def _sql_for(
     if node_type == "source":
         table = node.get("tableRef") or node.get("label") or "undefined_table"
         _validate_identifier(table, "table")
-        return f"SELECT *\nFROM {_qi(table)}"
+        # Quote each part of a schema-qualified name separately:
+        # "demo.orders" → "demo"."orders", not "demo.orders" (which DuckDB treats as one literal name)
+        parts = table.split(".")
+        quoted = ".".join(_qi(p) for p in parts)
+        return f"SELECT *\nFROM {quoted}"
 
     if node_type == "filter":
         up = upstream(ea)

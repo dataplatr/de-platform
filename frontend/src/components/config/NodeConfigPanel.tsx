@@ -1,5 +1,5 @@
-import { useCallback, useMemo } from 'react'
-import { Play, Info, Workflow } from 'lucide-react'
+import { useCallback, useMemo, useState } from 'react'
+import { Play, Info, Workflow, ChevronDown, ChevronRight } from 'lucide-react'
 import type { TransformNode as TNode, TransformEdge as TEdge } from '../../types'
 import { useTransformationStore } from '../../store/transformationStore'
 import { FilterConfig } from './FilterConfig'
@@ -50,6 +50,7 @@ function PipelineTree({ chain }: { chain: TNode[] }) {
 
 function OutputConfig({ nodeId, nodes, edges }: { nodeId: string; nodes: TNode[]; edges: TEdge[] }) {
   const { updateNode, expandedOutputId, setExpandedOutputId } = useTransformationStore()
+  const [showTree, setShowTree] = useState(false)
   const node = nodes.find(n => n.id === nodeId)
   const cfg = node?.config as { targetTable?: string } | null
 
@@ -118,19 +119,26 @@ function OutputConfig({ nodeId, nodes, edges }: { nodeId: string; nodes: TNode[]
 
       {allUpstream.length > 0 && (
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between px-2 py-1.5 bg-elevated border border-theme rounded-md text-[10px] font-semibold text-secondary uppercase tracking-wider">
-            <span>Full Transformation ({allUpstream.length} steps)</span>
-          </div>
-          <div className="border border-theme rounded-md overflow-hidden">
-            <PipelineTree chain={allUpstream} />
-            <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[var(--node-output-bg)] border-t border-theme">
-              <span className="text-sm">🎯</span>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[9px] font-bold uppercase tracking-wide step-label-output">output</span>
-                <span className="text-[11px] text-primary truncate">{cfg?.targetTable || node?.label}</span>
+          <button
+            type="button"
+            onClick={() => setShowTree(v => !v)}
+            className="flex items-center justify-between px-2 py-1.5 bg-elevated border border-theme rounded-md text-[10px] font-semibold text-secondary uppercase tracking-wider w-full hover:text-primary transition-colors"
+          >
+            <span>Pipeline steps ({allUpstream.length})</span>
+            {showTree ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+          </button>
+          {showTree && (
+            <div className="border border-theme rounded-md overflow-hidden">
+              <PipelineTree chain={allUpstream} />
+              <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[var(--node-output-bg)] border-t border-theme">
+                <span className="text-sm">🎯</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[9px] font-bold uppercase tracking-wide step-label-output">output</span>
+                  <span className="text-[11px] text-primary truncate">{cfg?.targetTable || node?.label}</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 

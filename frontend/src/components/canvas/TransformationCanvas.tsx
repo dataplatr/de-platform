@@ -28,11 +28,14 @@ import { DeduplicateNode } from './nodes/DeduplicateNode'
 import { OutputNode } from './nodes/OutputNode'
 import { PipelineGroupNode } from './nodes/PipelineGroupNode'
 import { PipelineEdge } from './edges/PipelineEdge'
+import { TransformChipEdge } from './edges/TransformChipEdge'
 import { ContextMenu } from './ContextMenu'
 import { SourceImportModal } from './SourceImportModal'
 import type { TransformNode } from '../../types'
 import { usePipelineExpansion } from '../../hooks/usePipelineExpansion'
 import { useCanvasEventHandlers } from '../../hooks/useCanvasEventHandlers'
+import { useCanvasKeyboard } from '../../hooks/useCanvasKeyboard'
+import { useEdgeSnapInsert } from '../../hooks/useEdgeSnapInsert'
 
 const nodeTypes: NodeTypes = {
   source:        SourceNode,
@@ -47,11 +50,14 @@ const nodeTypes: NodeTypes = {
 }
 
 const edgeTypes: EdgeTypes = {
-  pipeline: PipelineEdge,
+  pipeline:      PipelineEdge,
+  transformChip: TransformChipEdge,
 }
 
 export function TransformationCanvas() {
   const { nodes, edges, updateNode, removeNode, removeEdge, setSelectedNode } = useTransformationStore()
+
+  useCanvasKeyboard()
 
   const rfInstance = useRef<ReactFlowInstance | null>(null)
   const onInit = useCallback((instance: ReactFlowInstance) => { rfInstance.current = instance }, [])
@@ -60,6 +66,7 @@ export function TransformationCanvas() {
   const [ctxMenu, setCtxMenu] = useState<{
     x: number; y: number; flowX: number; flowY: number; nodeId?: string
   } | null>(null)
+  const [edgeCtxMenu, setEdgeCtxMenu] = useState<{ x: number; y: number; edgeId: string } | null>(null)
 
   const toRfNode = useCallback((n: TransformNode): Node => ({
     id: n.id, type: n.type, position: n.position,
@@ -80,7 +87,12 @@ export function TransformationCanvas() {
   const prevRfNodesRef = useRef<string>('')
   const prevRfEdgesRef = useRef<string>('')
 
-  const rfNodesKey = JSON.stringify(rfNodes.map(n => ({ id: n.id, type: n.type, px: n.position.x, py: n.position.y })))
+  // Include config in the key: chip nodes show config summaries, so a config
+  // change must trigger a local-nodes re-sync even if position/id didn't change.
+  const rfNodesKey = JSON.stringify(rfNodes.map(n => ({
+    id: n.id, type: n.type, px: n.position.x, py: n.position.y,
+    cfg: (n.data as { config?: unknown })?.config ?? null,
+  })))
   const rfEdgesKey = JSON.stringify(rfEdges.map(e => ({ id: e.id, s: e.source, t: e.target })))
 
   if (rfNodesKey !== prevRfNodesRef.current) {
@@ -134,14 +146,47 @@ export function TransformationCanvas() {
     }
   }, [removeEdge])
 
+  const onEdgeContextMenu = useCallback((e: React.MouseEvent, edge: Edge) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setEdgeCtxMenu({ x: e.clientX, y: e.clientY, edgeId: edge.id })
+  }, [])
+
+  const { onToolDrop, snapOrphanNode } = useEdgeSnapInsert(rfInstance, setImportPos)
+
+  const onNodeDragStop = useCallback((_: React.MouseEvent, node: Node) => {
+    snapOrphanNode(node.id, node.position)
+  }, [snapOrphanNode])
+
   const {
     closeCtx, onConnect,
     onNodeClick, onPaneClick, onPaneContextMenu, onNodeContextMenu,
-    onDragOver, onDrop, buildMenuItems,
+    onDragOver, onDrop: onSourceDrop, buildMenuItems,
   } = useCanvasEventHandlers(rfInstance, setImportPos, setCtxMenu)
 
+  // Combined drop: tool-drag (edge-snap) takes priority over source-node-drag
+  const [isDragOver, setIsDragOver] = useState(false)
+  const onDrop = useCallback((e: React.DragEvent) => {
+    setIsDragOver(false)
+    const consumed = onToolDrop(e)
+    if (!consumed) onSourceDrop(e)
+  }, [onToolDrop, onSourceDrop])
+
+  const onDragOver2 = useCallback((e: React.DragEvent) => {
+    setIsDragOver(true)
+    onDragOver(e)
+  }, [onDragOver])
+
+  const onDragLeave = useCallback(() => setIsDragOver(false), [])
+
   return (
-    <div className="flex-1 relative overflow-hidden min-h-0 canvas-bg" onDrop={onDrop} onDragOver={onDragOver}>
+    <div
+      className="flex-1 relative overflow-hidden min-h-0 canvas-bg"
+      onDrop={onDrop}
+      onDragOver={onDragOver2}
+      onDragLeave={onDragLeave}
+      data-drag-over={isDragOver || undefined}
+    >
       {nodes.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
           <div className="text-center">
@@ -168,6 +213,8 @@ export function TransformationCanvas() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onPaneContextMenu={onPaneContextMenu as any}
         onNodeContextMenu={onNodeContextMenu}
+        onEdgeContextMenu={onEdgeContextMenu}
+        onNodeDragStop={onNodeDragStop}
         fitView
         fitViewOptions={{ padding: 0.3 }}
         minZoom={0.2}
@@ -186,9 +233,14 @@ export function TransformationCanvas() {
         <MiniMap
           pannable zoomable
           nodeColor={n => ({
-            source: 'var(--node-source-bg)', filter: 'var(--node-filter-bg)',
-            join: 'var(--node-join-bg)', aggregate: 'var(--node-aggregate-bg)',
-            select: 'var(--node-select-bg)', output: 'var(--node-output-bg)',
+            source:      'var(--node-source-bg)',
+            filter:      'var(--node-intermediate-bg)',
+            join:        'var(--node-intermediate-bg)',
+            aggregate:   'var(--node-intermediate-bg)',
+            select:      'var(--node-intermediate-bg)',
+            transform:   'var(--node-intermediate-bg)',
+            deduplicate: 'var(--node-intermediate-bg)',
+            output:      'var(--node-output-bg)',
           }[n.type as string] ?? 'var(--border)')}
           maskColor="rgba(0,0,0,0.35)"
           style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
@@ -197,6 +249,20 @@ export function TransformationCanvas() {
 
       {ctxMenu && (
         <ContextMenu x={ctxMenu.x} y={ctxMenu.y} items={buildMenuItems(ctxMenu)} onClose={closeCtx} />
+      )}
+
+      {edgeCtxMenu && (
+        <ContextMenu
+          x={edgeCtxMenu.x}
+          y={edgeCtxMenu.y}
+          onClose={() => setEdgeCtxMenu(null)}
+          items={[
+            {
+              label: 'Delete connection', danger: true,
+              onClick: () => { removeEdge(edgeCtxMenu.edgeId); setEdgeCtxMenu(null) },
+            },
+          ]}
+        />
       )}
 
       {importPos !== null && (

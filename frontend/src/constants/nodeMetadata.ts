@@ -12,16 +12,18 @@ export interface NodeMeta {
   labelClass: string
   /** Tailwind text color class for the node header */
   colorClass: string
+  /** CSS class for the transform chip pill (transform-chip-*) — undefined for source/output */
+  chipClass?: string
 }
 
 export const NODE_META: Record<NodeType, NodeMeta> = {
-  source:      { icon: '🗃️', label: 'Source',      labelClass: 'step-label-source',      colorClass: 'text-[#4fc1ff]'  },
-  filter:      { icon: '🔽', label: 'Filter',      labelClass: 'step-label-filter',      colorClass: 'text-[#dcdcaa]'  },
-  join:        { icon: '🔗', label: 'Join',         labelClass: 'step-label-join',        colorClass: 'text-[#4ec9b0]'  },
-  aggregate:   { icon: '∑',  label: 'Aggregate',   labelClass: 'step-label-aggregate',   colorClass: 'text-[#c39dff]'  },
-  select:      { icon: '📋', label: 'Select',      labelClass: 'step-label-select',      colorClass: 'text-[#9cdcfe]'  },
-  transform:   { icon: '⚡', label: 'Transform',   labelClass: 'step-label-transform',   colorClass: 'text-[#c586c0]'  },
-  deduplicate: { icon: '⊘',  label: 'Deduplicate', labelClass: 'step-label-deduplicate', colorClass: 'text-[#dcdcaa]'  },
+  source:      { icon: '🗃️', label: 'Source',      labelClass: 'step-label-source',      colorClass: 'text-[#4fc1ff]' },
+  filter:      { icon: '🔽', label: 'Filter',      labelClass: 'step-label-filter',      colorClass: 'text-[#dcdcaa]',  chipClass: 'transform-chip-filter'      },
+  join:        { icon: '🔗', label: 'Join',         labelClass: 'step-label-join',        colorClass: 'text-[#4ec9b0]',  chipClass: 'transform-chip-join'        },
+  aggregate:   { icon: '∑',  label: 'Aggregate',   labelClass: 'step-label-aggregate',   colorClass: 'text-[#c39dff]',  chipClass: 'transform-chip-aggregate'   },
+  select:      { icon: '📋', label: 'Select',      labelClass: 'step-label-select',      colorClass: 'text-[#9cdcfe]',  chipClass: 'transform-chip-select'      },
+  transform:   { icon: '⚡', label: 'Transform',   labelClass: 'step-label-transform',   colorClass: 'text-[#c586c0]',  chipClass: 'transform-chip-transform'   },
+  deduplicate: { icon: '⊘',  label: 'Deduplicate', labelClass: 'step-label-deduplicate', colorClass: 'text-[#dcdcaa]',  chipClass: 'transform-chip-deduplicate' },
   output:      { icon: '🎯', label: 'Output',      labelClass: 'step-label-output',      colorClass: 'text-[var(--success)]' },
 }
 

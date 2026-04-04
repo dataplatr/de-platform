@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
+import { current } from 'immer'
 import type {
   TransformNode,
   TransformEdge,
@@ -10,6 +11,14 @@ import type {
   CSVSource,
   TableSchema,
 } from '../types'
+
+type HistorySnapshot = { nodes: TransformNode[]; edges: TransformEdge[] }
+
+const MAX_HISTORY = 50
+
+function snapshot(nodes: TransformNode[], edges: TransformEdge[]): HistorySnapshot {
+  return { nodes: [...nodes], edges: [...edges] }
+}
 
 interface TransformationState {
   // ─── Data Sources ──────────────────────────────────────────────
@@ -48,6 +57,11 @@ interface TransformationState {
   pipelineName: string
   pipelineId: string | null
   editorOpen: boolean
+
+  // ─── Undo / Redo / Clipboard ────────────────────────────────────
+  _history: HistorySnapshot[]
+  _future: HistorySnapshot[]
+  clipboard: TransformNode[]
 }
 
 interface TransformationActions {
@@ -93,6 +107,13 @@ interface TransformationActions {
   openEditor: (opts?: { id?: string; name?: string; nodes?: TransformNode[]; edges?: TransformEdge[] }) => void
   closeEditor: () => void
   clearCanvas: () => void
+
+  // Undo / Redo / Clipboard
+  undo: () => void
+  redo: () => void
+  setClipboard: (nodes: TransformNode[]) => void
+  /** Apply multiple canvas mutations as one atomic history entry. */
+  batchUpdate: (patch: { nodes?: TransformNode[]; edges?: TransformEdge[] }) => void
 }
 
 export const useTransformationStore = create<TransformationState & TransformationActions>()(
@@ -127,23 +148,55 @@ export const useTransformationStore = create<TransformationState & Transformatio
     pipelineId: null,
     editorOpen: false,
 
+    _history: [],
+    _future: [],
+    clipboard: [],
+
     // ─── Actions ──────────────────────────────────────────────────
     setConnected: (connected) => set((s) => { s.isConnected = connected }),
     setDatabaseTree: (tree) => set((s) => { s.databaseTree = tree }),
     addCsvSource: (csv) => set((s) => { s.csvSources.push(csv) }),
     setSelectedTableSchema: (schema) => set((s) => { s.selectedTableSchema = schema }),
 
-    addNode: (node) => set((s) => { s.nodes.push(node) }),
+    addNode: (node) => set((s) => {
+      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
+      s._history.push(snap)
+      if (s._history.length > MAX_HISTORY) s._history.shift()
+      s._future = []
+      s.nodes.push(node)
+    }),
+
     updateNode: (id, updates) => set((s) => {
       const idx = s.nodes.findIndex((n) => n.id === id)
       if (idx !== -1) Object.assign(s.nodes[idx], updates)
+      // updateNode is intentionally NOT pushed to history — too granular
     }),
+
     removeNode: (id) => set((s) => {
+      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
+      s._history.push(snap)
+      if (s._history.length > MAX_HISTORY) s._history.shift()
+      s._future = []
       s.nodes = s.nodes.filter((n) => n.id !== id)
       s.edges = s.edges.filter((e) => e.source !== id && e.target !== id)
     }),
-    addEdge: (edge) => set((s) => { s.edges.push(edge) }),
-    removeEdge: (id) => set((s) => { s.edges = s.edges.filter((e) => e.id !== id) }),
+
+    addEdge: (edge) => set((s) => {
+      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
+      s._history.push(snap)
+      if (s._history.length > MAX_HISTORY) s._history.shift()
+      s._future = []
+      s.edges.push(edge)
+    }),
+
+    removeEdge: (id) => set((s) => {
+      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
+      s._history.push(snap)
+      if (s._history.length > MAX_HISTORY) s._history.shift()
+      s._future = []
+      s.edges = s.edges.filter((e) => e.id !== id)
+    }),
+
     setSelectedNode: (id) => set((s) => { s.selectedNodeId = id }),
 
     addStepHistoryEntry: (entry) => set((s) => { s.stepHistory.push(entry) }),
@@ -168,6 +221,7 @@ export const useTransformationStore = create<TransformationState & Transformatio
 
     setPipelineName: (name) => set((s) => { s.pipelineName = name }),
     setPipelineId: (id) => set((s) => { s.pipelineId = id }),
+
     openEditor: (opts) => set((s) => {
       s.editorOpen = true
       s.pipelineId   = opts?.id   ?? null
@@ -178,11 +232,52 @@ export const useTransformationStore = create<TransformationState & Transformatio
       s.generatedSQL     = ''
       s.outputPreview    = null
       s.expandedOutputId = null
+      // Clear history when opening a new pipeline
+      s._history = []
+      s._future  = []
     }),
+
     closeEditor: () => set((s) => { s.editorOpen = false; s.expandedOutputId = null }),
+
     clearCanvas: () => set((s) => {
+      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
+      s._history.push(snap)
+      if (s._history.length > MAX_HISTORY) s._history.shift()
+      s._future = []
       s.nodes = []; s.edges = []; s.selectedNodeId = null
       s.generatedSQL = ''; s.outputPreview = null
+    }),
+
+    // ─── Undo / Redo ─────────────────────────────────────────────
+    undo: () => set((s) => {
+      const prev = s._history[s._history.length - 1]
+      if (!prev) return
+      s._future.push(snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[]))
+      s._history.pop()
+      s.nodes = prev.nodes as TransformNode[]
+      s.edges = prev.edges as TransformEdge[]
+      s.selectedNodeId = null
+    }),
+
+    redo: () => set((s) => {
+      const next = s._future[s._future.length - 1]
+      if (!next) return
+      s._history.push(snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[]))
+      s._future.pop()
+      s.nodes = next.nodes as TransformNode[]
+      s.edges = next.edges as TransformEdge[]
+      s.selectedNodeId = null
+    }),
+
+    setClipboard: (nodes) => set((s) => { s.clipboard = nodes }),
+
+    batchUpdate: (patch) => set((s) => {
+      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
+      s._history.push(snap)
+      if (s._history.length > MAX_HISTORY) s._history.shift()
+      s._future = []
+      if (patch.nodes !== undefined) s.nodes = patch.nodes as TransformNode[]
+      if (patch.edges !== undefined) s.edges = patch.edges as TransformEdge[]
     }),
   }))
 )

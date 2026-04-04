@@ -30,6 +30,36 @@
   /* Selection highlight */
   --selected-bg:     #1e3a5f;
 
+  /* Transformation chip colors (PRD §9.4 vivid palette) */
+  --chip-filter-bg:          rgba(249,115,22,0.15);
+  --chip-filter-border:      #f97316;
+  --chip-filter-text:        #f97316;
+  --chip-join-bg:            rgba(59,130,246,0.15);
+  --chip-join-border:        #3b82f6;
+  --chip-join-text:          #3b82f6;
+  --chip-aggregate-bg:       rgba(34,197,94,0.15);
+  --chip-aggregate-border:   #22c55e;
+  --chip-aggregate-text:     #22c55e;
+  --chip-select-bg:          rgba(168,85,247,0.15);
+  --chip-select-border:      #a855f7;
+  --chip-select-text:        #a855f7;
+  --chip-transform-bg:       rgba(236,72,153,0.15);
+  --chip-transform-border:   #ec4899;
+  --chip-transform-text:     #ec4899;
+  --chip-deduplicate-bg:     rgba(234,179,8,0.15);
+  --chip-deduplicate-border: #eab308;
+  --chip-deduplicate-text:   #eab308;
+
+  /* Data object node header backgrounds */
+  --node-table-header:   #1e3a5f;
+  --node-view-header:    #2b1e3a;
+  --node-csv-header:     #1e3a2b;
+  --node-output-header:  #0d2b1e;
+
+  /* Intermediate VIEW node (transformation result) */
+  --node-intermediate-bg:     #1e1a2e;
+  --node-intermediate-border: #6d28d9;
+
   /* Step type semantic colors */
   --step-filter:      #dcdcaa;
   --step-join:        #4ec9b0;
@@ -97,6 +127,36 @@
   --step-select:      #1e40af;
   --step-transform:   #9f1239;
   --step-deduplicate: #78350f;
+
+  /* Chip colors — light mode */
+  --chip-filter-bg:          rgba(234,88,12,0.1);
+  --chip-filter-border:      #ea580c;
+  --chip-filter-text:        #c2410c;
+  --chip-join-bg:            rgba(37,99,235,0.1);
+  --chip-join-border:        #2563eb;
+  --chip-join-text:          #1d4ed8;
+  --chip-aggregate-bg:       rgba(22,163,74,0.1);
+  --chip-aggregate-border:   #16a34a;
+  --chip-aggregate-text:     #15803d;
+  --chip-select-bg:          rgba(147,51,234,0.1);
+  --chip-select-border:      #9333ea;
+  --chip-select-text:        #7e22ce;
+  --chip-transform-bg:       rgba(219,39,119,0.1);
+  --chip-transform-border:   #db2777;
+  --chip-transform-text:     #be185d;
+  --chip-deduplicate-bg:     rgba(202,138,4,0.1);
+  --chip-deduplicate-border: #ca8a04;
+  --chip-deduplicate-text:   #a16207;
+
+  /* Data object node header backgrounds — light mode */
+  --node-table-header:   #dbeafe;
+  --node-view-header:    #f3e8ff;
+  --node-csv-header:     #d1fae5;
+  --node-output-header:  #d1fae5;
+
+  /* Intermediate VIEW node — light mode */
+  --node-intermediate-bg:     #faf5ff;
+  --node-intermediate-border: #9333ea;
 
   /* Canvas — light mode */
   --canvas-bg:        #f0eeea;
@@ -188,13 +248,18 @@
     color: var(--text-1);
   }
 
-  /* Transform config column grid */
+  /* Transform config column grid — checkbox | source+type | output | cast | × */
   .transform-col-grid {
     grid-template-columns: 20px 1fr 1fr 80px 20px;
   }
   .transform-col-row {
     min-height: 30px;
   }
+  /* New TransformConfig grid */
+  .tcfg-grid {
+    grid-template-columns: 18px minmax(0, 1.2fr) minmax(0, 1fr) 90px 20px;
+  }
+  .tcfg-row { min-height: 28px; }
 
   /* React Flow overrides */
   .react-flow__attribution {
@@ -228,7 +293,7 @@
     background: var(--bg-surface) !important;
   }
 
-  /* Remove ReactFlow's default white node backgrounds */
+  /* Remove ReactFlow's default white node backgrounds and selection ring */
   .react-flow__node-default,
   .react-flow__node-input,
   .react-flow__node-output,
@@ -240,6 +305,11 @@
     padding: 0 !important;
     border-radius: 0 !important;
     box-shadow: none !important;
+  }
+  /* Suppress ReactFlow's built-in selection ring on ALL custom node types */
+  .react-flow__node.selected {
+    box-shadow: none !important;
+    outline: none !important;
   }
 
   /* ── App shell ── */
@@ -440,8 +510,7 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   }
   .node-selected {
-    border-color: #0e639c !important;
-    box-shadow: 0 0 0 1px rgba(79,193,255,0.4), 0 4px 6px -1px rgba(0,0,0,0.4);
+    box-shadow: 0 0 0 2px #4fc1ff, 0 4px 16px rgba(79,193,255,0.25) !important;
   }
   .node-header {
     display: flex;
@@ -471,6 +540,261 @@
     background: var(--canvas-divider);
     padding: 0 0.25rem;
     border-radius: 0.125rem;
+  }
+
+  /* ── Data Object Nodes (TABLE / VIEW / CSV / OUTPUT) ── */
+  .data-object-node {
+    border-radius: 0.5rem;
+    border-width: 1px;
+    border-style: solid;
+    min-width: 180px;
+    max-width: 240px;
+    font-size: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4);
+    overflow: hidden;
+  }
+  [data-theme="light"] .data-object-node {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+  .data-object-node.variant-table  { border-color: var(--node-source-border); border-style: solid; }
+  .data-object-node.variant-view   { border-color: #7c3aed; border-style: dashed; border-width: 1.5px; }
+  .data-object-node.variant-csv    { border-color: var(--node-join-border); border-style: solid; }
+  .data-object-node.variant-output { border-color: var(--node-output-border); border-style: solid; border-width: 2px; }
+  [data-theme="light"] .data-object-node.variant-view { border-color: #9333ea; }
+
+  .data-object-node .do-header {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem 0.375rem 0.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  [data-theme="light"] .data-object-node .do-header {
+    border-bottom-color: rgba(0,0,0,0.08);
+  }
+  .data-object-node.variant-table  .do-header { background: var(--node-table-header); }
+  .data-object-node.variant-view   .do-header { background: var(--node-view-header); }
+  .data-object-node.variant-csv    .do-header { background: var(--node-csv-header); }
+  .data-object-node.variant-output .do-header { background: var(--node-output-header); }
+
+  .data-object-node .do-badge {
+    font-size: 0.5625rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    flex-shrink: 0;
+  }
+  .data-object-node.variant-table  .do-badge { background: rgba(79,193,255,0.15); color: #4fc1ff; }
+  .data-object-node.variant-view   .do-badge { background: rgba(196,181,253,0.15); color: #c4b5fd; }
+  .data-object-node.variant-csv    .do-badge { background: rgba(78,201,176,0.15); color: #4ec9b0; }
+  .data-object-node.variant-output .do-badge { background: rgba(78,201,176,0.15); color: #4ec9b0; }
+  [data-theme="light"] .data-object-node.variant-table  .do-badge { background: rgba(37,99,235,0.1); color: #1d4ed8; }
+  [data-theme="light"] .data-object-node.variant-view   .do-badge { background: rgba(126,34,206,0.1); color: #7e22ce; }
+  [data-theme="light"] .data-object-node.variant-csv    .do-badge { background: rgba(6,95,70,0.1); color: #065f46; }
+  [data-theme="light"] .data-object-node.variant-output .do-badge { background: rgba(6,95,70,0.1); color: #065f46; }
+
+  .data-object-node .do-label {
+    font-weight: 600;
+    font-size: 0.6875rem;
+    color: var(--canvas-text-1);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .data-object-node .do-body {
+    padding: 0.375rem 0.625rem;
+    font-size: 0.625rem;
+    color: var(--canvas-text-2);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .data-object-node .do-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.5625rem;
+    color: var(--text-3);
+  }
+  .data-object-node .do-meta-sep { opacity: 0.4; }
+
+  /* Target handle for data object nodes (source/output left dot) */
+  .do-handle-target {
+    width: 12px !important;
+    height: 12px !important;
+    background: var(--bg-elevated) !important;
+    border: 2px solid var(--border) !important;
+    border-radius: 50% !important;
+  }
+  .do-handle-target:hover {
+    border-color: var(--accent-fg) !important;
+    background: var(--accent) !important;
+  }
+
+  /* White source handle style (the "connect" circle) */
+  .do-handle-source {
+    width: 12px !important;
+    height: 12px !important;
+    background: white !important;
+    border: 2px solid white !important;
+    border-radius: 50% !important;
+    /* No transform on hover — dots must not jump */
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.15);
+  }
+  .do-handle-source:hover {
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+    background: #e0e0e0 !important;
+  }
+  [data-theme="light"] .do-handle-source {
+    background: #1c5ffd !important;
+    border-color: #1c5ffd !important;
+    box-shadow: 0 0 0 2px rgba(28,95,253,0.2);
+  }
+
+  /* Edge drop-target highlight — when dragging a tool chip over the canvas */
+  [data-drag-over] .react-flow__edge-path {
+    stroke: var(--accent-fg) !important;
+    stroke-width: 2.5 !important;
+    filter: drop-shadow(0 0 6px rgba(79,193,255,0.6)) !important;
+    animation: edge-pulse 1s ease-in-out infinite alternate;
+  }
+  @keyframes edge-pulse {
+    from { opacity: 0.6; }
+    to   { opacity: 1; }
+  }
+
+  /* ── Transformation Step Chip Node ── */
+  .transform-chip-node {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.625rem 0.375rem 0.5rem;
+    border-radius: 9999px;
+    border-width: 1.5px;
+    border-style: solid;
+    font-size: 0.6875rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    cursor: pointer;
+    position: relative;
+    min-width: 100px;
+    max-width: 210px;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: box-shadow 0.15s, filter 0.1s;
+  }
+  .transform-chip-node:hover { filter: brightness(1.12); }
+  .transform-chip-node.node-selected {
+    box-shadow: 0 0 0 2.5px currentColor, 0 2px 8px rgba(0,0,0,0.4) !important;
+  }
+
+  /* Join needs a bit of height for dual handles to be visible */
+  .transform-chip-node-join { min-height: 40px; }
+
+  .transform-chip-node-filter      { background: var(--chip-filter-bg);      border-color: var(--chip-filter-border);      color: var(--chip-filter-text); }
+  .transform-chip-node-join        { background: var(--chip-join-bg);        border-color: var(--chip-join-border);        color: var(--chip-join-text); }
+  .transform-chip-node-aggregate   { background: var(--chip-aggregate-bg);   border-color: var(--chip-aggregate-border);   color: var(--chip-aggregate-text); }
+  .transform-chip-node-select      { background: var(--chip-select-bg);      border-color: var(--chip-select-border);      color: var(--chip-select-text); }
+  .transform-chip-node-transform   { background: var(--chip-transform-bg);   border-color: var(--chip-transform-border);   color: var(--chip-transform-text); }
+  .transform-chip-node-deduplicate { background: var(--chip-deduplicate-bg); border-color: var(--chip-deduplicate-border); color: var(--chip-deduplicate-text); }
+
+  .tcn-icon { font-size: 0.75rem; flex-shrink: 0; line-height: 1; }
+  .tcn-text  { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .tcn-label {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  .tcn-summary {
+    font-size: 0.5625rem;
+    opacity: 0.75;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 0.075rem;
+    line-height: 1.2;
+  }
+
+  [data-theme="light"] .transform-chip-node {
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+
+  /* ── Transform Chip Edge ── */
+  .transform-chip-edge-path {
+    fill: none;
+    stroke: var(--pipe-stroke);
+    stroke-width: 1.5;
+    transition: stroke 0.15s, stroke-width 0.15s;
+  }
+  .transform-chip-edge-secondary {
+    fill: none;
+    stroke: var(--pipe-stroke);
+    stroke-width: 1;
+    stroke-dasharray: 5 4;
+    opacity: 0.45;
+  }
+
+  .transform-chip-anchor {
+    position: absolute;
+    pointer-events: all;
+  }
+  .transform-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.5rem 0.2rem 0.375rem;
+    border-radius: 9999px;
+    border-width: 1px;
+    border-style: solid;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    white-space: nowrap;
+    transition: transform 0.1s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+  .transform-chip:hover  { transform: scale(1.05); }
+  .transform-chip:active { transform: scale(0.95); }
+  .transform-chip.active { box-shadow: 0 0 0 2px currentColor, 0 2px 8px rgba(0,0,0,0.3); }
+
+  .transform-chip-filter      { background: var(--chip-filter-bg);      border-color: var(--chip-filter-border);      color: var(--chip-filter-text); }
+  .transform-chip-join        { background: var(--chip-join-bg);        border-color: var(--chip-join-border);        color: var(--chip-join-text); }
+  .transform-chip-aggregate   { background: var(--chip-aggregate-bg);   border-color: var(--chip-aggregate-border);   color: var(--chip-aggregate-text); }
+  .transform-chip-select      { background: var(--chip-select-bg);      border-color: var(--chip-select-border);      color: var(--chip-select-text); }
+  .transform-chip-transform   { background: var(--chip-transform-bg);   border-color: var(--chip-transform-border);   color: var(--chip-transform-text); }
+  .transform-chip-deduplicate { background: var(--chip-deduplicate-bg); border-color: var(--chip-deduplicate-border); color: var(--chip-deduplicate-text); }
+
+  .transform-chip .tc-label {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.8;
+    font-weight: 400;
+    font-size: 0.625rem;
+  }
+
+  .transform-chip-secondary-label {
+    position: absolute;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.5625rem;
+    color: var(--text-3);
+    pointer-events: none;
+    white-space: nowrap;
   }
 
   /* ── DataPreview panel ── */
@@ -569,6 +893,21 @@
     font-size: 11px;
     font-weight: 500;
     opacity: 0.85;
+  }
+
+  /* ── Edge selected state — must be clearly visible ── */
+  .react-flow__edge.selected .react-flow__edge-path,
+  .react-flow__edge.selected .pipeline-edge-path,
+  .react-flow__edge.selected .transform-chip-edge-path {
+    stroke: #4fc1ff !important;
+    stroke-width: 2.5 !important;
+    filter: drop-shadow(0 0 4px rgba(79,193,255,0.7)) !important;
+  }
+  /* Dashed secondary join edge when selected */
+  .react-flow__edge.selected .transform-chip-edge-secondary {
+    stroke: #4fc1ff !important;
+    stroke-width: 1.5 !important;
+    opacity: 0.75 !important;
   }
 
   /* ── Pipeline edge SVG paths ── */
@@ -681,6 +1020,250 @@
     background: var(--pipe-stroke);
     color: #fff;
   }
+
+  /* ── TransformChipNode card (TCN) ── */
+  .tcn-wrap {
+    position: relative;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-left-width: 4px;
+    border-radius: 6px;
+    min-width: 160px;
+    max-width: 220px;
+    font-size: 0.6875rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: box-shadow 0.15s, filter 0.1s;
+  }
+  .tcn-wrap:hover { filter: brightness(1.1); }
+  .tcn-wrap.node-selected {
+    box-shadow: 0 0 0 2px #4fc1ff, 0 4px 16px rgba(79,193,255,0.25) !important;
+  }
+  [data-theme="light"] .tcn-wrap { box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+
+  /* Per-type left border accent */
+  .tcn-filter      { border-left-color: var(--chip-filter-border); }
+  .tcn-join        { border-left-color: var(--chip-join-border); min-height: 54px; }
+  .tcn-aggregate   { border-left-color: var(--chip-aggregate-border); }
+  .tcn-select      { border-left-color: var(--chip-select-border); }
+  .tcn-transform   { border-left-color: var(--chip-transform-border); }
+  .tcn-deduplicate { border-left-color: var(--chip-deduplicate-border); }
+
+  /* Type badge row */
+  .tcn-type-row {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.3rem 0.5rem 0.125rem 0.5rem;
+  }
+  .tcn-type-icon { flex-shrink: 0; }
+  .tcn-type-label {
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .tcn-filter      .tcn-type-icon { color: var(--chip-filter-border); }
+  .tcn-filter      .tcn-type-label { color: var(--chip-filter-text); }
+  .tcn-join        .tcn-type-icon { color: var(--chip-join-border); }
+  .tcn-join        .tcn-type-label { color: var(--chip-join-text); }
+  .tcn-aggregate   .tcn-type-icon { color: var(--chip-aggregate-border); }
+  .tcn-aggregate   .tcn-type-label { color: var(--chip-aggregate-text); }
+  .tcn-select      .tcn-type-icon { color: var(--chip-select-border); }
+  .tcn-select      .tcn-type-label { color: var(--chip-select-text); }
+  .tcn-transform   .tcn-type-icon { color: var(--chip-transform-border); }
+  .tcn-transform   .tcn-type-label { color: var(--chip-transform-text); }
+  .tcn-deduplicate .tcn-type-icon { color: var(--chip-deduplicate-border); }
+  .tcn-deduplicate .tcn-type-label { color: var(--chip-deduplicate-text); }
+
+  /* Node name row */
+  .tcn-name-row {
+    padding: 0.05rem 0.5rem 0.3rem 0.5rem;
+    border-bottom: 1px solid var(--canvas-divider);
+    min-height: 1.5rem;
+    display: flex;
+    align-items: center;
+  }
+  .tcn-name {
+    font-weight: 600;
+    font-size: 0.6875rem;
+    color: var(--text-1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    cursor: text;
+  }
+  .tcn-rename-input {
+    width: 100%;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    background: var(--bg-input);
+    color: var(--text-1);
+    border: 1px solid var(--accent-fg);
+    border-radius: 3px;
+    padding: 0.05rem 0.25rem;
+    outline: none;
+  }
+
+  /* Summary row */
+  .tcn-summary-row {
+    padding: 0.2rem 0.5rem 0.3rem 0.5rem;
+  }
+  .tcn-summary {
+    font-size: 0.5625rem;
+    color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+  }
+
+  /* Handles on TCN cards */
+  .tcn-handle {
+    width: 12px !important;
+    height: 12px !important;
+    background: var(--bg-elevated) !important;
+    border-width: 2px !important;
+    border-style: solid !important;
+    border-color: var(--border) !important;
+    border-radius: 50% !important;
+    /* No hover transform — dots must not move/jump */
+  }
+  .tcn-handle:hover { background: var(--bg-input) !important; }
+  .tcn-filter      .tcn-handle { border-color: var(--chip-filter-border) !important; }
+  .tcn-join        .tcn-handle { border-color: var(--chip-join-border) !important; }
+  .tcn-aggregate   .tcn-handle { border-color: var(--chip-aggregate-border) !important; }
+  .tcn-select      .tcn-handle { border-color: var(--chip-select-border) !important; }
+  .tcn-transform   .tcn-handle { border-color: var(--chip-transform-border) !important; }
+  .tcn-deduplicate .tcn-handle { border-color: var(--chip-deduplicate-border) !important; }
+  .tcn-handle-secondary { opacity: 0.55; }
+  .tcn-handle-source {
+    background: #ffffff !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
+  }
+  [data-theme="light"] .tcn-handle-source {
+    background: var(--accent) !important;
+    border-color: var(--accent) !important;
+  }
+
+  /* ── Toolbar chips (CanvasToolbar) ── */
+  .toolbar-chip {
+    border: none;
+    cursor: pointer;
+    transition: filter 0.12s, box-shadow 0.12s;
+  }
+  .toolbar-chip:hover { filter: brightness(1.15); }
+  .toolbar-chip:active { filter: brightness(0.9); }
+
+  .toolbar-chip-source {
+    background: var(--node-table-header);
+    color: #4fc1ff;
+  }
+  [data-theme="light"] .toolbar-chip-source {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .toolbar-chip-filter {
+    background: rgba(249,115,22,0.18);
+    color: var(--chip-filter-text);
+    border: 1px solid rgba(249,115,22,0.35) !important;
+  }
+  .toolbar-chip-join {
+    background: rgba(59,130,246,0.18);
+    color: var(--chip-join-text);
+    border: 1px solid rgba(59,130,246,0.35) !important;
+  }
+  .toolbar-chip-aggregate {
+    background: rgba(34,197,94,0.18);
+    color: var(--chip-aggregate-text);
+    border: 1px solid rgba(34,197,94,0.35) !important;
+  }
+  .toolbar-chip-select {
+    background: rgba(168,85,247,0.18);
+    color: var(--chip-select-text);
+    border: 1px solid rgba(168,85,247,0.35) !important;
+  }
+  .toolbar-chip-transform {
+    background: rgba(236,72,153,0.18);
+    color: var(--chip-transform-text);
+    border: 1px solid rgba(236,72,153,0.35) !important;
+  }
+  .toolbar-chip-deduplicate {
+    background: rgba(234,179,8,0.18);
+    color: var(--chip-deduplicate-text);
+    border: 1px solid rgba(234,179,8,0.35) !important;
+  }
+  .toolbar-chip-output {
+    background: var(--node-output-header);
+    color: var(--success);
+  }
+  [data-theme="light"] .toolbar-chip-filter      { background: #fef3c7; color: #92400e; border-color: #d97706 !important; }
+  [data-theme="light"] .toolbar-chip-join        { background: #dbeafe; color: #1d4ed8; border-color: #3b82f6 !important; }
+  [data-theme="light"] .toolbar-chip-aggregate   { background: #dcfce7; color: #15803d; border-color: #16a34a !important; }
+  [data-theme="light"] .toolbar-chip-select      { background: #f3e8ff; color: #7e22ce; border-color: #9333ea !important; }
+  [data-theme="light"] .toolbar-chip-transform   { background: #ffe4e6; color: #be185d; border-color: #db2777 !important; }
+  [data-theme="light"] .toolbar-chip-deduplicate { background: #fef9c3; color: #a16207; border-color: #ca8a04 !important; }
+  [data-theme="light"] .toolbar-chip-output      { background: #d1fae5; color: #065f46; }
+
+  /* ── Toast notifications ── */
+  .toast-container {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+  }
+  .toast {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: 0.375rem;
+    border-width: 1px;
+    border-style: solid;
+    font-size: 0.75rem;
+    font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    max-width: 360px;
+    pointer-events: all;
+    animation: toast-in 0.2s ease;
+  }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .toast-success {
+    background: #0d2b1e;
+    border-color: #16a34a;
+    color: #4ade80;
+  }
+  .toast-info {
+    background: var(--pipe-label-bg);
+    border-color: var(--pipe-stroke);
+    color: var(--pipe-label-text);
+  }
+  .toast-warning {
+    background: #2d2200;
+    border-color: #ca8a04;
+    color: #fbbf24;
+  }
+  .toast-error {
+    background: #2b0d0d;
+    border-color: var(--error);
+    color: #f87171;
+  }
+  [data-theme="light"] .toast-success { background: #f0fdf4; border-color: #16a34a; color: #15803d; }
+  [data-theme="light"] .toast-info    { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
+  [data-theme="light"] .toast-warning { background: #fffbeb; border-color: #d97706; color: #92400e; }
+  [data-theme="light"] .toast-error   { background: #fef2f2; border-color: #dc2626; color: #991b1b; }
 
   /* ── Themed panels (light mode overrides) ── */
   .themed-panel {
