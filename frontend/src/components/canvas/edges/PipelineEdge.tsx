@@ -4,18 +4,32 @@ import { useTransformationStore } from '../../../store/transformationStore'
 import clsx from 'clsx'
 import { NODE_META } from '../../../constants/nodeMetadata'
 
-interface PipelineStep { type: string; label: string }
+interface PipelineStep {
+  type: string
+  label: string
+}
 
 export function PipelineEdge({
-  id, sourceX, sourceY, targetX, targetY,
-  sourcePosition, targetPosition, data, markerEnd,
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  data,
+  markerEnd,
 }: EdgeProps) {
   const { setRightPanelTab } = useTransformationStore()
   const [isHovered, setIsHovered] = useState(false)
 
   const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX, sourceY, sourcePosition,
-    targetX, targetY, targetPosition,
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
   })
 
   const steps = (data?.steps as PipelineStep[]) ?? []
@@ -43,12 +57,7 @@ export function PipelineEdge({
   return (
     <>
       {/* Wide transparent hit area */}
-      <path
-        d={edgePath}
-        className="pipeline-hit-area"
-        onClick={handleClick}
-        {...hover}
-      />
+      <path d={edgePath} className="pipeline-hit-area" onClick={handleClick} {...hover} />
 
       {/* Visible path */}
       <path
@@ -79,11 +88,11 @@ export function PipelineEdge({
               ) : (
                 <>
                   {steps.slice(0, 4).map((s, i) => (
-                    <span key={i} title={s.label}>{NODE_META[s.type as keyof typeof NODE_META]?.icon ?? '⬡'}</span>
+                    <span key={i} title={s.label}>
+                      {NODE_META[s.type as keyof typeof NODE_META]?.icon ?? '⬡'}
+                    </span>
                   ))}
-                  {steps.length > 4 && (
-                    <span className="opacity-70">+{steps.length - 4}</span>
-                  )}
+                  {steps.length > 4 && <span className="opacity-70">+{steps.length - 4}</span>}
                   <span className="pipeline-edge-badge">{stepCount}</span>
                 </>
               )}

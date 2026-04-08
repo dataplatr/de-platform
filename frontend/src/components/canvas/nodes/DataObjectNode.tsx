@@ -13,9 +13,9 @@ import clsx from 'clsx'
 export type DataObjectVariant = 'table' | 'view' | 'csv' | 'output'
 
 const BADGE_TEXT: Record<DataObjectVariant, string> = {
-  table:  'TABLE',
-  view:   'VIEW',
-  csv:    'CSV FILE',
+  table: 'TABLE',
+  view: 'VIEW',
+  csv: 'CSV FILE',
   output: 'OUTPUT',
 }
 
@@ -37,7 +37,12 @@ interface DataObjectNodeProps {
 }
 
 export const DataObjectNode = memo(function DataObjectNode({
-  variant, label, colCount, rowCount, description, errorMessage,
+  variant,
+  label,
+  colCount,
+  rowCount,
+  description,
+  errorMessage,
   selected = false,
   hasInput = true,
   hasOutput = true,
@@ -45,14 +50,15 @@ export const DataObjectNode = memo(function DataObjectNode({
   children,
 }: DataObjectNodeProps) {
   return (
-    <div className={clsx('data-object-node', `variant-${variant}`, selected && 'node-selected', errorMessage && 'border-[#f44747]')}>
-      {hasInput && (
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="do-handle-target"
-        />
+    <div
+      className={clsx(
+        'data-object-node',
+        `variant-${variant}`,
+        selected && 'node-selected',
+        errorMessage && 'border-[#f44747]'
       )}
+    >
+      {hasInput && <Handle type="target" position={Position.Left} className="do-handle-target" />}
 
       {/* Header */}
       <div className="do-header">
@@ -64,8 +70,14 @@ export const DataObjectNode = memo(function DataObjectNode({
       <div className="do-body">
         {(colCount !== undefined || rowCount !== undefined) && (
           <div className="do-meta">
-            {colCount !== undefined && <span>{colCount} col{colCount !== 1 ? 's' : ''}</span>}
-            {colCount !== undefined && rowCount !== undefined && <span className="do-meta-sep">·</span>}
+            {colCount !== undefined && (
+              <span>
+                {colCount} col{colCount !== 1 ? 's' : ''}
+              </span>
+            )}
+            {colCount !== undefined && rowCount !== undefined && (
+              <span className="do-meta-sep">·</span>
+            )}
             {rowCount !== undefined && <span>{rowCount.toLocaleString()} rows</span>}
           </div>
         )}
@@ -78,19 +90,9 @@ export const DataObjectNode = memo(function DataObjectNode({
         )}
       </div>
 
-      {hasOutput && (
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="do-handle-source"
-        />
-      )}
+      {hasOutput && <Handle type="source" position={Position.Right} className="do-handle-source" />}
       {hasExtraSource && !hasOutput && (
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="do-handle-source"
-        />
+        <Handle type="source" position={Position.Right} className="do-handle-source" />
       )}
     </div>
   )

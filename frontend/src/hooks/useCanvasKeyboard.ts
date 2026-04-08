@@ -18,10 +18,15 @@ import type { TransformNode } from '../types'
 
 export function useCanvasKeyboard() {
   const {
-    nodes, edges, selectedNodeId,
-    undo, redo,
-    clipboard, setClipboard,
-    addNode, batchUpdate,
+    nodes,
+    edges,
+    selectedNodeId,
+    undo,
+    redo,
+    clipboard,
+    setClipboard,
+    addNode,
+    batchUpdate,
   } = useTransformationStore()
 
   useEffect(() => {
@@ -51,7 +56,7 @@ export function useCanvasKeyboard() {
       if (key === 'c') {
         e.preventDefault()
         if (!selectedNodeId) return
-        const node = nodes.find(n => n.id === selectedNodeId)
+        const node = nodes.find((n) => n.id === selectedNodeId)
         if (node) setClipboard([node])
         return
       }
@@ -61,14 +66,14 @@ export function useCanvasKeyboard() {
         if (clipboard.length === 0) return
         // Paste each clipboard node with a position offset
         const OFFSET = 40
-        const newNodes: TransformNode[] = clipboard.map(n => ({
+        const newNodes: TransformNode[] = clipboard.map((n) => ({
           ...n,
           id: makeNodeId(),
           label: `${n.label} (copy)`,
           position: { x: n.position.x + OFFSET, y: n.position.y + OFFSET },
         }))
         // Each paste goes through addNode so history captures it
-        newNodes.forEach(n => addNode(n))
+        newNodes.forEach((n) => addNode(n))
         // Update clipboard positions so repeated Ctrl+V staggers correctly
         setClipboard(newNodes)
         return
@@ -77,7 +82,7 @@ export function useCanvasKeyboard() {
       if (key === 'd') {
         e.preventDefault()
         if (!selectedNodeId) return
-        const node = nodes.find(n => n.id === selectedNodeId)
+        const node = nodes.find((n) => n.id === selectedNodeId)
         if (!node) return
         addNode({
           ...node,

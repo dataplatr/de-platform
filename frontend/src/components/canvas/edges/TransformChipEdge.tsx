@@ -8,15 +8,26 @@
 import { getBezierPath, EdgeLabelRenderer, type EdgeProps } from '@xyflow/react'
 
 export function TransformChipEdge({
-  id, sourceX, sourceY, targetX, targetY,
-  sourcePosition, targetPosition, markerEnd, data,
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  markerEnd,
+  data,
 }: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({
-    sourceX, sourceY, sourcePosition,
-    targetX, targetY, targetPosition,
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
   })
 
-  const isSecondary = !!(data?.isSecondaryJoin)
+  const isSecondary = !!data?.isSecondaryJoin
   const labelTransform = `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`
 
   if (isSecondary) {

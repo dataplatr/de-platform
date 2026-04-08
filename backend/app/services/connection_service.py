@@ -15,14 +15,12 @@ P0 portability model: pipelines store connection_alias (immutable slug).
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone, timedelta
-from typing import Any
+from datetime import UTC, datetime, timedelta
 
 from cryptography.fernet import Fernet, InvalidToken
 
 from app.config import settings
 from app.db.auth_db import get_auth_conn
-
 
 # ── Token encryption ──────────────────────────────────────────────────────────
 
@@ -68,7 +66,7 @@ def get_valid_token(connection: dict) -> str:
     expires_at_str = connection.get("token_expires_at")
     if expires_at_str:
         expires_at = datetime.fromisoformat(expires_at_str)
-        if datetime.now(timezone.utc) >= expires_at - timedelta(seconds=60):
+        if datetime.now(UTC) >= expires_at - timedelta(seconds=60):
             return _refresh_and_store(connection)
 
     return decrypt_token(connection["token_enc"])
@@ -87,7 +85,7 @@ def _refresh_and_store(connection: dict) -> str:
     new_access = token_data["access_token"]
     new_refresh = token_data.get("refresh_token", refresh_tok)  # some providers rotate
     expires_in = int(token_data.get("expires_in", 3600))
-    expires_at = (datetime.now(timezone.utc) + timedelta(seconds=expires_in)).isoformat()
+    expires_at = (datetime.now(UTC) + timedelta(seconds=expires_in)).isoformat()
 
     db = get_auth_conn()
     db.execute(
@@ -114,10 +112,14 @@ def create_connection(user_id: int, data: dict) -> dict:
     upload_schema  = (data.get("upload_schema") or "").strip()
     upload_volume  = (data.get("upload_volume") or "").strip()
 
-    if not alias:        raise ValueError("alias is required")
-    if not host:         raise ValueError("host is required")
-    if not token:        raise ValueError("token is required")
-    if not warehouse_id: raise ValueError("warehouse_id is required")
+    if not alias:
+        raise ValueError("alias is required")
+    if not host:
+        raise ValueError("host is required")
+    if not token:
+        raise ValueError("token is required")
+    if not warehouse_id:
+        raise ValueError("warehouse_id is required")
 
     for val, label in [
         (upload_catalog, "upload_catalog"),
@@ -161,7 +163,7 @@ def create_oauth_connection(
     host  = host.rstrip("/")
 
     expires_at = (
-        datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+        datetime.now(UTC) + timedelta(seconds=expires_in)
     ).isoformat()
 
     return _insert_connection(

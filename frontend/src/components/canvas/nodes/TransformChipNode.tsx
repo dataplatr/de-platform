@@ -11,60 +11,67 @@
 import { memo, useState, useRef, useCallback } from 'react'
 import { Handle, Position } from '@xyflow/react'
 import clsx from 'clsx'
-import {
-  Filter, Merge, BarChart3, Columns2, Wand2, ScanLine,
-  type LucideIcon,
-} from 'lucide-react'
+import { Filter, Merge, BarChart3, Columns2, Wand2, ScanLine, type LucideIcon } from 'lucide-react'
 import { useTransformationStore } from '../../../store/transformationStore'
 
 // ── Icon + label registry ──────────────────────────────────────────────────
 
 const ICONS: Record<string, LucideIcon> = {
-  filter:      Filter,
-  join:        Merge,
-  aggregate:   BarChart3,
-  select:      Columns2,
-  transform:   Wand2,
+  filter: Filter,
+  join: Merge,
+  aggregate: BarChart3,
+  select: Columns2,
+  transform: Wand2,
   deduplicate: ScanLine,
 }
 
 const TYPE_LABEL: Record<string, string> = {
-  filter:      'FILTER',
-  join:        'JOIN',
-  aggregate:   'AGGREGATE',
-  select:      'SELECT',
-  transform:   'TRANSFORM',
+  filter: 'FILTER',
+  join: 'JOIN',
+  aggregate: 'AGGREGATE',
+  select: 'SELECT',
+  transform: 'TRANSFORM',
   deduplicate: 'DEDUPLICATE',
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
 
 interface TransformChipNodeProps {
-  nodeId:    string
-  nodeType:  string
-  label:     string
-  summary:   string
+  nodeId: string
+  nodeType: string
+  label: string
+  summary: string
   selected?: boolean
   inputMode?: 'single' | 'dual'
 }
 
 export const TransformChipNode = memo(function TransformChipNode({
-  nodeId, nodeType, label, summary, selected = false, inputMode = 'single',
+  nodeId,
+  nodeType,
+  label,
+  summary,
+  selected = false,
+  inputMode = 'single',
 }: TransformChipNodeProps) {
   const { updateNode } = useTransformationStore()
   const Icon = ICONS[nodeType]
 
   // ── Inline rename ──────────────────────────────────────────────────────
-  const [editing, setEditing]   = useState(false)
-  const [editVal, setEditVal]   = useState(label)
+  const [editing, setEditing] = useState(false)
+  const [editVal, setEditVal] = useState(label)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const startEdit = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    setEditVal(label)
-    setEditing(true)
-    setTimeout(() => { inputRef.current?.select() }, 0)
-  }, [label])
+  const startEdit = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      setEditVal(label)
+      setEditing(true)
+      setTimeout(() => {
+        inputRef.current?.select()
+      }, 0)
+    },
+    [label]
+  )
 
   const commitEdit = useCallback(() => {
     const trimmed = editVal.trim()
@@ -78,19 +85,16 @@ export const TransformChipNode = memo(function TransformChipNode({
   // Truncate long summaries; hide placeholder summaries
   const showSummary = summary && summary !== 'Not configured' && summary !== 'No conditions'
   const shortSummary = showSummary
-    ? (summary.length > 26 ? summary.slice(0, 24) + '…' : summary)
+    ? summary.length > 26
+      ? summary.slice(0, 24) + '…'
+      : summary
     : null
 
   return (
     <div className={clsx('tcn-wrap', `tcn-${nodeType}`, selected && 'node-selected')}>
-
       {/* ── Input handles ── */}
       {inputMode === 'single' ? (
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="tcn-handle"
-        />
+        <Handle type="target" position={Position.Left} className="tcn-handle" />
       ) : (
         <>
           <Handle
@@ -123,18 +127,25 @@ export const TransformChipNode = memo(function TransformChipNode({
             ref={inputRef}
             value={editVal}
             autoFocus
-            onChange={e => setEditVal(e.target.value)}
+            onChange={(e) => setEditVal(e.target.value)}
             onBlur={commitEdit}
-            onKeyDown={e => {
-              if (e.key === 'Enter')  { e.preventDefault(); commitEdit() }
-              if (e.key === 'Escape') { setEditing(false) }
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                commitEdit()
+              }
+              if (e.key === 'Escape') {
+                setEditing(false)
+              }
             }}
-            onClick={e => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             className="tcn-rename-input"
             aria-label="Rename node"
           />
         ) : (
-          <span className="tcn-name" title="Double-click to rename">{label}</span>
+          <span className="tcn-name" title="Double-click to rename">
+            {label}
+          </span>
         )}
       </div>
 
@@ -146,11 +157,7 @@ export const TransformChipNode = memo(function TransformChipNode({
       )}
 
       {/* ── Source handle ── */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="tcn-handle tcn-handle-source"
-      />
+      <Handle type="source" position={Position.Right} className="tcn-handle tcn-handle-source" />
     </div>
   )
 })

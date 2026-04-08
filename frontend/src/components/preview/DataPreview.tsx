@@ -6,8 +6,11 @@ import { exportCSV } from '../../utils/csvExport'
 
 export function DataPreview() {
   const {
-    inputPreview, outputPreview, isPreviewLoading,
-    bottomPanelTab, setBottomPanelTab,
+    inputPreview,
+    outputPreview,
+    isPreviewLoading,
+    bottomPanelTab,
+    setBottomPanelTab,
     pipelineName,
   } = useTransformationStore()
 
@@ -27,14 +30,20 @@ export function DataPreview() {
           <button
             type="button"
             onClick={() => setBottomPanelTab('input')}
-            className={clsx('preview-tab px-3 py-2 text-xs', bottomPanelTab === 'input' && 'active')}
+            className={clsx(
+              'preview-tab px-3 py-2 text-xs',
+              bottomPanelTab === 'input' && 'active'
+            )}
           >
             Input
           </button>
           <button
             type="button"
             onClick={() => setBottomPanelTab('output')}
-            className={clsx('preview-tab px-3 py-2 text-xs', bottomPanelTab === 'output' && 'active')}
+            className={clsx(
+              'preview-tab px-3 py-2 text-xs',
+              bottomPanelTab === 'output' && 'active'
+            )}
           >
             Output
           </button>
@@ -45,7 +54,9 @@ export function DataPreview() {
             <>
               <span>{activePreview.totalRows.toLocaleString()} rows</span>
               {activePreview.sampled && (
-                <span className="bg-elevated border border-theme text-warning px-1.5 py-0.5 rounded text-[10px]">sampled</span>
+                <span className="bg-elevated border border-theme text-warning px-1.5 py-0.5 rounded text-[10px]">
+                  sampled
+                </span>
               )}
               {activePreview.executionMs !== undefined && (
                 <span>{activePreview.executionMs}ms</span>
@@ -79,10 +90,15 @@ export function DataPreview() {
             <thead>
               <tr className="preview-th sticky top-0 z-10">
                 {activePreview.columns.map((col) => (
-                  <th key={col.name} className="preview-th text-left px-3 py-1.5 border-b border-theme font-normal whitespace-nowrap">
+                  <th
+                    key={col.name}
+                    className="preview-th text-left px-3 py-1.5 border-b border-theme font-normal whitespace-nowrap"
+                  >
                     <div className="flex items-center gap-1">
                       <span className="text-primary">{col.name}</span>
-                      <span className="text-muted text-[10px] font-mono">{col.type.toLowerCase()}</span>
+                      <span className="text-muted text-[10px] font-mono">
+                        {col.type.toLowerCase()}
+                      </span>
                     </div>
                   </th>
                 ))}
@@ -93,10 +109,11 @@ export function DataPreview() {
                 <tr key={ri} className="preview-tr border-b border-theme">
                   {activePreview.columns.map((col) => (
                     <td key={col.name} className="preview-td px-3 py-1 font-mono whitespace-nowrap">
-                      {row[col.name] === null || row[col.name] === undefined
-                        ? <span className="text-muted italic">null</span>
-                        : String(row[col.name])
-                      }
+                      {row[col.name] === null || row[col.name] === undefined ? (
+                        <span className="text-muted italic">null</span>
+                      ) : (
+                        String(row[col.name])
+                      )}
                     </td>
                   ))}
                 </tr>

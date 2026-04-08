@@ -11,31 +11,34 @@ export function useResize(
   min: number,
   max: number,
   axis: 'x' | 'y' = 'x',
-  inverted = false,
+  inverted = false
 ) {
   const [size, setSize] = useState(initial)
   const sizeRef = useRef(size)
   sizeRef.current = size
 
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault()
-    const startPos = axis === 'x' ? e.clientX : e.clientY
-    const startSize = sizeRef.current
+  const onMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      const startPos = axis === 'x' ? e.clientX : e.clientY
+      const startSize = sizeRef.current
 
-    const onMouseMove = (ev: MouseEvent) => {
-      const current = axis === 'x' ? ev.clientX : ev.clientY
-      const delta = inverted ? startPos - current : current - startPos
-      setSize(Math.max(min, Math.min(max, startSize + delta)))
-    }
+      const onMouseMove = (ev: MouseEvent) => {
+        const current = axis === 'x' ? ev.clientX : ev.clientY
+        const delta = inverted ? startPos - current : current - startPos
+        setSize(Math.max(min, Math.min(max, startSize + delta)))
+      }
 
-    const onMouseUp = () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-    }
+      const onMouseUp = () => {
+        window.removeEventListener('mousemove', onMouseMove)
+        window.removeEventListener('mouseup', onMouseUp)
+      }
 
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
-  }, [axis, inverted, min, max])
+      window.addEventListener('mousemove', onMouseMove)
+      window.addEventListener('mouseup', onMouseUp)
+    },
+    [axis, inverted, min, max]
+  )
 
   return { size, onMouseDown }
 }

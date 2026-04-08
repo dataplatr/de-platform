@@ -36,7 +36,10 @@ export const api = {
 
   // Auth
   login: (username: string, password: string) =>
-    apiClient.post<{ access_token: string; username: string; role: string }>('/api/auth/login', { username, password }),
+    apiClient.post<{ access_token: string; username: string; role: string }>('/api/auth/login', {
+      username,
+      password,
+    }),
   logout: () => apiClient.post('/api/auth/logout'),
   me: () => apiClient.get('/api/auth/me'),
 
@@ -47,20 +50,33 @@ export const api = {
   deactivateUser: (id: number) => apiClient.delete(`/api/users/${id}`),
 
   // Audit
-  auditLog: (limit = 200, offset = 0) => apiClient.get(`/api/audit?limit=${limit}&offset=${offset}`),
+  auditLog: (limit = 200, offset = 0) =>
+    apiClient.get(`/api/audit?limit=${limit}&offset=${offset}`),
   myActivity: () => apiClient.get('/api/audit/me'),
 
   // ─── Connections ─────────────────────────────────────────────────────────────
   listConnections: () => apiClient.get<DatabricksConnection[]>('/api/connections'),
   deleteConnection: (id: string) => apiClient.delete(`/api/connections/${id}`),
   createConnection: (payload: {
-    alias: string; name?: string; host: string; token: string; warehouse_id: string
-    upload_catalog?: string; upload_schema?: string; upload_volume?: string
+    alias: string
+    name?: string
+    host: string
+    token: string
+    warehouse_id: string
+    upload_catalog?: string
+    upload_schema?: string
+    upload_volume?: string
   }) => apiClient.post<DatabricksConnection>('/api/connections', payload),
-  updateConnection: (id: string, payload: {
-    warehouse_id?: string; upload_catalog?: string; upload_schema?: string
-    upload_volume?: string; name?: string
-  }) => apiClient.patch<DatabricksConnection>(`/api/connections/${id}`, payload),
+  updateConnection: (
+    id: string,
+    payload: {
+      warehouse_id?: string
+      upload_catalog?: string
+      upload_schema?: string
+      upload_volume?: string
+      name?: string
+    }
+  ) => apiClient.patch<DatabricksConnection>(`/api/connections/${id}`, payload),
 
   // ─── OAuth PKCE flow ──────────────────────────────────────────────────────────
   oauthStart: (workspaceUrl: string, connectionName: string, connectionAlias: string) =>
@@ -73,7 +89,8 @@ export const api = {
   // ─── PAT validation + warehouse discovery (no record created) ─────────────────
   discoverWarehouses: (host: string, token: string) =>
     apiClient.post<{ id: string; name: string; state: string; cluster_size: string }[]>(
-      '/api/connections/discover-warehouses', { host, token }
+      '/api/connections/discover-warehouses',
+      { host, token }
     ),
 
   // ─── Warehouses ───────────────────────────────────────────────────────────────
@@ -84,9 +101,15 @@ export const api = {
 
   // ─── Schema metadata cache ────────────────────────────────────────────────────
   getSelectedSchemas: (connectionId: string) =>
-    apiClient.get<{ id: string; connection_id: string; catalog: string; schema: string; synced_at: string | null }[]>(
-      `/api/connections/${connectionId}/selected-schemas`
-    ),
+    apiClient.get<
+      {
+        id: string
+        connection_id: string
+        catalog: string
+        schema: string
+        synced_at: string | null
+      }[]
+    >(`/api/connections/${connectionId}/selected-schemas`),
   addSchema: (connectionId: string, catalog: string, schema: string) =>
     apiClient.post(`/api/connections/${connectionId}/selected-schemas`, { catalog, schema }),
   removeSchema: (connectionId: string, catalog: string, schema: string) =>
@@ -94,10 +117,16 @@ export const api = {
   getCachedTables: (connectionId: string) =>
     apiClient.get<{
       selected_schemas: { catalog: string; schema: string; synced_at: string | null }[]
-      tables: { catalog: string; schema: string; table_name: string; table_type: string; columns: { name: string; type: string; nullable: boolean }[]; synced_at: string }[]
+      tables: {
+        catalog: string
+        schema: string
+        table_name: string
+        table_type: string
+        columns: { name: string; type: string; nullable: boolean }[]
+        synced_at: string
+      }[]
     }>(`/api/connections/${connectionId}/cached-tables`),
-  syncSchemas: (connectionId: string) =>
-    apiClient.post(`/api/connections/${connectionId}/sync`),
+  syncSchemas: (connectionId: string) => apiClient.post(`/api/connections/${connectionId}/sync`),
 
   // ─── Warehouse lifecycle ──────────────────────────────────────────────────────
   startWarehouse: (connectionId: string) =>
@@ -111,7 +140,9 @@ export const api = {
   listCatalogs: (connectionId: string) =>
     apiClient.get<{ name: string }[]>(`/api/connections/${connectionId}/tree`),
   listSchemas: (connectionId: string, catalog: string) =>
-    apiClient.get<{ name: string; catalog: string }[]>(`/api/connections/${connectionId}/tree/${catalog}`),
+    apiClient.get<{ name: string; catalog: string }[]>(
+      `/api/connections/${connectionId}/tree/${catalog}`
+    ),
   listTables: (connectionId: string, catalog: string, schema: string) =>
     apiClient.get<{ name: string; catalog: string; schema: string; table_type: string }[]>(
       `/api/connections/${connectionId}/tree/${catalog}/${schema}`
@@ -134,41 +165,68 @@ export const api = {
   uploadCSV: (
     connectionId: string,
     file: File,
-    opts?: { targetCatalog?: string; targetSchema?: string; tableName?: string; uploadVolume?: string },
+    opts?: {
+      targetCatalog?: string
+      targetSchema?: string
+      tableName?: string
+      uploadVolume?: string
+    }
   ) => {
     const form = new FormData()
     form.append('file', file)
     if (opts?.targetCatalog) form.append('target_catalog', opts.targetCatalog)
-    if (opts?.targetSchema)  form.append('target_schema',  opts.targetSchema)
-    if (opts?.tableName)     form.append('table_name',     opts.tableName)
-    if (opts?.uploadVolume)  form.append('upload_volume',  opts.uploadVolume)
-    return apiClient.post<{ table_ref: string; row_count: number; columns: { name: string; type: string; nullable: boolean }[] }>(
-      `/api/connections/${connectionId}/upload-csv`,
-      form,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
-    )
+    if (opts?.targetSchema) form.append('target_schema', opts.targetSchema)
+    if (opts?.tableName) form.append('table_name', opts.tableName)
+    if (opts?.uploadVolume) form.append('upload_volume', opts.uploadVolume)
+    return apiClient.post<{
+      table_ref: string
+      row_count: number
+      columns: { name: string; type: string; nullable: boolean }[]
+    }>(`/api/connections/${connectionId}/upload-csv`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
   },
 
   // ─── Pipeline compile / preview / run ─────────────────────────────────────────
   compilePipeline: (nodes: unknown[], edges: unknown[], targetNodeId: string) =>
     apiClient.post<{ sql: string; target_node_id: string }>('/api/pipelines/compile', {
-      nodes, edges, target_node_id: targetNodeId,
+      nodes,
+      edges,
+      target_node_id: targetNodeId,
     }),
   previewPipeline: (
-    nodes: unknown[], edges: unknown[], targetNodeId: string,
-    connectionAlias: string, limit = 100
+    nodes: unknown[],
+    edges: unknown[],
+    targetNodeId: string,
+    connectionAlias: string,
+    limit = 100
   ) =>
     apiClient.post('/api/pipelines/preview', {
-      nodes, edges, target_node_id: targetNodeId, connection_alias: connectionAlias, limit,
+      nodes,
+      edges,
+      target_node_id: targetNodeId,
+      connection_alias: connectionAlias,
+      limit,
     }),
   runPipeline: (
-    nodes: unknown[], edges: unknown[], outputNodeId: string,
-    connectionAlias: string, dialect = 'databricks'
+    nodes: unknown[],
+    edges: unknown[],
+    outputNodeId: string,
+    connectionAlias: string,
+    dialect = 'databricks'
   ) =>
-    apiClient.post<{ execution_ms: number; statement_id: string; target_table: string; status: string }>(
-      '/api/pipelines/run',
-      { nodes, edges, output_node_id: outputNodeId, connection_alias: connectionAlias, dialect }
-    ),
+    apiClient.post<{
+      execution_ms: number
+      statement_id: string
+      target_table: string
+      status: string
+    }>('/api/pipelines/run', {
+      nodes,
+      edges,
+      output_node_id: outputNodeId,
+      connection_alias: connectionAlias,
+      dialect,
+    }),
 
   // ─── Chat ─────────────────────────────────────────────────────────────────────
   chat: (messages: { role: string; content: string }[], context?: Record<string, unknown>) =>
@@ -176,13 +234,16 @@ export const api = {
 
   // ─── Pipelines ────────────────────────────────────────────────────────────────
   listPipelines: () =>
-    apiClient.get<{ id: string; name: string; node_count: number; created_at: string; updated_at: string }[]>('/api/pipelines'),
+    apiClient.get<
+      { id: string; name: string; node_count: number; created_at: string; updated_at: string }[]
+    >('/api/pipelines'),
   savePipeline: (payload: { name: string; nodes: unknown[]; edges: unknown[] }) =>
     apiClient.post<{ id: string }>('/api/pipelines', payload),
   updatePipeline: (id: string, payload: { name: string; nodes: unknown[]; edges: unknown[] }) =>
     apiClient.put(`/api/pipelines/${id}`, payload),
-  deletePipeline: (id: string) =>
-    apiClient.delete(`/api/pipelines/${id}`),
+  deletePipeline: (id: string) => apiClient.delete(`/api/pipelines/${id}`),
   getPipeline: (id: string) =>
-    apiClient.get<{ id: string; name: string; nodes: unknown[]; edges: unknown[] }>(`/api/pipelines/${id}`),
+    apiClient.get<{ id: string; name: string; nodes: unknown[]; edges: unknown[] }>(
+      `/api/pipelines/${id}`
+    ),
 }

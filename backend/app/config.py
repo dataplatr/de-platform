@@ -1,4 +1,5 @@
 import logging
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -48,8 +49,8 @@ class Settings(BaseSettings):
         elif not self.FERNET_KEY:
             # Dev fallback: derive a key from SECRET_KEY so dev works without config.
             # This is NOT safe for production (key rotation breaks token decryption).
-            from cryptography.fernet import Fernet
-            import base64, hashlib
+            import base64
+            import hashlib
             raw = hashlib.sha256(self.SECRET_KEY.encode()).digest()
             self.FERNET_KEY = base64.urlsafe_b64encode(raw).decode()
             logger.warning(

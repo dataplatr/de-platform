@@ -3,7 +3,15 @@
  * Opens from the "+" button in ObjectNavigator.
  */
 import { useCallback, useEffect, useState } from 'react'
-import { X, ChevronDown, ChevronRight, Loader2, CheckSquare, Square, AlertCircle } from 'lucide-react'
+import {
+  X,
+  ChevronDown,
+  ChevronRight,
+  Loader2,
+  CheckSquare,
+  Square,
+  AlertCircle,
+} from 'lucide-react'
 import { api } from '../../services/api'
 import type { DatabricksConnection } from '../../types'
 import clsx from 'clsx'
@@ -11,7 +19,7 @@ import clsx from 'clsx'
 interface Props {
   connection: DatabricksConnection
   onClose: () => void
-  onDone: () => void   // called after schemas added so tree refreshes
+  onDone: () => void // called after schemas added so tree refreshes
 }
 
 interface CatalogEntry {
@@ -24,45 +32,51 @@ interface CatalogEntry {
 export function SchemaPickerModal({ connection, onClose, onDone }: Props) {
   const [catalogs, setCatalogs] = useState<CatalogEntry[]>([])
   const [catalogsLoading, setCatalogsLoading] = useState(true)
-  const [selected, setSelected] = useState<Set<string>>(new Set())  // "catalog.schema"
+  const [selected, setSelected] = useState<Set<string>>(new Set()) // "catalog.schema"
   const [alreadySelected, setAlreadySelected] = useState<Set<string>>(new Set())
   const [adding, setAdding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Load catalogs + already-selected schemas
   useEffect(() => {
-    Promise.all([
-      api.listCatalogs(connection.id),
-      api.getSelectedSchemas(connection.id),
-    ]).then(([catsRes, selRes]) => {
-      setCatalogs(catsRes.data.map(c => ({ name: c.name })))
-      const keys = new Set(selRes.data.map(s => `${s.catalog}.${s.schema}`))
-      setAlreadySelected(keys)
-    }).catch(() => setError('Failed to load catalog'))
+    Promise.all([api.listCatalogs(connection.id), api.getSelectedSchemas(connection.id)])
+      .then(([catsRes, selRes]) => {
+        setCatalogs(catsRes.data.map((c) => ({ name: c.name })))
+        const keys = new Set(selRes.data.map((s) => `${s.catalog}.${s.schema}`))
+        setAlreadySelected(keys)
+      })
+      .catch(() => setError('Failed to load catalog'))
       .finally(() => setCatalogsLoading(false))
   }, [connection.id])
 
-  const expandCatalog = useCallback(async (idx: number) => {
-    const cat = catalogs[idx]
-    if (cat.schemas) {
-      setCatalogs(prev => prev.map((c, i) => i === idx ? { ...c, expanded: !c.expanded } : c))
-      return
-    }
-    setCatalogs(prev => prev.map((c, i) => i === idx ? { ...c, loading: true } : c))
-    try {
-      const { data } = await api.listSchemas(connection.id, cat.name)
-      setCatalogs(prev => prev.map((c, i) =>
-        i === idx ? { ...c, schemas: data.map(s => s.name), loading: false, expanded: true } : c
-      ))
-    } catch {
-      setCatalogs(prev => prev.map((c, i) => i === idx ? { ...c, loading: false } : c))
-    }
-  }, [catalogs, connection.id])
+  const expandCatalog = useCallback(
+    async (idx: number) => {
+      const cat = catalogs[idx]
+      if (cat.schemas) {
+        setCatalogs((prev) => prev.map((c, i) => (i === idx ? { ...c, expanded: !c.expanded } : c)))
+        return
+      }
+      setCatalogs((prev) => prev.map((c, i) => (i === idx ? { ...c, loading: true } : c)))
+      try {
+        const { data } = await api.listSchemas(connection.id, cat.name)
+        setCatalogs((prev) =>
+          prev.map((c, i) =>
+            i === idx
+              ? { ...c, schemas: data.map((s) => s.name), loading: false, expanded: true }
+              : c
+          )
+        )
+      } catch {
+        setCatalogs((prev) => prev.map((c, i) => (i === idx ? { ...c, loading: false } : c)))
+      }
+    },
+    [catalogs, connection.id]
+  )
 
   const toggle = (catalog: string, schema: string) => {
     const key = `${catalog}.${schema}`
-    if (alreadySelected.has(key)) return  // already synced, can't deselect here
-    setSelected(prev => {
+    if (alreadySelected.has(key)) return // already synced, can't deselect here
+    setSelected((prev) => {
       const s = new Set(prev)
       s.has(key) ? s.delete(key) : s.add(key)
       return s
@@ -70,12 +84,15 @@ export function SchemaPickerModal({ connection, onClose, onDone }: Props) {
   }
 
   const addSchemas = useCallback(async () => {
-    if (selected.size === 0) { onClose(); return }
+    if (selected.size === 0) {
+      onClose()
+      return
+    }
     setAdding(true)
     setError(null)
     try {
       await Promise.all(
-        Array.from(selected).map(key => {
+        Array.from(selected).map((key) => {
           const [catalog, ...rest] = key.split('.')
           const schema = rest.join('.')
           return api.addSchema(connection.id, catalog, schema)
@@ -94,18 +111,23 @@ export function SchemaPickerModal({ connection, onClose, onDone }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
       <div className="w-[400px] max-h-[80vh] flex flex-col bg-[#252526] border border-[#3c3c3c] rounded-xl shadow-2xl">
-
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#3c3c3c] shrink-0">
           <div>
             <p className="text-sm font-semibold text-[#cccccc]">Add Schemas</p>
             <p className="text-[11px] text-[#6a6a6a] mt-0.5">{connection.name}</p>
           </div>
-          <button type="button" onClick={onClose} title="Close"
-            className="text-[#6a6a6a] hover:text-[#cccccc] transition-colors p-1">
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close"
+            className="text-[#6a6a6a] hover:text-[#cccccc] transition-colors p-1"
+          >
             <X size={15} />
           </button>
         </div>
@@ -127,15 +149,20 @@ export function SchemaPickerModal({ connection, onClose, onDone }: Props) {
                   className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-[#2d2d30] rounded text-xs font-medium text-[#cccccc]"
                 >
                   <span className="w-3 text-[#6a6a6a]">
-                    {cat.loading ? <Loader2 size={9} className="animate-spin" /> :
-                     cat.expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
+                    {cat.loading ? (
+                      <Loader2 size={9} className="animate-spin" />
+                    ) : cat.expanded ? (
+                      <ChevronDown size={9} />
+                    ) : (
+                      <ChevronRight size={9} />
+                    )}
                   </span>
                   <span className="uppercase">{cat.name}</span>
                 </div>
 
                 {cat.expanded && cat.schemas && (
                   <div className="ml-4">
-                    {cat.schemas.map(schema => {
+                    {cat.schemas.map((schema) => {
                       const key = `${cat.name}.${schema}`
                       const already = alreadySelected.has(key)
                       const checked = already || selected.has(key)
@@ -145,15 +172,23 @@ export function SchemaPickerModal({ connection, onClose, onDone }: Props) {
                           onClick={() => toggle(cat.name, schema)}
                           className={clsx(
                             'flex items-center gap-2 px-2 py-1 rounded text-xs transition-colors',
-                            already ? 'text-[#4a4a4a] cursor-default' : 'text-[#cccccc] cursor-pointer hover:bg-[#2d2d30]'
+                            already
+                              ? 'text-[#4a4a4a] cursor-default'
+                              : 'text-[#cccccc] cursor-pointer hover:bg-[#2d2d30]'
                           )}
                         >
-                          {checked
-                            ? <CheckSquare size={12} className={already ? 'text-[#4a4a4a]' : 'text-[#4ec9b0]'} />
-                            : <Square size={12} className="text-[#4a4a4a]" />
-                          }
+                          {checked ? (
+                            <CheckSquare
+                              size={12}
+                              className={already ? 'text-[#4a4a4a]' : 'text-[#4ec9b0]'}
+                            />
+                          ) : (
+                            <Square size={12} className="text-[#4a4a4a]" />
+                          )}
                           <span>{schema}</span>
-                          {already && <span className="ml-auto text-[9px] text-[#4a4a4a]">added</span>}
+                          {already && (
+                            <span className="ml-auto text-[9px] text-[#4a4a4a]">added</span>
+                          )}
                         </div>
                       )
                     })}
@@ -174,11 +209,16 @@ export function SchemaPickerModal({ connection, onClose, onDone }: Props) {
           )}
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-[#6a6a6a]">
-              {selected.size > 0 ? `${selected.size} schema${selected.size > 1 ? 's' : ''} selected` : 'Select schemas to add'}
+              {selected.size > 0
+                ? `${selected.size} schema${selected.size > 1 ? 's' : ''} selected`
+                : 'Select schemas to add'}
             </span>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={onClose}
-                className="text-xs text-[#6a6a6a] hover:text-[#969696] px-2 py-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-xs text-[#6a6a6a] hover:text-[#969696] px-2 py-1"
+              >
                 Cancel
               </button>
               <button
@@ -187,7 +227,9 @@ export function SchemaPickerModal({ connection, onClose, onDone }: Props) {
                 disabled={adding}
                 className={clsx(
                   'flex items-center gap-1.5 px-3 py-1.5 text-xs rounded font-medium transition-colors',
-                  !adding ? 'bg-[#0e639c] text-white hover:bg-[#1177bb]' : 'bg-[#2d2d30] text-[#4a4a4a] cursor-not-allowed'
+                  !adding
+                    ? 'bg-[#0e639c] text-white hover:bg-[#1177bb]'
+                    : 'bg-[#2d2d30] text-[#4a4a4a] cursor-not-allowed'
                 )}
               >
                 {adding && <Loader2 size={11} className="animate-spin" />}

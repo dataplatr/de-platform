@@ -16,11 +16,18 @@ import time
 import uuid
 
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.sql import StatementState, Disposition, Format
+from databricks.sdk.service.sql import Disposition, Format
 
 from .base import (
-    CatalogInfo, CatalogProvider, ColumnInfo, MaterializeResult,
-    PreviewResult, QueryExecutor, SchemaInfo, TableInfo, UploadProvider,
+    CatalogInfo,
+    CatalogProvider,
+    ColumnInfo,
+    MaterializeResult,
+    PreviewResult,
+    QueryExecutor,
+    SchemaInfo,
+    TableInfo,
+    UploadProvider,
     UploadResult,
 )
 

@@ -22,7 +22,7 @@ interface TransformationState {
   // ─── Connections ───────────────────────────────────────────────
   connections: DatabricksConnection[]
   pipelineConnectionAlias: string | null
-  warehouseState: string | null  // 'RUNNING'|'STARTING'|'STOPPED'|'STOPPING'|null
+  warehouseState: string | null // 'RUNNING'|'STARTING'|'STOPPED'|'STOPPING'|null
 
   // ─── Canvas ────────────────────────────────────────────────────
   nodes: TransformNode[]
@@ -100,7 +100,12 @@ interface TransformationActions {
   // Pipeline
   setPipelineName: (name: string) => void
   setPipelineId: (id: string | null) => void
-  openEditor: (opts?: { id?: string; name?: string; nodes?: TransformNode[]; edges?: TransformEdge[] }) => void
+  openEditor: (opts?: {
+    id?: string
+    name?: string
+    nodes?: TransformNode[]
+    edges?: TransformEdge[]
+  }) => void
   closeEditor: () => void
   clearCanvas: () => void
 
@@ -148,134 +153,228 @@ export const useTransformationStore = create<TransformationState & Transformatio
     clipboard: [],
 
     // ─── Actions ──────────────────────────────────────────────────
-    setConnections: (connections) => set((s) => { s.connections = connections as DatabricksConnection[] }),
-    setPipelineConnectionAlias: (alias) => set((s) => { s.pipelineConnectionAlias = alias }),
-    setWarehouseState: (state) => set((s) => { s.warehouseState = state }),
+    setConnections: (connections) =>
+      set((s) => {
+        s.connections = connections as DatabricksConnection[]
+      }),
+    setPipelineConnectionAlias: (alias) =>
+      set((s) => {
+        s.pipelineConnectionAlias = alias
+      }),
+    setWarehouseState: (state) =>
+      set((s) => {
+        s.warehouseState = state
+      }),
 
-    addNode: (node) => set((s) => {
-      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
-      s._history.push(snap)
-      if (s._history.length > MAX_HISTORY) s._history.shift()
-      s._future = []
-      s.nodes.push(node)
-    }),
+    addNode: (node) =>
+      set((s) => {
+        const snap = snapshot(
+          current(s.nodes) as TransformNode[],
+          current(s.edges) as TransformEdge[]
+        )
+        s._history.push(snap)
+        if (s._history.length > MAX_HISTORY) s._history.shift()
+        s._future = []
+        s.nodes.push(node)
+      }),
 
-    updateNode: (id, updates) => set((s) => {
-      const idx = s.nodes.findIndex((n) => n.id === id)
-      if (idx !== -1) Object.assign(s.nodes[idx], updates)
-      // updateNode is intentionally NOT pushed to history — too granular
-    }),
+    updateNode: (id, updates) =>
+      set((s) => {
+        const idx = s.nodes.findIndex((n) => n.id === id)
+        if (idx !== -1) Object.assign(s.nodes[idx], updates)
+        // updateNode is intentionally NOT pushed to history — too granular
+      }),
 
-    removeNode: (id) => set((s) => {
-      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
-      s._history.push(snap)
-      if (s._history.length > MAX_HISTORY) s._history.shift()
-      s._future = []
-      s.nodes = s.nodes.filter((n) => n.id !== id)
-      s.edges = s.edges.filter((e) => e.source !== id && e.target !== id)
-    }),
+    removeNode: (id) =>
+      set((s) => {
+        const snap = snapshot(
+          current(s.nodes) as TransformNode[],
+          current(s.edges) as TransformEdge[]
+        )
+        s._history.push(snap)
+        if (s._history.length > MAX_HISTORY) s._history.shift()
+        s._future = []
+        s.nodes = s.nodes.filter((n) => n.id !== id)
+        s.edges = s.edges.filter((e) => e.source !== id && e.target !== id)
+      }),
 
-    addEdge: (edge) => set((s) => {
-      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
-      s._history.push(snap)
-      if (s._history.length > MAX_HISTORY) s._history.shift()
-      s._future = []
-      s.edges.push(edge)
-    }),
+    addEdge: (edge) =>
+      set((s) => {
+        const snap = snapshot(
+          current(s.nodes) as TransformNode[],
+          current(s.edges) as TransformEdge[]
+        )
+        s._history.push(snap)
+        if (s._history.length > MAX_HISTORY) s._history.shift()
+        s._future = []
+        s.edges.push(edge)
+      }),
 
-    removeEdge: (id) => set((s) => {
-      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
-      s._history.push(snap)
-      if (s._history.length > MAX_HISTORY) s._history.shift()
-      s._future = []
-      s.edges = s.edges.filter((e) => e.id !== id)
-    }),
+    removeEdge: (id) =>
+      set((s) => {
+        const snap = snapshot(
+          current(s.nodes) as TransformNode[],
+          current(s.edges) as TransformEdge[]
+        )
+        s._history.push(snap)
+        if (s._history.length > MAX_HISTORY) s._history.shift()
+        s._future = []
+        s.edges = s.edges.filter((e) => e.id !== id)
+      }),
 
-    setSelectedNode: (id) => set((s) => { s.selectedNodeId = id }),
+    setSelectedNode: (id) =>
+      set((s) => {
+        s.selectedNodeId = id
+      }),
 
-    addStepHistoryEntry: (entry) => set((s) => { s.stepHistory.push(entry) }),
-    updateStepStatus: (id, status) => set((s) => {
-      const step = s.stepHistory.find((h) => h.id === id)
-      if (step) step.status = status
-    }),
+    addStepHistoryEntry: (entry) =>
+      set((s) => {
+        s.stepHistory.push(entry)
+      }),
+    updateStepStatus: (id, status) =>
+      set((s) => {
+        const step = s.stepHistory.find((h) => h.id === id)
+        if (step) step.status = status
+      }),
 
-    setInputPreview: (preview) => set((s) => { s.inputPreview = preview }),
-    setOutputPreview: (preview) => set((s) => { s.outputPreview = preview }),
-    setPreviewLoading: (loading) => set((s) => { s.isPreviewLoading = loading }),
+    setInputPreview: (preview) =>
+      set((s) => {
+        s.inputPreview = preview
+      }),
+    setOutputPreview: (preview) =>
+      set((s) => {
+        s.outputPreview = preview
+      }),
+    setPreviewLoading: (loading) =>
+      set((s) => {
+        s.isPreviewLoading = loading
+      }),
 
-    setGeneratedSQL: (sql) => set((s) => { s.generatedSQL = sql }),
+    setGeneratedSQL: (sql) =>
+      set((s) => {
+        s.generatedSQL = sql
+      }),
 
-    addChatMessage: (msg) => set((s) => { s.chatMessages.push(msg) }),
-    setChatLoading: (loading) => set((s) => { s.isChatLoading = loading }),
+    addChatMessage: (msg) =>
+      set((s) => {
+        s.chatMessages.push(msg)
+      }),
+    setChatLoading: (loading) =>
+      set((s) => {
+        s.isChatLoading = loading
+      }),
 
-    setRightPanelTab: (tab) => set((s) => { s.rightPanelTab = tab }),
-    setBottomPanelTab: (tab) => set((s) => { s.bottomPanelTab = tab }),
-    toggleSqlView: () => set((s) => { s.isSqlViewExpanded = !s.isSqlViewExpanded }),
-    setExpandedOutputId: (id) => set((s) => { s.expandedOutputId = id }),
+    setRightPanelTab: (tab) =>
+      set((s) => {
+        s.rightPanelTab = tab
+      }),
+    setBottomPanelTab: (tab) =>
+      set((s) => {
+        s.bottomPanelTab = tab
+      }),
+    toggleSqlView: () =>
+      set((s) => {
+        s.isSqlViewExpanded = !s.isSqlViewExpanded
+      }),
+    setExpandedOutputId: (id) =>
+      set((s) => {
+        s.expandedOutputId = id
+      }),
 
-    setPipelineName: (name) => set((s) => { s.pipelineName = name }),
-    setPipelineId: (id) => set((s) => { s.pipelineId = id }),
+    setPipelineName: (name) =>
+      set((s) => {
+        s.pipelineName = name
+      }),
+    setPipelineId: (id) =>
+      set((s) => {
+        s.pipelineId = id
+      }),
 
-    openEditor: (opts) => set((s) => {
-      s.editorOpen = true
-      s.pipelineId   = opts?.id   ?? null
-      s.pipelineName = opts?.name ?? 'Untitled Pipeline'
-      s.nodes        = opts?.nodes ?? []
-      s.edges        = opts?.edges ?? []
-      s.selectedNodeId         = null
-      s.generatedSQL           = ''
-      s.outputPreview          = null
-      s.expandedOutputId       = null
-      s.pipelineConnectionAlias = null
-      s.warehouseState = null
-      // Clear history when opening a new pipeline
-      s._history = []
-      s._future  = []
-    }),
+    openEditor: (opts) =>
+      set((s) => {
+        s.editorOpen = true
+        s.pipelineId = opts?.id ?? null
+        s.pipelineName = opts?.name ?? 'Untitled Pipeline'
+        s.nodes = opts?.nodes ?? []
+        s.edges = opts?.edges ?? []
+        s.selectedNodeId = null
+        s.generatedSQL = ''
+        s.outputPreview = null
+        s.expandedOutputId = null
+        s.pipelineConnectionAlias = null
+        s.warehouseState = null
+        // Clear history when opening a new pipeline
+        s._history = []
+        s._future = []
+      }),
 
-    closeEditor: () => set((s) => { s.editorOpen = false; s.expandedOutputId = null }),
+    closeEditor: () =>
+      set((s) => {
+        s.editorOpen = false
+        s.expandedOutputId = null
+      }),
 
-    clearCanvas: () => set((s) => {
-      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
-      s._history.push(snap)
-      if (s._history.length > MAX_HISTORY) s._history.shift()
-      s._future = []
-      s.nodes = []; s.edges = []; s.selectedNodeId = null
-      s.generatedSQL = ''; s.outputPreview = null
-      s.pipelineConnectionAlias = null
-      s.warehouseState = null
-    }),
+    clearCanvas: () =>
+      set((s) => {
+        const snap = snapshot(
+          current(s.nodes) as TransformNode[],
+          current(s.edges) as TransformEdge[]
+        )
+        s._history.push(snap)
+        if (s._history.length > MAX_HISTORY) s._history.shift()
+        s._future = []
+        s.nodes = []
+        s.edges = []
+        s.selectedNodeId = null
+        s.generatedSQL = ''
+        s.outputPreview = null
+        s.pipelineConnectionAlias = null
+        s.warehouseState = null
+      }),
 
     // ─── Undo / Redo ─────────────────────────────────────────────
-    undo: () => set((s) => {
-      const prev = s._history[s._history.length - 1]
-      if (!prev) return
-      s._future.push(snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[]))
-      s._history.pop()
-      s.nodes = prev.nodes as TransformNode[]
-      s.edges = prev.edges as TransformEdge[]
-      s.selectedNodeId = null
-    }),
+    undo: () =>
+      set((s) => {
+        const prev = s._history[s._history.length - 1]
+        if (!prev) return
+        s._future.push(
+          snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
+        )
+        s._history.pop()
+        s.nodes = prev.nodes as TransformNode[]
+        s.edges = prev.edges as TransformEdge[]
+        s.selectedNodeId = null
+      }),
 
-    redo: () => set((s) => {
-      const next = s._future[s._future.length - 1]
-      if (!next) return
-      s._history.push(snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[]))
-      s._future.pop()
-      s.nodes = next.nodes as TransformNode[]
-      s.edges = next.edges as TransformEdge[]
-      s.selectedNodeId = null
-    }),
+    redo: () =>
+      set((s) => {
+        const next = s._future[s._future.length - 1]
+        if (!next) return
+        s._history.push(
+          snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
+        )
+        s._future.pop()
+        s.nodes = next.nodes as TransformNode[]
+        s.edges = next.edges as TransformEdge[]
+        s.selectedNodeId = null
+      }),
 
-    setClipboard: (nodes) => set((s) => { s.clipboard = nodes }),
+    setClipboard: (nodes) =>
+      set((s) => {
+        s.clipboard = nodes
+      }),
 
-    batchUpdate: (patch) => set((s) => {
-      const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
-      s._history.push(snap)
-      if (s._history.length > MAX_HISTORY) s._history.shift()
-      s._future = []
-      if (patch.nodes !== undefined) s.nodes = patch.nodes as TransformNode[]
-      if (patch.edges !== undefined) s.edges = patch.edges as TransformEdge[]
-    }),
+    batchUpdate: (patch) =>
+      set((s) => {
+        const snap = snapshot(
+          current(s.nodes) as TransformNode[],
+          current(s.edges) as TransformEdge[]
+        )
+        s._history.push(snap)
+        if (s._history.length > MAX_HISTORY) s._history.shift()
+        s._future = []
+        if (patch.nodes !== undefined) s.nodes = patch.nodes as TransformNode[]
+        if (patch.edges !== undefined) s.edges = patch.edges as TransformEdge[]
+      }),
   }))
 )

@@ -1,8 +1,7 @@
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 
@@ -33,7 +32,7 @@ def require_role(minimum: str):
 def create_access_token(user: dict) -> tuple[str, str]:
     """Returns (token, jti)."""
     jti = str(uuid.uuid4())
-    expire = datetime.now(timezone.utc) + timedelta(
+    expire = datetime.now(UTC) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     payload = {
@@ -71,8 +70,8 @@ def _is_session_valid(jti: str) -> bool:
         return False
     if row["is_revoked"] != 0:
         return False
-    expires_at = datetime.fromisoformat(row["expires_at"]).replace(tzinfo=timezone.utc)
-    return datetime.now(timezone.utc) < expires_at
+    expires_at = datetime.fromisoformat(row["expires_at"]).replace(tzinfo=UTC)
+    return datetime.now(UTC) < expires_at
 
 
 # --- Login / Logout ---
@@ -87,7 +86,7 @@ def login(req: LoginRequest, ip: str = "", ua: str = "") -> TokenResponse:
         )
 
     token, jti = create_access_token(user)
-    expire = datetime.now(timezone.utc) + timedelta(
+    expire = datetime.now(UTC) + timedelta(
         minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
     _store_session(user["id"], jti, expire, ip, ua)
@@ -104,7 +103,7 @@ def logout(jti: str) -> None:
 
 # --- get_current_user dependency ---
 
-async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)) -> dict:
+async def get_current_user(token: str | None = Depends(oauth2_scheme)) -> dict:
     credentials_exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -121,7 +120,7 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)) -> dic
         if not username or not jti:
             raise credentials_exc
     except JWTError:
-        raise credentials_exc
+        raise credentials_exc from None
 
     if not _is_session_valid(jti):
         raise HTTPException(

@@ -1,7 +1,6 @@
 """Application-wide constants — no magic strings scattered through the codebase."""
 from enum import Enum
 
-
 # ── RBAC ─────────────────────────────────────────────────────────────────────
 
 class Role(str, Enum):

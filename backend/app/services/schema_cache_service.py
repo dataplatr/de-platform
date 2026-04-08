@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from app.db.auth_db import get_auth_conn
@@ -92,7 +92,7 @@ def sync_schema(
         logger.error("Failed to list tables for %s.%s: %s", catalog, schema, exc)
         return 0
 
-    synced_at = datetime.now(timezone.utc).isoformat()
+    synced_at = datetime.now(UTC).isoformat()
 
     # ── Phase 1: fetch all column metadata from Databricks (no DB writes) ────
     rows: list[tuple] = []

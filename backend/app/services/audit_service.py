@@ -6,7 +6,6 @@ so they never contend with schema-cache sync writes on the same SQLite file.
 """
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from typing import Optional
 
 from app.constants import AUDIT_MAX_LIMIT
 from app.db.auth_db import get_auth_conn
@@ -20,14 +19,14 @@ _audit_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="audit-wr
 
 def _write_log(
     action: str,
-    user_id: Optional[int],
-    username: Optional[str],
-    method: Optional[str],
-    path: Optional[str],
-    status_code: Optional[int],
+    user_id: int | None,
+    username: str | None,
+    method: str | None,
+    path: str | None,
+    status_code: int | None,
     ip_address,
-    user_agent: Optional[str],
-    details: Optional[str],
+    user_agent: str | None,
+    details: str | None,
 ) -> None:
     """Runs inside the single audit writer thread."""
     try:
@@ -45,14 +44,14 @@ def _write_log(
 
 def log_activity(
     action: str,
-    user_id: Optional[int] = None,
-    username: Optional[str] = None,
-    method: Optional[str] = None,
-    path: Optional[str] = None,
-    status_code: Optional[int] = None,
+    user_id: int | None = None,
+    username: str | None = None,
+    method: str | None = None,
+    path: str | None = None,
+    status_code: int | None = None,
     ip_address=None,
-    user_agent: Optional[str] = None,
-    details: Optional[str] = None,
+    user_agent: str | None = None,
+    details: str | None = None,
 ) -> None:
     """Non-blocking: submits the write to the background audit thread."""
     _audit_executor.submit(

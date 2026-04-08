@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field
-from typing import Any, Optional
+from typing import Any
 
+from pydantic import BaseModel, Field
 
 # --- Auth ---
 
@@ -19,7 +19,7 @@ class LoginRequest(BaseModel):
 class UserResponse(BaseModel):
     id: int
     username: str
-    email: Optional[str]
+    email: str | None
     role: str
     is_active: int
     created_at: str
@@ -27,7 +27,7 @@ class UserResponse(BaseModel):
 
 class CreateUserRequest(BaseModel):
     username: str
-    email: Optional[str] = None
+    email: str | None = None
     password: str
     role: str = "analyst"
 
@@ -35,7 +35,7 @@ class CreateUserRequest(BaseModel):
 # --- DuckDB connection ---
 
 class DuckDBConnectRequest(BaseModel):
-    path: Optional[str] = None  # None = in-memory
+    path: str | None = None  # None = in-memory
 
 
 # --- Schema browser ---
@@ -110,12 +110,12 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
-    context: Optional[dict[str, Any]] = None
+    context: dict[str, Any] | None = None
 
 
 class ChatResponse(BaseModel):
     message: ChatMessage
-    suggested_nodes: Optional[list[dict[str, Any]]] = None
+    suggested_nodes: list[dict[str, Any]] | None = None
 
 
 # --- Transformation pipeline ---
@@ -133,7 +133,7 @@ class EdgeConfig(BaseModel):
 
 
 class TransformationPipeline(BaseModel):
-    id: Optional[str] = None
+    id: str | None = None
     name: str
     nodes: list[dict[str, Any]] = []
     edges: list[dict[str, Any]] = []
@@ -141,7 +141,7 @@ class TransformationPipeline(BaseModel):
 
 class ExecuteRequest(BaseModel):
     pipeline: TransformationPipeline
-    output_table: Optional[str] = None
+    output_table: str | None = None
 
 
 # --- Pipeline compile / preview ---
@@ -173,8 +173,8 @@ class CreateConnectionRequest(BaseModel):
     host: str
     token: str
     warehouse_id: str
-    default_catalog: Optional[str] = None
-    default_schema: Optional[str] = None
+    default_catalog: str | None = None
+    default_schema: str | None = None
     upload_catalog: str = ""
     upload_schema: str = ""
     upload_volume: str = ""
@@ -204,8 +204,8 @@ class ConnectionResponse(BaseModel):
     connector_type: str
     host: str
     warehouse_id: str
-    default_catalog: Optional[str]
-    default_schema: Optional[str]
+    default_catalog: str | None
+    default_schema: str | None
     upload_catalog: str
     upload_schema: str
     upload_volume: str
@@ -228,11 +228,11 @@ class PipelineRunRequest(BaseModel):
 class AuditLogEntry(BaseModel):
     id: int
     timestamp: str
-    user_id: Optional[int]
-    username: Optional[str]
+    user_id: int | None
+    username: str | None
     action: str
-    method: Optional[str]
-    path: Optional[str]
-    status_code: Optional[int]
-    ip_address: Optional[str]
-    details: Optional[str]
+    method: str | None
+    path: str | None
+    status_code: int | None
+    ip_address: str | None
+    details: str | None

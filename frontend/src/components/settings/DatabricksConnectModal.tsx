@@ -11,36 +11,63 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  X, Loader2, AlertCircle, CheckCircle2, ChevronDown, ChevronRight,
-  ExternalLink, CheckSquare, Square, Database,
+  X,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  CheckSquare,
+  Square,
+  Database,
 } from 'lucide-react'
 import { api } from '../../services/api'
 import { useTransformationStore } from '../../store/transformationStore'
 import type { DatabricksConnection } from '../../types'
 import clsx from 'clsx'
 
-interface Props { onClose: () => void }
+interface Props {
+  onClose: () => void
+}
 
 type Screen = 'credentials' | 'warehouse' | 'schemas'
 type AuthMethod = 'oauth' | 'pat'
 
 function slugify(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40)
 }
 
 function Field({
-  label, value, onChange, type = 'text', placeholder, hint, autoFocus,
+  label,
+  value,
+  onChange,
+  type = 'text',
+  placeholder,
+  hint,
+  autoFocus,
 }: {
-  label: string; value: string; onChange: (v: string) => void
-  type?: string; placeholder?: string; hint?: string; autoFocus?: boolean
+  label: string
+  value: string
+  onChange: (v: string) => void
+  type?: string
+  placeholder?: string
+  hint?: string
+  autoFocus?: boolean
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label className="text-[11px] text-[#6a6a6a] font-semibold uppercase tracking-wider">{label}</label>
+      <label className="text-[11px] text-[#6a6a6a] font-semibold uppercase tracking-wider">
+        {label}
+      </label>
       <input
         type={type}
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoFocus={autoFocus}
         autoComplete="off"
@@ -54,7 +81,12 @@ function Field({
 
 // ── Schema picker sub-component ───────────────────────────────────────────────
 
-interface CatalogEntry { name: string; schemas?: string[]; loading?: boolean; expanded?: boolean }
+interface CatalogEntry {
+  name: string
+  schemas?: string[]
+  loading?: boolean
+  expanded?: boolean
+}
 
 function SchemaPicker({
   connectionId,
@@ -72,41 +104,56 @@ function SchemaPicker({
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api.listCatalogs(connectionId)
-      .then(({ data }) => setCatalogs(data.map(c => ({ name: c.name }))))
+    api
+      .listCatalogs(connectionId)
+      .then(({ data }) => setCatalogs(data.map((c) => ({ name: c.name }))))
       .catch(() => setError('Failed to load catalogs'))
       .finally(() => setLoading(false))
   }, [connectionId])
 
-  const expandCatalog = useCallback(async (idx: number) => {
-    const cat = catalogs[idx]
-    if (cat.schemas) {
-      setCatalogs(prev => prev.map((c, i) => i === idx ? { ...c, expanded: !c.expanded } : c))
-      return
-    }
-    setCatalogs(prev => prev.map((c, i) => i === idx ? { ...c, loading: true } : c))
-    try {
-      const { data } = await api.listSchemas(connectionId, cat.name)
-      setCatalogs(prev => prev.map((c, i) =>
-        i === idx ? { ...c, schemas: data.map(s => s.name), loading: false, expanded: true } : c
-      ))
-    } catch {
-      setCatalogs(prev => prev.map((c, i) => i === idx ? { ...c, loading: false } : c))
-    }
-  }, [catalogs, connectionId])
+  const expandCatalog = useCallback(
+    async (idx: number) => {
+      const cat = catalogs[idx]
+      if (cat.schemas) {
+        setCatalogs((prev) => prev.map((c, i) => (i === idx ? { ...c, expanded: !c.expanded } : c)))
+        return
+      }
+      setCatalogs((prev) => prev.map((c, i) => (i === idx ? { ...c, loading: true } : c)))
+      try {
+        const { data } = await api.listSchemas(connectionId, cat.name)
+        setCatalogs((prev) =>
+          prev.map((c, i) =>
+            i === idx
+              ? { ...c, schemas: data.map((s) => s.name), loading: false, expanded: true }
+              : c
+          )
+        )
+      } catch {
+        setCatalogs((prev) => prev.map((c, i) => (i === idx ? { ...c, loading: false } : c)))
+      }
+    },
+    [catalogs, connectionId]
+  )
 
   const toggle = (catalog: string, schema: string) => {
     const key = `${catalog}.${schema}`
-    setSelected(prev => { const s = new Set(prev); s.has(key) ? s.delete(key) : s.add(key); return s })
+    setSelected((prev) => {
+      const s = new Set(prev)
+      s.has(key) ? s.delete(key) : s.add(key)
+      return s
+    })
   }
 
   const addAndFinish = useCallback(async () => {
-    if (selected.size === 0) { onSkip(); return }
+    if (selected.size === 0) {
+      onSkip()
+      return
+    }
     setAdding(true)
     setError(null)
     try {
       await Promise.all(
-        Array.from(selected).map(key => {
+        Array.from(selected).map((key) => {
           const [catalog, ...rest] = key.split('.')
           return api.addSchema(connectionId, catalog, rest.join('.'))
         })
@@ -142,8 +189,13 @@ function SchemaPicker({
                   className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-[#2d2d30] rounded text-xs font-medium text-[#cccccc]"
                 >
                   <span className="w-3 text-[#6a6a6a]">
-                    {cat.loading ? <Loader2 size={9} className="animate-spin" />
-                      : cat.expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
+                    {cat.loading ? (
+                      <Loader2 size={9} className="animate-spin" />
+                    ) : cat.expanded ? (
+                      <ChevronDown size={9} />
+                    ) : (
+                      <ChevronRight size={9} />
+                    )}
                   </span>
                   <Database size={10} className="text-[#4ec9b0] shrink-0" />
                   <span className="uppercase">{cat.name}</span>
@@ -151,7 +203,7 @@ function SchemaPicker({
 
                 {cat.expanded && cat.schemas && (
                   <div className="ml-4">
-                    {cat.schemas.map(schema => {
+                    {cat.schemas.map((schema) => {
                       const key = `${cat.name}.${schema}`
                       const checked = selected.has(key)
                       return (
@@ -160,9 +212,11 @@ function SchemaPicker({
                           onClick={() => toggle(cat.name, schema)}
                           className="flex items-center gap-2 px-2 py-1 rounded text-xs text-[#cccccc] cursor-pointer hover:bg-[#2d2d30]"
                         >
-                          {checked
-                            ? <CheckSquare size={12} className="text-[#4ec9b0]" />
-                            : <Square size={12} className="text-[#4a4a4a]" />}
+                          {checked ? (
+                            <CheckSquare size={12} className="text-[#4ec9b0]" />
+                          ) : (
+                            <Square size={12} className="text-[#4a4a4a]" />
+                          )}
                           <span>{schema}</span>
                         </div>
                       )
@@ -177,17 +231,23 @@ function SchemaPicker({
 
       {error && (
         <div className="flex items-center gap-2 text-[11px] text-[#f44747]">
-          <AlertCircle size={12} />{error}
+          <AlertCircle size={12} />
+          {error}
         </div>
       )}
 
       <div className="flex items-center justify-between mt-1">
         <span className="text-[11px] text-[#6a6a6a]">
-          {selected.size > 0 ? `${selected.size} schema${selected.size > 1 ? 's' : ''} selected` : 'None selected'}
+          {selected.size > 0
+            ? `${selected.size} schema${selected.size > 1 ? 's' : ''} selected`
+            : 'None selected'}
         </span>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onSkip}
-            className="text-xs text-[#6a6a6a] hover:text-[#969696] px-3 py-1.5">
+          <button
+            type="button"
+            onClick={onSkip}
+            className="text-xs text-[#6a6a6a] hover:text-[#969696] px-3 py-1.5"
+          >
             Skip for now
           </button>
           <button
@@ -196,7 +256,9 @@ function SchemaPicker({
             disabled={adding}
             className={clsx(
               'flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg font-medium transition-colors',
-              !adding ? 'bg-[#4ec9b0] text-[#1e1e1e] hover:bg-[#3ab89e]' : 'bg-[#2d2d30] text-[#4a4a4a] cursor-not-allowed'
+              !adding
+                ? 'bg-[#4ec9b0] text-[#1e1e1e] hover:bg-[#3ab89e]'
+                : 'bg-[#2d2d30] text-[#4a4a4a] cursor-not-allowed'
             )}
           >
             {adding && <Loader2 size={11} className="animate-spin" />}
@@ -218,22 +280,24 @@ export function DatabricksConnectModal({ onClose }: Props) {
 
   // ── Credentials fields ────────────────────────────────────────────────────────
   const [workspaceUrl, setWorkspaceUrl] = useState('')
-  const [connName, setConnName]         = useState('')
-  const [connAlias, setConnAlias]       = useState('')
-  const [aliasManual, setAliasManual]   = useState(false)
+  const [connName, setConnName] = useState('')
+  const [connAlias, setConnAlias] = useState('')
+  const [aliasManual, setAliasManual] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [pat, setPat]                   = useState('')
+  const [pat, setPat] = useState('')
 
-  const [credError, setCredError]   = useState<string | null>(null)
+  const [credError, setCredError] = useState<string | null>(null)
   const [credLoading, setCredLoading] = useState(false)
 
   // ── Warehouse screen ──────────────────────────────────────────────────────────
   const [connectionId, setConnectionId] = useState<string | null>(null)
-  const [warehouses, setWarehouses] = useState<{ id: string; name: string; state: string; cluster_size: string }[]>([])
+  const [warehouses, setWarehouses] = useState<
+    { id: string; name: string; state: string; cluster_size: string }[]
+  >([])
   const [selectedWarehouse, setSelectedWarehouse] = useState('')
   const [uploadCatalog, setUploadCatalog] = useState('')
-  const [uploadSchema, setUploadSchema]   = useState('')
-  const [uploadVolume, setUploadVolume]   = useState('')
+  const [uploadSchema, setUploadSchema] = useState('')
+  const [uploadVolume, setUploadVolume] = useState('')
   const [warehouseSaving, setWarehouseSaving] = useState(false)
   const [warehouseError, setWarehouseError] = useState<string | null>(null)
 
@@ -266,12 +330,15 @@ export function DatabricksConnectModal({ onClose }: Props) {
       const { data } = await api.oauthStart(
         workspaceUrl.trim().replace(/\/$/, ''),
         connName.trim(),
-        alias,
+        alias
       )
 
       // Open popup
-      const popup = window.open(data.auth_url, 'databricks_oauth',
-        'width=600,height=700,left=200,top=100')
+      const popup = window.open(
+        data.auth_url,
+        'databricks_oauth',
+        'width=600,height=700,left=200,top=100'
+      )
       oauthPopupRef.current = popup
 
       // Listen for postMessage from oauth-callback.html
@@ -293,7 +360,9 @@ export function DatabricksConnectModal({ onClose }: Props) {
       window.addEventListener('message', handler)
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setCredError(detail ?? 'Could not start OAuth — check DATABRICKS_OAUTH_CLIENT_ID in server config.')
+      setCredError(
+        detail ?? 'Could not start OAuth — check DATABRICKS_OAUTH_CLIENT_ID in server config.'
+      )
       setCredLoading(false)
     }
   }, [workspaceUrl, connName, connAlias, fetchWarehouses])
@@ -335,9 +404,9 @@ export function DatabricksConnectModal({ onClose }: Props) {
         })
         conn = data
         // Refresh connections list
-        const existing = connections.find(c => c.id === connectionId)
+        const existing = connections.find((c) => c.id === connectionId)
         if (existing) {
-          setConnections(connections.map(c => c.id === connectionId ? conn : c))
+          setConnections(connections.map((c) => (c.id === connectionId ? conn : c)))
         } else {
           // Not yet in the list (e.g. page reload edge case) — fetch fresh
           const { data: all } = await api.listConnections()
@@ -368,33 +437,44 @@ export function DatabricksConnectModal({ onClose }: Props) {
       setWarehouseSaving(false)
     }
   }, [
-    authMethod, connectionId, selectedWarehouse,
-    uploadCatalog, uploadSchema, uploadVolume,
-    connAlias, connName, workspaceUrl, pat,
-    connections, setConnections,
+    authMethod,
+    connectionId,
+    selectedWarehouse,
+    uploadCatalog,
+    uploadSchema,
+    uploadVolume,
+    connAlias,
+    connName,
+    workspaceUrl,
+    pat,
+    connections,
+    setConnections,
   ])
 
   // Clean up popup on unmount
   useEffect(() => {
-    return () => { oauthPopupRef.current?.close() }
+    return () => {
+      oauthPopupRef.current?.close()
+    }
   }, [])
 
   const canConnectOAuth = workspaceUrl.startsWith('https://') && connName.trim().length > 0
-  const canConnectPAT   = canConnectOAuth && pat.trim().length > 0
+  const canConnectPAT = canConnectOAuth && pat.trim().length > 0
 
   const screenTitles: Record<Screen, { title: string; sub: string }> = {
     credentials: { title: 'Connect Databricks', sub: 'Sign in to your workspace' },
-    warehouse:   { title: 'Choose a Warehouse', sub: 'All pipeline SQL runs on this warehouse' },
-    schemas:     { title: 'Add Schemas', sub: 'Pick schemas to sync (you can add more later)' },
+    warehouse: { title: 'Choose a Warehouse', sub: 'All pipeline SQL runs on this warehouse' },
+    schemas: { title: 'Add Schemas', sub: 'Pick schemas to sync (you can add more later)' },
   }
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
       <div className="w-[480px] max-h-[90vh] overflow-y-auto bg-[#252526] border border-[#3c3c3c] rounded-xl shadow-2xl">
-
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#3c3c3c] shrink-0">
           <div>
@@ -405,38 +485,60 @@ export function DatabricksConnectModal({ onClose }: Props) {
             {/* Step dots */}
             <div className="flex items-center gap-1.5">
               {(['credentials', 'warehouse', 'schemas'] as Screen[]).map((s, i) => (
-                <div key={s} className={clsx(
-                  'rounded-full transition-all',
-                  screen === s ? 'w-4 h-1.5 bg-[#4ec9b0]' : 'w-1.5 h-1.5 bg-[#3c3c3c]'
-                )} aria-label={`Step ${i + 1}`} />
+                <div
+                  key={s}
+                  className={clsx(
+                    'rounded-full transition-all',
+                    screen === s ? 'w-4 h-1.5 bg-[#4ec9b0]' : 'w-1.5 h-1.5 bg-[#3c3c3c]'
+                  )}
+                  aria-label={`Step ${i + 1}`}
+                />
               ))}
             </div>
-            <button type="button" onClick={onClose} title="Close"
-              className="text-[#6a6a6a] hover:text-[#cccccc] transition-colors p-1 rounded">
+            <button
+              type="button"
+              onClick={onClose}
+              title="Close"
+              className="text-[#6a6a6a] hover:text-[#cccccc] transition-colors p-1 rounded"
+            >
               <X size={15} />
             </button>
           </div>
         </div>
 
         <div className="px-5 py-5 flex flex-col gap-4">
-
           {/* ── SCREEN 1: Credentials ── */}
           {screen === 'credentials' && (
             <>
-              <Field label="Workspace URL" value={workspaceUrl} autoFocus
-                onChange={v => { setWorkspaceUrl(v); setCredError(null) }}
-                placeholder="https://adb-xxxx.azuredatabricks.net" />
+              <Field
+                label="Workspace URL"
+                value={workspaceUrl}
+                autoFocus
+                onChange={(v) => {
+                  setWorkspaceUrl(v)
+                  setCredError(null)
+                }}
+                placeholder="https://adb-xxxx.azuredatabricks.net"
+              />
 
-              <Field label="Connection Name" value={connName}
+              <Field
+                label="Connection Name"
+                value={connName}
                 onChange={handleNameChange}
-                placeholder="e.g. Production" />
+                placeholder="e.g. Production"
+              />
 
               {/* Advanced: alias */}
               <div className="flex flex-col gap-1">
-                <button type="button"
-                  onClick={() => setShowAdvanced(v => !v)}
-                  className="flex items-center gap-1 text-[10px] text-[#4a4a4a] hover:text-[#6a6a6a] transition-colors w-fit">
-                  <ChevronDown size={10} className={clsx('transition-transform', showAdvanced ? '' : '-rotate-90')} />
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced((v) => !v)}
+                  className="flex items-center gap-1 text-[10px] text-[#4a4a4a] hover:text-[#6a6a6a] transition-colors w-fit"
+                >
+                  <ChevronDown
+                    size={10}
+                    className={clsx('transition-transform', showAdvanced ? '' : '-rotate-90')}
+                  />
                   Advanced
                   {connAlias && !showAdvanced && (
                     <span className="ml-1 font-mono text-[#4a4a4a]">alias: {connAlias}</span>
@@ -444,11 +546,16 @@ export function DatabricksConnectModal({ onClose }: Props) {
                 </button>
                 {showAdvanced && (
                   <div className="flex flex-col gap-1 mt-1 pl-3 border-l border-[#2d2d30]">
-                    <label className="text-[11px] text-[#6a6a6a] font-semibold uppercase tracking-wider">Alias</label>
+                    <label className="text-[11px] text-[#6a6a6a] font-semibold uppercase tracking-wider">
+                      Alias
+                    </label>
                     <input
                       type="text"
                       value={connAlias}
-                      onChange={e => { setConnAlias(e.target.value); setAliasManual(true) }}
+                      onChange={(e) => {
+                        setConnAlias(e.target.value)
+                        setAliasManual(true)
+                      }}
                       placeholder={slugify(connName) || 'e.g. production'}
                       className="border rounded px-2.5 py-1.5 text-xs text-[#cccccc] bg-[#1e1e1e] border-[#3c3c3c] focus:border-[#0e639c] outline-none placeholder-[#4a4a4a]"
                     />
@@ -461,11 +568,14 @@ export function DatabricksConnectModal({ onClose }: Props) {
 
               {/* Auth method tabs */}
               <div className="flex border border-[#3c3c3c] rounded-lg overflow-hidden">
-                {(['oauth', 'pat'] as AuthMethod[]).map(method => (
+                {(['oauth', 'pat'] as AuthMethod[]).map((method) => (
                   <button
                     key={method}
                     type="button"
-                    onClick={() => { setAuthMethod(method); setCredError(null) }}
+                    onClick={() => {
+                      setAuthMethod(method)
+                      setCredError(null)
+                    }}
                     className={clsx(
                       'flex-1 py-2 text-xs font-medium transition-colors',
                       authMethod === method
@@ -482,7 +592,8 @@ export function DatabricksConnectModal({ onClose }: Props) {
               {authMethod === 'oauth' && (
                 <div className="flex flex-col gap-3">
                   <p className="text-[11px] text-[#6a6a6a]">
-                    Opens a Databricks login popup. Requires an OAuth app registered in your workspace.
+                    Opens a Databricks login popup. Requires an OAuth app registered in your
+                    workspace.
                   </p>
                   {credError && (
                     <div className="flex items-start gap-2 text-[11px] text-[#f44747] bg-[#3a1e1e] border border-[#5a2e2e] rounded px-3 py-2.5">
@@ -501,9 +612,13 @@ export function DatabricksConnectModal({ onClose }: Props) {
                         : 'bg-[#2d2d30] text-[#4a4a4a] cursor-not-allowed'
                     )}
                   >
-                    {credLoading
-                      ? <><Loader2 size={14} className="animate-spin" /> Waiting for sign-in…</>
-                      : 'Sign in with Databricks'}
+                    {credLoading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" /> Waiting for sign-in…
+                      </>
+                    ) : (
+                      'Sign in with Databricks'
+                    )}
                   </button>
                 </div>
               )}
@@ -517,10 +632,17 @@ export function DatabricksConnectModal({ onClose }: Props) {
                         Personal Access Token
                       </label>
                       <a
-                        href={workspaceUrl.startsWith('https://') ? `${workspaceUrl.replace(/\/$/, '')}#settings/account` : '#'}
-                        target="_blank" rel="noopener noreferrer"
+                        href={
+                          workspaceUrl.startsWith('https://')
+                            ? `${workspaceUrl.replace(/\/$/, '')}#settings/account`
+                            : '#'
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-[10px] text-[#4ec9b0] hover:underline flex items-center gap-0.5"
-                        onClick={e => { if (!workspaceUrl.startsWith('https://')) e.preventDefault() }}
+                        onClick={(e) => {
+                          if (!workspaceUrl.startsWith('https://')) e.preventDefault()
+                        }}
                       >
                         Get token <ExternalLink size={9} />
                       </a>
@@ -528,7 +650,10 @@ export function DatabricksConnectModal({ onClose }: Props) {
                     <input
                       type="password"
                       value={pat}
-                      onChange={e => { setPat(e.target.value); setCredError(null) }}
+                      onChange={(e) => {
+                        setPat(e.target.value)
+                        setCredError(null)
+                      }}
                       placeholder="dapi••••••••••••••••"
                       autoComplete="off"
                       spellCheck={false}
@@ -557,9 +682,13 @@ export function DatabricksConnectModal({ onClose }: Props) {
                         : 'bg-[#2d2d30] text-[#4a4a4a] cursor-not-allowed'
                     )}
                   >
-                    {credLoading
-                      ? <><Loader2 size={14} className="animate-spin" /> Connecting…</>
-                      : 'Connect'}
+                    {credLoading ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" /> Connecting…
+                      </>
+                    ) : (
+                      'Connect'
+                    )}
                   </button>
                 </div>
               )}
@@ -579,11 +708,14 @@ export function DatabricksConnectModal({ onClose }: Props) {
                   SQL Warehouse
                 </label>
                 {warehouses.length === 0 ? (
-                  <p className="text-xs text-[#f44747] py-1">No SQL warehouses found in this workspace.</p>
+                  <p className="text-xs text-[#f44747] py-1">
+                    No SQL warehouses found in this workspace.
+                  </p>
                 ) : (
                   <div className="flex flex-col gap-1.5">
-                    {warehouses.map(w => (
-                      <label key={w.id}
+                    {warehouses.map((w) => (
+                      <label
+                        key={w.id}
                         className={clsx(
                           'flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors',
                           selectedWarehouse === w.id
@@ -591,18 +723,26 @@ export function DatabricksConnectModal({ onClose }: Props) {
                             : 'border-[#2d2d30] bg-[#1a1a1a] hover:border-[#3c3c3c]'
                         )}
                       >
-                        <input type="radio" name="warehouse" value={w.id}
+                        <input
+                          type="radio"
+                          name="warehouse"
+                          value={w.id}
                           checked={selectedWarehouse === w.id}
                           onChange={() => setSelectedWarehouse(w.id)}
-                          className="accent-[#4ec9b0]" />
+                          className="accent-[#4ec9b0]"
+                        />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-[#cccccc] font-medium truncate">{w.name}</p>
                           <p className="text-[10px] text-[#6a6a6a]">{w.cluster_size}</p>
                         </div>
-                        <span className={clsx(
-                          'text-[9px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0',
-                          w.state === 'RUNNING' ? 'bg-[#1e3a2b] text-[#4ec9b0]' : 'bg-[#2d2d30] text-[#6a6a6a]'
-                        )}>
+                        <span
+                          className={clsx(
+                            'text-[9px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0',
+                            w.state === 'RUNNING'
+                              ? 'bg-[#1e3a2b] text-[#4ec9b0]'
+                              : 'bg-[#2d2d30] text-[#6a6a6a]'
+                          )}
+                        >
                           {w.state}
                         </span>
                       </label>
@@ -614,17 +754,35 @@ export function DatabricksConnectModal({ onClose }: Props) {
               {/* Upload location — optional */}
               <details className="group">
                 <summary className="cursor-pointer text-[11px] text-[#6a6a6a] hover:text-[#969696] transition-colors list-none flex items-center gap-1.5">
-                  <ChevronDown size={11} className="transition-transform group-open:rotate-0 -rotate-90" />
+                  <ChevronDown
+                    size={11}
+                    className="transition-transform group-open:rotate-0 -rotate-90"
+                  />
                   CSV upload location <span className="text-[#4a4a4a]">(optional)</span>
                 </summary>
                 <div className="mt-3 flex flex-col gap-3 pl-1">
                   <p className="text-[11px] text-[#4a4a4a]">
                     Where CSV files are staged before loading into Delta tables.
                   </p>
-                  <Field label="Catalog" value={uploadCatalog} onChange={setUploadCatalog} placeholder="main" />
-                  <Field label="Schema" value={uploadSchema} onChange={setUploadSchema} placeholder="uploads" />
-                  <Field label="Volume" value={uploadVolume} onChange={setUploadVolume} placeholder="csv_staging"
-                    hint="Unity Catalog volume name." />
+                  <Field
+                    label="Catalog"
+                    value={uploadCatalog}
+                    onChange={setUploadCatalog}
+                    placeholder="main"
+                  />
+                  <Field
+                    label="Schema"
+                    value={uploadSchema}
+                    onChange={setUploadSchema}
+                    placeholder="uploads"
+                  />
+                  <Field
+                    label="Volume"
+                    value={uploadVolume}
+                    onChange={setUploadVolume}
+                    placeholder="csv_staging"
+                    hint="Unity Catalog volume name."
+                  />
                 </div>
               </details>
 
@@ -636,8 +794,11 @@ export function DatabricksConnectModal({ onClose }: Props) {
               )}
 
               <div className="flex items-center gap-2 mt-1">
-                <button type="button" onClick={() => setScreen('credentials')}
-                  className="text-xs text-[#6a6a6a] hover:text-[#969696] transition-colors px-3 py-2">
+                <button
+                  type="button"
+                  onClick={() => setScreen('credentials')}
+                  className="text-xs text-[#6a6a6a] hover:text-[#969696] transition-colors px-3 py-2"
+                >
                   ← Back
                 </button>
                 <button
@@ -660,11 +821,7 @@ export function DatabricksConnectModal({ onClose }: Props) {
 
           {/* ── SCREEN 3: Schemas ── */}
           {screen === 'schemas' && connectionId && (
-            <SchemaPicker
-              connectionId={connectionId}
-              onDone={onClose}
-              onSkip={onClose}
-            />
+            <SchemaPicker connectionId={connectionId} onDone={onClose} onSkip={onClose} />
           )}
         </div>
       </div>

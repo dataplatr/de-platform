@@ -12,16 +12,14 @@ export function useUpstreamColumns(node: TNode | undefined) {
   const { nodes, edges, updateNode, selectedNodeId } = useTransformationStore()
 
   const incomingEdges = useMemo(
-    () => edges.filter(e => e.target === selectedNodeId),
-    [edges, selectedNodeId],
+    () => edges.filter((e) => e.target === selectedNodeId),
+    [edges, selectedNodeId]
   )
 
   const upstreamCols = useMemo(() => {
     if (!node) return []
     if (node.type === 'source') return node.columns ?? []
-    return incomingEdges.length > 0
-      ? getUpstreamColumns(incomingEdges[0].source, nodes, edges)
-      : []
+    return incomingEdges.length > 0 ? getUpstreamColumns(incomingEdges[0].source, nodes, edges) : []
   }, [node, incomingEdges, nodes, edges])
 
   // Auto-initialize Transform config from upstream columns when empty
@@ -29,20 +27,24 @@ export function useUpstreamColumns(node: TNode | undefined) {
     if (!node || node.type !== 'transform' || upstreamCols.length === 0) return
     const cfg = node.config as TransformCfg | null
     if (!cfg || cfg.columns.length === 0) {
-      const init: TransformColumnDef[] = upstreamCols.map(c => ({
-        source: c.name, outputName: c.name, castType: '', expression: '', enabled: true,
+      const init: TransformColumnDef[] = upstreamCols.map((c) => ({
+        source: c.name,
+        outputName: c.name,
+        castType: '',
+        expression: '',
+        enabled: true,
       }))
       updateNode(node.id, { config: { columns: init } as TransformCfg })
     }
   }, [node, upstreamCols, updateNode])
 
   const leftCols = useMemo(
-    () => node ? getColumnsForHandle(node.id, 'a', nodes, edges) : [],
-    [node, nodes, edges],
+    () => (node ? getColumnsForHandle(node.id, 'a', nodes, edges) : []),
+    [node, nodes, edges]
   )
   const rightCols = useMemo(
-    () => node ? getColumnsForHandle(node.id, 'b', nodes, edges) : [],
-    [node, nodes, edges],
+    () => (node ? getColumnsForHandle(node.id, 'b', nodes, edges) : []),
+    [node, nodes, edges]
   )
 
   return { upstreamCols, leftCols, rightCols }

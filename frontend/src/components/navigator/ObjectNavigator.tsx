@@ -14,10 +14,10 @@ export function ObjectNavigator() {
   const [showSourceModal, setShowSourceModal] = useState(false)
   const [treeKey, setTreeKey] = useState(0)
 
-  const activeConn = connections.find(c => c.id === activeConnectionId) ?? connections[0] ?? null
+  const activeConn = connections.find((c) => c.id === activeConnectionId) ?? connections[0] ?? null
 
   const handleSchemaDone = useCallback(() => {
-    setTreeKey(k => k + 1)
+    setTreeKey((k) => k + 1)
   }, [])
 
   return (
@@ -34,8 +34,12 @@ export function ObjectNavigator() {
           >
             <Plus size={12} />
           </button>
-          <button type="button" className="icon-button" title="Manage connections"
-            onClick={() => setShowConnectModal(true)}>
+          <button
+            type="button"
+            className="icon-button"
+            title="Manage connections"
+            onClick={() => setShowConnectModal(true)}
+          >
             <Settings size={12} />
           </button>
         </div>
@@ -44,14 +48,14 @@ export function ObjectNavigator() {
       {/* Connection tabs (if multiple) */}
       {connections.length > 1 && (
         <div className="flex overflow-x-auto border-b border-theme shrink-0">
-          {connections.map(c => (
+          {connections.map((c) => (
             <button
               key={c.id}
               type="button"
               onClick={() => setActiveConnectionId(c.id)}
               className={clsx(
                 'px-3 py-1.5 text-[11px] whitespace-nowrap border-b-2 transition-colors shrink-0',
-                (activeConn?.id === c.id)
+                activeConn?.id === c.id
                   ? 'border-[#4ec9b0] text-[#cccccc]'
                   : 'border-transparent text-[#6a6a6a] hover:text-[#969696]'
               )}
@@ -80,7 +84,6 @@ export function ObjectNavigator() {
 
       {/* Tree content */}
       <div className="flex-1 overflow-y-auto scrollbar-thin py-1">
-
         {/* No connections CTA */}
         {connections.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-10 px-4 text-center">
@@ -103,12 +106,16 @@ export function ObjectNavigator() {
         )}
 
         {/* Cached tree — instant load from SQLite */}
-        {activeConn && <CachedTreeBrowser key={`${activeConn.id}-${treeKey}`} connection={activeConn} search={search} />}
+        {activeConn && (
+          <CachedTreeBrowser
+            key={`${activeConn.id}-${treeKey}`}
+            connection={activeConn}
+            search={search}
+          />
+        )}
       </div>
 
-      {showConnectModal && (
-        <DatabricksConnectModal onClose={() => setShowConnectModal(false)} />
-      )}
+      {showConnectModal && <DatabricksConnectModal onClose={() => setShowConnectModal(false)} />}
 
       {showSourceModal && (
         <SourceImportModal

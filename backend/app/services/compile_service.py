@@ -15,7 +15,6 @@ from __future__ import annotations
 import re
 from typing import Any
 
-
 # ── Identifier quoting ────────────────────────────────────────────────────────
 
 def _quote_identifier(name: str, dialect: str) -> str:

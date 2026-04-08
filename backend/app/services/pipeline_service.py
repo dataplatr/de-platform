@@ -1,7 +1,7 @@
 """Pipeline CRUD — centralises all pipeline DB access and response shaping."""
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException
@@ -41,7 +41,7 @@ def list_pipelines(user_id: int) -> list[dict]:
 
 def create_pipeline(user_id: int, name: str, nodes: list, edges: list) -> dict:
     pid = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     conn = get_auth_conn()
     conn.execute(
         "INSERT INTO pipelines (id, user_id, name, nodes_json, edges_json, created_at, updated_at) "
@@ -63,7 +63,7 @@ def get_pipeline(pipeline_id: str, user_id: int) -> dict:
 
 
 def update_pipeline(pipeline_id: str, user_id: int, name: str, nodes: list, edges: list) -> dict:
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     conn = get_auth_conn()
     result = conn.execute(
         "UPDATE pipelines SET name=?, nodes_json=?, edges_json=?, updated_at=? "

@@ -15,9 +15,12 @@ interface Props {
 export function JoinConfig({ nodeId, config, leftColumns, rightColumns }: Props) {
   const { updateNode } = useTransformationStore()
 
-  const set = useCallback((patch: Partial<JoinCfg>) => {
-    updateNode(nodeId, { config: { ...config, ...patch } })
-  }, [nodeId, config, updateNode])
+  const set = useCallback(
+    (patch: Partial<JoinCfg>) => {
+      updateNode(nodeId, { config: { ...config, ...patch } })
+    },
+    [nodeId, config, updateNode]
+  )
 
   const addCondition = () => {
     set({
@@ -29,7 +32,7 @@ export function JoinConfig({ nodeId, config, leftColumns, rightColumns }: Props)
   }
 
   const updateCond = (i: number, patch: { leftCol?: string; rightCol?: string }) => {
-    const updated = config.conditions.map((c, idx) => idx === i ? { ...c, ...patch } : c)
+    const updated = config.conditions.map((c, idx) => (idx === i ? { ...c, ...patch } : c))
     set({ conditions: updated })
   }
 
@@ -43,7 +46,7 @@ export function JoinConfig({ nodeId, config, leftColumns, rightColumns }: Props)
       <div className="flex flex-col gap-1.5">
         <label className="text-[10px] text-secondary uppercase tracking-wider">Join Type</label>
         <div className="flex gap-1 flex-wrap">
-          {JOIN_TYPES.map(t => (
+          {JOIN_TYPES.map((t) => (
             <button
               key={t}
               type="button"
@@ -62,7 +65,8 @@ export function JoinConfig({ nodeId, config, leftColumns, rightColumns }: Props)
 
       {/* Connection hint */}
       <div className="bg-[var(--node-join-bg)] border border-[var(--node-join-border)] rounded p-2 text-[11px] text-[var(--success)]">
-        🔗 Connect <strong>Left</strong> (top handle) and <strong>Right</strong> (bottom handle) source nodes on the canvas.
+        🔗 Connect <strong>Left</strong> (top handle) and <strong>Right</strong> (bottom handle)
+        source nodes on the canvas.
       </div>
 
       {/* Join conditions */}
@@ -86,22 +90,34 @@ export function JoinConfig({ nodeId, config, leftColumns, rightColumns }: Props)
           <div key={i} className="flex items-center gap-1">
             <select
               value={cond.leftCol}
-              onChange={e => updateCond(i, { leftCol: e.target.value })}
+              onChange={(e) => updateCond(i, { leftCol: e.target.value })}
               className="flex-1 bg-elevated border border-theme text-[var(--step-select)] text-xs rounded px-1.5 py-1 outline-none"
             >
               {leftColumns.length === 0 && <option value="">-- connect left --</option>}
-              {leftColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+              {leftColumns.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
             </select>
             <span className="text-muted text-xs shrink-0">=</span>
             <select
               value={cond.rightCol}
-              onChange={e => updateCond(i, { rightCol: e.target.value })}
+              onChange={(e) => updateCond(i, { rightCol: e.target.value })}
               className="flex-1 bg-elevated border border-theme text-[var(--success)] text-xs rounded px-1.5 py-1 outline-none"
             >
               {rightColumns.length === 0 && <option value="">-- connect right --</option>}
-              {rightColumns.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
+              {rightColumns.map((c) => (
+                <option key={c.name} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
             </select>
-            <button type="button" onClick={() => removeCond(i)} className="p-1 rounded hover:bg-[var(--node-filter-bg)] text-muted hover:text-error transition-colors">
+            <button
+              type="button"
+              onClick={() => removeCond(i)}
+              className="p-1 rounded hover:bg-[var(--node-filter-bg)] text-muted hover:text-error transition-colors"
+            >
               <X size={12} />
             </button>
           </div>

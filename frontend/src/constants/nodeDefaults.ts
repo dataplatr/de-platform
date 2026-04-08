@@ -5,14 +5,14 @@
 import type { TransformNode } from '../types'
 
 export const DEFAULT_CONFIGS: Record<string, TransformNode['config']> = {
-  filter:      [],
-  join:        { joinType: 'INNER', conditions: [], rightTable: '' },
-  aggregate:   { groupBy: [], measures: [] },
-  select:      { columns: [] },
-  transform:   { columns: [] },
+  filter: [],
+  join: { joinType: 'INNER', conditions: [], rightTable: '' },
+  aggregate: { groupBy: [], measures: [] },
+  select: { columns: [] },
+  transform: { columns: [] },
   deduplicate: { partitionBy: [], orderBy: '', orderDir: 'DESC' },
-  output:      { targetTable: 'output' },
-  source:      null,
+  output: { targetTable: 'output' },
+  source: null,
 }
 
 /** Generates a unique node ID */

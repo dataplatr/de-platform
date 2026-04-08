@@ -31,7 +31,8 @@ export function WarehousePickerModal({ connection, onClose }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api.listWarehouses(connection.id)
+    api
+      .listWarehouses(connection.id)
       .then(({ data }) => {
         setWarehouses(data)
         if (data.length > 0) setSelected(data[0].id)
@@ -45,8 +46,10 @@ export function WarehousePickerModal({ connection, onClose }: Props) {
     setSaving(true)
     setError(null)
     try {
-      const { data: updated } = await api.updateConnection(connection.id, { warehouse_id: selected })
-      setConnections(connections.map(c => c.id === connection.id ? updated : c))
+      const { data: updated } = await api.updateConnection(connection.id, {
+        warehouse_id: selected,
+      })
+      setConnections(connections.map((c) => (c.id === connection.id ? updated : c)))
       onClose()
     } catch (e: unknown) {
       const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
@@ -58,26 +61,31 @@ export function WarehousePickerModal({ connection, onClose }: Props) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
       <div className="w-[440px] bg-[#252526] border border-[#3c3c3c] rounded-xl shadow-2xl">
-
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-[#3c3c3c]">
           <div>
             <p className="text-sm font-semibold text-[#cccccc]">Select a SQL Warehouse</p>
             <p className="text-[11px] text-[#6a6a6a] mt-0.5">
-              Connection <span className="font-mono text-[#4ec9b0]">{connection.alias}</span> has no warehouse configured.
+              Connection <span className="font-mono text-[#4ec9b0]">{connection.alias}</span> has no
+              warehouse configured.
             </p>
           </div>
-          <button type="button" onClick={onClose} className="text-[#6a6a6a] hover:text-[#cccccc] p-1 rounded transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-[#6a6a6a] hover:text-[#cccccc] p-1 rounded transition-colors"
+          >
             <X size={15} />
           </button>
         </div>
 
         {/* Body */}
         <div className="px-5 py-5 flex flex-col gap-4">
-
           {loading && (
             <div className="flex items-center gap-2 text-xs text-[#6a6a6a] py-4">
               <Loader2 size={13} className="animate-spin" />
@@ -86,12 +94,14 @@ export function WarehousePickerModal({ connection, onClose }: Props) {
           )}
 
           {!loading && warehouses.length === 0 && !error && (
-            <p className="text-xs text-[#f44747] py-2">No SQL warehouses found in this workspace.</p>
+            <p className="text-xs text-[#f44747] py-2">
+              No SQL warehouses found in this workspace.
+            </p>
           )}
 
           {!loading && warehouses.length > 0 && (
             <div className="flex flex-col gap-2">
-              {warehouses.map(w => (
+              {warehouses.map((w) => (
                 <label
                   key={w.id}
                   className={clsx(
@@ -111,12 +121,18 @@ export function WarehousePickerModal({ connection, onClose }: Props) {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-[#cccccc] font-medium truncate">{w.name}</p>
-                    <p className="text-[10px] text-[#6a6a6a]">{w.cluster_size} · {w.id}</p>
+                    <p className="text-[10px] text-[#6a6a6a]">
+                      {w.cluster_size} · {w.id}
+                    </p>
                   </div>
-                  <span className={clsx(
-                    'text-[9px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0',
-                    w.state === 'RUNNING' ? 'bg-[#1e3a2b] text-[#4ec9b0]' : 'bg-[#2d2d30] text-[#6a6a6a]'
-                  )}>
+                  <span
+                    className={clsx(
+                      'text-[9px] px-1.5 py-0.5 rounded uppercase font-bold shrink-0',
+                      w.state === 'RUNNING'
+                        ? 'bg-[#1e3a2b] text-[#4ec9b0]'
+                        : 'bg-[#2d2d30] text-[#6a6a6a]'
+                    )}
+                  >
                     {w.state}
                   </span>
                 </label>

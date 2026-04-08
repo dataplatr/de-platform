@@ -31,7 +31,6 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
-
 # ── In-memory state store (TTL = 10 min) ─────────────────────────────────────
 
 _state_store: dict[str, dict[str, Any]] = {}

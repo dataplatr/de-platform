@@ -16,10 +16,10 @@ const queryClient = new QueryClient({
 // Session is restored synchronously in authStore — no useEffect flash needed.
 function AppRouter() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const editorOpen      = useTransformationStore((s) => s.editorOpen)
+  const editorOpen = useTransformationStore((s) => s.editorOpen)
 
   if (!isAuthenticated) return <LoginPage />
-  if (!editorOpen)      return <HomePage />
+  if (!editorOpen) return <HomePage />
   return <AppShell />
 }
 

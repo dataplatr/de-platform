@@ -4,9 +4,9 @@ import { subscribeToasts, type Toast } from '../services/notify'
 
 const ICONS = {
   success: CheckCircle2,
-  info:    Info,
+  info: Info,
   warning: AlertTriangle,
-  error:   XCircle,
+  error: XCircle,
 }
 
 export function Toaster() {
@@ -17,7 +17,7 @@ export function Toaster() {
 
   return (
     <div className="toast-container">
-      {toasts.map(t => {
+      {toasts.map((t) => {
         const Icon = ICONS[t.variant]
         return (
           <div key={t.id} className={`toast toast-${t.variant}`}>

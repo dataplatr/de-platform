@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
 interface BaseNodeProps {
   label: string
   icon: ReactNode
-  nodeClass: string            // e.g. 'node-source', 'node-filter', …
+  nodeClass: string // e.g. 'node-source', 'node-filter', …
   children?: ReactNode
   hasInput?: boolean | 'dual'
   hasOutput?: boolean
@@ -18,16 +18,23 @@ interface BaseNodeProps {
 }
 
 const statusDot: Record<string, string> = {
-  idle:    'bg-[#6a6a6a]',
+  idle: 'bg-[#6a6a6a]',
   running: 'bg-[#dcdcaa] animate-pulse',
   success: 'bg-[#4ec9b0]',
-  error:   'bg-[#f44747]',
+  error: 'bg-[#f44747]',
 }
 
 export const BaseNode = memo(function BaseNode({
-  label, icon, nodeClass,
-  children, hasInput = true, hasOutput = true, hasSource,
-  selected = false, status = 'idle', columnCount,
+  label,
+  icon,
+  nodeClass,
+  children,
+  hasInput = true,
+  hasOutput = true,
+  hasSource,
+  selected = false,
+  status = 'idle',
+  columnCount,
 }: BaseNodeProps) {
   return (
     <div className={clsx('node-base', nodeClass, selected && 'node-selected')}>
@@ -64,18 +71,12 @@ export const BaseNode = memo(function BaseNode({
       <div className="node-header">
         <span className="text-sm leading-none">{icon}</span>
         <span className="node-header-label">{label}</span>
-        {columnCount !== undefined && (
-          <span className="node-col-count">{columnCount} col</span>
-        )}
+        {columnCount !== undefined && <span className="node-col-count">{columnCount} col</span>}
         <div className={clsx('w-1.5 h-1.5 rounded-full shrink-0 ml-0.5', statusDot[status])} />
       </div>
 
       {/* Body */}
-      {children && (
-        <div className="node-body">
-          {children}
-        </div>
-      )}
+      {children && <div className="node-body">{children}</div>}
 
       {/* Output source handle — right side */}
       {hasOutput && (

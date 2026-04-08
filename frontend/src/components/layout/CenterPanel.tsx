@@ -21,7 +21,12 @@ export function CenterPanel() {
 
     const onMouseMove = (ev: MouseEvent) => {
       const delta = startY - ev.clientY
-      setPreviewHeight(Math.max(MIN_PREVIEW_HEIGHT, Math.min(startHeight + delta, window.innerHeight - MIN_CANVAS_HEIGHT)))
+      setPreviewHeight(
+        Math.max(
+          MIN_PREVIEW_HEIGHT,
+          Math.min(startHeight + delta, window.innerHeight - MIN_CANVAS_HEIGHT)
+        )
+      )
     }
     const onMouseUp = () => {
       setIsDragging(false)

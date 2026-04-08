@@ -1,4 +1,4 @@
-from app.models.schemas import ChatRequest, ChatResponse, ChatMessage
+from app.models.schemas import ChatMessage, ChatRequest, ChatResponse
 
 
 def chat(req: ChatRequest) -> ChatResponse:

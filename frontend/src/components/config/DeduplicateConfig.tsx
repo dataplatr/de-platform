@@ -3,16 +3,23 @@ import { useTransformationStore } from '../../store/transformationStore'
 import type { DeduplicateConfig as Cfg, Column } from '../../types'
 import { MultiSelectDropdown } from '../common/MultiSelectDropdown'
 
-interface Props { nodeId: string; config: Cfg; columns: Column[] }
+interface Props {
+  nodeId: string
+  config: Cfg
+  columns: Column[]
+}
 
 export function DeduplicateConfig({ nodeId, config, columns }: Props) {
   const { updateNode } = useTransformationStore()
 
-  const set = useCallback((patch: Partial<Cfg>) => {
-    updateNode(nodeId, { config: { ...config, ...patch } as Cfg })
-  }, [nodeId, config, updateNode])
+  const set = useCallback(
+    (patch: Partial<Cfg>) => {
+      updateNode(nodeId, { config: { ...config, ...patch } as Cfg })
+    },
+    [nodeId, config, updateNode]
+  )
 
-  const names = columns.map(c => c.name)
+  const names = columns.map((c) => c.name)
 
   return (
     <div className="flex flex-col gap-4">
@@ -28,12 +35,13 @@ export function DeduplicateConfig({ nodeId, config, columns }: Props) {
         <MultiSelectDropdown
           options={names}
           selected={config.partitionBy}
-          onChange={v => set({ partitionBy: v })}
+          onChange={(v) => set({ partitionBy: v })}
           placeholder="Select key columns…"
           accent="text-[var(--success)]"
         />
         <p className="text-[10px] text-muted">
-          Rows with the same values in these columns are duplicates. Leave empty to DISTINCT the entire row.
+          Rows with the same values in these columns are duplicates. Leave empty to DISTINCT the
+          entire row.
         </p>
       </div>
 
@@ -46,16 +54,20 @@ export function DeduplicateConfig({ nodeId, config, columns }: Props) {
         <div className="flex items-center gap-2">
           <select
             value={config.orderBy}
-            onChange={e => set({ orderBy: e.target.value })}
+            onChange={(e) => set({ orderBy: e.target.value })}
             className="flex-1 bg-elevated border border-theme text-[var(--step-select)] text-xs rounded px-2 py-1 outline-none"
           >
             <option value="">— no ordering —</option>
-            {names.map(n => <option key={n} value={n}>{n}</option>)}
+            {names.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
           </select>
 
           <select
             value={config.orderDir}
-            onChange={e => set({ orderDir: e.target.value as Cfg['orderDir'] })}
+            onChange={(e) => set({ orderDir: e.target.value as Cfg['orderDir'] })}
             disabled={!config.orderBy}
             className="bg-elevated border border-theme text-secondary text-xs rounded px-2 py-1 outline-none disabled:opacity-40"
           >

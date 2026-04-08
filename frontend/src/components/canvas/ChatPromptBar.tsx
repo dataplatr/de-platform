@@ -52,10 +52,12 @@ export function ChatPromptBar() {
 
   return (
     <div className="chat-bar shrink-0 px-3 py-2 border-t border-theme bg-surface">
-      <div className={clsx(
-        'flex items-end gap-2 bg-elevated border rounded-md px-3 py-2 transition-colors',
-        'border-theme focus-within:border-[var(--accent)]'
-      )}>
+      <div
+        className={clsx(
+          'flex items-end gap-2 bg-elevated border rounded-md px-3 py-2 transition-colors',
+          'border-theme focus-within:border-[var(--accent)]'
+        )}
+      >
         <Sparkles size={14} className="text-[var(--accent-fg)] shrink-0 mb-0.5" />
         <textarea
           ref={textareaRef}
@@ -81,10 +83,7 @@ export function ChatPromptBar() {
           )}
           title="Send (Enter)"
         >
-          {isChatLoading
-            ? <Loader2 size={14} className="animate-spin" />
-            : <Send size={14} />
-          }
+          {isChatLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
         </button>
       </div>
       <div className="mt-1 text-[10px] text-muted text-right">

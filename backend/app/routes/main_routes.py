@@ -1,32 +1,40 @@
 import logging
 from concurrent.futures import ThreadPoolExecutor
-
-from fastapi import APIRouter, Depends, Form, Request, UploadFile, File, HTTPException
-from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, Field
 from typing import Any
 
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, Field
+
 from app.auth.auth import get_current_user, login, logout, require_role
+from app.config import settings
+from app.connectors.factory import get_connector
+from app.constants import FORWARDED_FOR_HEADER
 from app.controllers import chat_controller
 from app.models.schemas import (
-    LoginRequest,
-    CreateUserRequest,
     ChatRequest,
     CompileRequest,
-    PipelinePreviewRequest,
+    ConnectionResponse,
     CreateConnectionRequest,
+    CreateUserRequest,
     DiscoverWarehousesRequest,
+    LoginRequest,
+    PipelinePreviewRequest,
+    PipelineRunRequest,
     TestConnectionRequest,
     TestConnectionResult,
-    ConnectionResponse,
-    PipelineRunRequest,
 )
-from app.services import user_service, audit_service, pipeline_service, compile_service
-from app.services import connection_service, catalog_service, query_service, schema_cache_service
-from app.services import oauth_service
-from app.connectors.factory import get_connector
-from app.config import settings
-from app.constants import FORWARDED_FOR_HEADER
+from app.services import (
+    audit_service,
+    catalog_service,
+    compile_service,
+    connection_service,
+    oauth_service,
+    pipeline_service,
+    query_service,
+    schema_cache_service,
+    user_service,
+)
 
 logger = logging.getLogger(__name__)
 

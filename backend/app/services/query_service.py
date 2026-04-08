@@ -7,7 +7,7 @@ Here we only convert the final PreviewResult DTO to a JSON-serializable dict.
 """
 from __future__ import annotations
 
-from app.connectors.base import QueryExecutor, MaterializeResult
+from app.connectors.base import MaterializeResult, QueryExecutor
 
 
 def preview(executor: QueryExecutor, sql: str, limit: int = 100) -> dict:

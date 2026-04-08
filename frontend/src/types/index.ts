@@ -1,7 +1,17 @@
 // ─── Data Source Types ────────────────────────────────────────────────────────
 
-export type ColumnType = 'TEXT' | 'VARCHAR' | 'NUMBER' | 'INTEGER' | 'FLOAT' |
-  'BOOLEAN' | 'DATE' | 'TIMESTAMP' | 'ARRAY' | 'OBJECT' | 'UNKNOWN'
+export type ColumnType =
+  | 'TEXT'
+  | 'VARCHAR'
+  | 'NUMBER'
+  | 'INTEGER'
+  | 'FLOAT'
+  | 'BOOLEAN'
+  | 'DATE'
+  | 'TIMESTAMP'
+  | 'ARRAY'
+  | 'OBJECT'
+  | 'UNKNOWN'
 
 export interface Column {
   name: string
@@ -28,18 +38,38 @@ export interface DatabaseTree {
 
 // ─── Transformation Node Types ────────────────────────────────────────────────
 
-export type NodeType = 'source' | 'filter' | 'join' | 'aggregate' | 'select' | 'transform' | 'deduplicate' | 'output'
+export type NodeType =
+  | 'source'
+  | 'filter'
+  | 'join'
+  | 'aggregate'
+  | 'select'
+  | 'transform'
+  | 'deduplicate'
+  | 'output'
 
 export interface OutputConfig {
-  targetTable: string    // name of the destination table
-  targetCatalog: string  // Unity Catalog catalog
-  targetSchema: string   // Unity Catalog schema
+  targetTable: string // name of the destination table
+  targetCatalog: string // Unity Catalog catalog
+  targetSchema: string // Unity Catalog schema
 }
 
 export interface FilterCondition {
   id: string
   column: string
-  operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'IN' | 'NOT IN' | 'BETWEEN' | 'IS NULL' | 'IS NOT NULL' | 'LIKE'
+  operator:
+    | '='
+    | '!='
+    | '>'
+    | '<'
+    | '>='
+    | '<='
+    | 'IN'
+    | 'NOT IN'
+    | 'BETWEEN'
+    | 'IS NULL'
+    | 'IS NOT NULL'
+    | 'LIKE'
   value: string | string[] | null
   logic?: 'AND' | 'OR'
 }
@@ -52,7 +82,11 @@ export interface JoinConfig {
 
 export interface AggregationConfig {
   groupBy: string[]
-  measures: { column: string; func: 'SUM' | 'COUNT' | 'AVG' | 'MIN' | 'MAX' | 'COUNT_DISTINCT'; alias?: string }[]
+  measures: {
+    column: string
+    func: 'SUM' | 'COUNT' | 'AVG' | 'MIN' | 'MAX' | 'COUNT_DISTINCT'
+    alias?: string
+  }[]
 }
 
 export interface SelectConfig {
@@ -61,10 +95,10 @@ export interface SelectConfig {
 
 /** Per-column definition inside a Transform node */
 export interface TransformColumnDef {
-  source: string       // original column name (empty = new derived column)
-  outputName: string   // output name (rename target)
-  castType: string     // '' = no cast; 'VARCHAR' | 'INTEGER' | 'FLOAT' | 'DATE' | 'TIMESTAMP' | 'BOOLEAN'
-  expression: string   // '' = passthrough; otherwise a SQL expression replacing the column value
+  source: string // original column name (empty = new derived column)
+  outputName: string // output name (rename target)
+  castType: string // '' = no cast; 'VARCHAR' | 'INTEGER' | 'FLOAT' | 'DATE' | 'TIMESTAMP' | 'BOOLEAN'
+  expression: string // '' = passthrough; otherwise a SQL expression replacing the column value
   enabled: boolean
 }
 
@@ -73,24 +107,32 @@ export interface TransformConfig {
 }
 
 export interface DeduplicateConfig {
-  partitionBy: string[]                      // columns that define a unique row
-  orderBy: string                            // column to determine which duplicate to keep
-  orderDir: 'ASC' | 'DESC'                  // ASC = keep lowest value, DESC = keep latest/highest
+  partitionBy: string[] // columns that define a unique row
+  orderBy: string // column to determine which duplicate to keep
+  orderDir: 'ASC' | 'DESC' // ASC = keep lowest value, DESC = keep latest/highest
 }
 
-export type NodeConfig = FilterCondition[] | JoinConfig | AggregationConfig | SelectConfig | TransformConfig | DeduplicateConfig | OutputConfig | null
+export type NodeConfig =
+  | FilterCondition[]
+  | JoinConfig
+  | AggregationConfig
+  | SelectConfig
+  | TransformConfig
+  | DeduplicateConfig
+  | OutputConfig
+  | null
 
 export interface TransformNode {
   id: string
   type: NodeType
   label: string
-  tableRef?: string              // for source nodes: "catalog.schema.table"
-  connection_alias?: string      // for source nodes: immutable alias of the connection
-  sourceType?: 'table' | 'view' | 'csv'  // source nodes: which data object variant to render
-  columns?: Column[]             // output schema (filled for source nodes from DB tree)
+  tableRef?: string // for source nodes: "catalog.schema.table"
+  connection_alias?: string // for source nodes: immutable alias of the connection
+  sourceType?: 'table' | 'view' | 'csv' // source nodes: which data object variant to render
+  columns?: Column[] // output schema (filled for source nodes from DB tree)
   config: NodeConfig
   position: { x: number; y: number }
-  sql?: string                   // generated SQL for this node
+  sql?: string // generated SQL for this node
   status?: 'idle' | 'running' | 'success' | 'error'
   errorMessage?: string
 }
@@ -153,8 +195,8 @@ export interface ChatMessage {
 
 export interface DatabricksConnection {
   id: string
-  alias: string           // immutable slug — what source nodes reference
-  name: string            // display only
+  alias: string // immutable slug — what source nodes reference
+  name: string // display only
   connector_type: 'databricks'
   host: string
   warehouse_id: string

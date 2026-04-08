@@ -26,11 +26,13 @@ function ResizeHandle({
       }
     >
       {/* Visual grip dots */}
-      <div className={
-        axis === 'x'
-          ? 'absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100'
-          : 'absolute inset-x-0 top-1/2 -translate-y-1/2 flex flex-row items-center justify-center gap-1 opacity-0 group-hover:opacity-100'
-      }>
+      <div
+        className={
+          axis === 'x'
+            ? 'absolute inset-y-0 left-1/2 -translate-x-1/2 flex flex-col items-center justify-center gap-1 opacity-0 group-hover:opacity-100'
+            : 'absolute inset-x-0 top-1/2 -translate-y-1/2 flex flex-row items-center justify-center gap-1 opacity-0 group-hover:opacity-100'
+        }
+      >
         <div className="w-0.5 h-0.5 rounded-full bg-white/60" />
         <div className="w-0.5 h-0.5 rounded-full bg-white/60" />
         <div className="w-0.5 h-0.5 rounded-full bg-white/60" />
@@ -40,7 +42,8 @@ function ResizeHandle({
 }
 
 export function AppShell() {
-  const { setConnections, connections, pipelineConnectionAlias, setWarehouseState } = useTransformationStore()
+  const { setConnections, connections, pipelineConnectionAlias, setWarehouseState } =
+    useTransformationStore()
   const [warehousePickTarget, setWarehousePickTarget] = useState<DatabricksConnection | null>(null)
 
   // Horizontal: left panel (min 160, max 480, default 260)
@@ -50,9 +53,12 @@ export function AppShell() {
 
   // Load connections on mount
   useEffect(() => {
-    api.listConnections()
+    api
+      .listConnections()
       .then(({ data }) => setConnections(data as DatabricksConnection[]))
-      .catch(() => { /* backend unreachable — connections stay empty */ })
+      .catch(() => {
+        /* backend unreachable — connections stay empty */
+      })
   }, [setConnections])
 
   // After connections load: auto-start the warehouse and poll until RUNNING.
@@ -60,7 +66,7 @@ export function AppShell() {
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    const conn = connections.find(c => c.alias === pipelineConnectionAlias) ?? connections[0]
+    const conn = connections.find((c) => c.alias === pipelineConnectionAlias) ?? connections[0]
     if (!conn) return
 
     if (!conn.warehouse_id) {
@@ -115,10 +121,7 @@ export function AppShell() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel */}
         {/* eslint-disable-next-line react/forbid-component-props */}
-        <div
-          className="shrink-0 flex flex-col overflow-hidden"
-          style={{ width: left.size }}
-        >
+        <div className="shrink-0 flex flex-col overflow-hidden" style={{ width: left.size }}>
           <LeftPanel />
         </div>
 
@@ -135,10 +138,7 @@ export function AppShell() {
 
         {/* Right Panel */}
         {/* eslint-disable-next-line react/forbid-component-props */}
-        <div
-          className="shrink-0 flex flex-col overflow-hidden"
-          style={{ width: right.size }}
-        >
+        <div className="shrink-0 flex flex-col overflow-hidden" style={{ width: right.size }}>
           <RightPanel />
         </div>
       </div>

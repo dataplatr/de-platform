@@ -10,19 +10,24 @@ from app.config import settings  # used for ENV check in init_auth_db
 
 _local = threading.local()
 
+# ── Application-level write lock ─────────────────────────────────────────────
+# SQLite WAL allows concurrent readers but still serialises writers. When sync
+# and audit threads both try to commit simultaneously, one will fail (even with
+# busy_timeout, Python's sqlite3 module doesn't always retry correctly across
+# thread boundaries). A single threading.Lock guarantees only one writer holds
+# an open write transaction at a time — no SQLITE_BUSY errors possible.
+db_write_lock = threading.Lock()
+
 
 def get_auth_conn() -> sqlite3.Connection:
     """Per-thread SQLite connection — each thread owns its own connection."""
     if not hasattr(_local, "conn") or _local.conn is None:
         db_path = Path(settings.AUTH_DB_PATH)
         db_path.parent.mkdir(parents=True, exist_ok=True)
-        # Each thread gets its own connection via threading.local(), so
-        # check_same_thread is not needed and we leave it at the safe default.
-        _local.conn = sqlite3.connect(str(db_path), timeout=30)
+        _local.conn = sqlite3.connect(str(db_path), timeout=60)
         _local.conn.row_factory = sqlite3.Row
         _local.conn.execute("PRAGMA journal_mode=WAL")
-        _local.conn.execute("PRAGMA busy_timeout=30000")   # 30s retry on lock
-        _local.conn.execute("PRAGMA synchronous=NORMAL")   # safe with WAL, faster
+        _local.conn.execute("PRAGMA synchronous=NORMAL")
     return _local.conn
 
 

@@ -5,11 +5,10 @@ import type { TransformConfig } from '../../../types'
 
 export const TransformNode = memo(function TransformNode({ id, data, selected }: NodeProps) {
   const cfg = data.config as TransformConfig | null
-  const count = cfg?.columns.filter(c => c.enabled).length ?? 0
+  const count = cfg?.columns.filter((c) => c.enabled).length ?? 0
 
-  const summary = cfg && cfg.columns.length > 0
-    ? `${count} transform${count !== 1 ? 's' : ''}`
-    : 'Not configured'
+  const summary =
+    cfg && cfg.columns.length > 0 ? `${count} transform${count !== 1 ? 's' : ''}` : 'Not configured'
 
   return (
     <TransformChipNode

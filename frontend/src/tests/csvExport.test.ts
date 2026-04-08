@@ -40,8 +40,12 @@ describe('exportCSV', () => {
   it('uses the provided filename', () => {
     let capturedFilename = ''
     vi.spyOn(document, 'createElement').mockReturnValue({
-      get download() { return capturedFilename },
-      set download(v: string) { capturedFilename = v },
+      get download() {
+        return capturedFilename
+      },
+      set download(v: string) {
+        capturedFilename = v
+      },
       href: '',
       click: vi.fn(),
     } as unknown as HTMLAnchorElement)
@@ -54,12 +58,16 @@ describe('exportCSV', () => {
     const blobSpy = vi.fn()
     vi.stubGlobal('Blob', blobSpy)
     vi.spyOn(document, 'createElement').mockReturnValue({
-      href: '', download: '', click: vi.fn(),
+      href: '',
+      download: '',
+      click: vi.fn(),
     } as unknown as HTMLAnchorElement)
 
-    exportCSV(makePreview({
-      rows: [{ id: 1, name: 'Smith, John' }],
-    }))
+    exportCSV(
+      makePreview({
+        rows: [{ id: 1, name: 'Smith, John' }],
+      })
+    )
 
     const csvContent: string = blobSpy.mock.calls[0][0][0]
     expect(csvContent).toContain('"Smith, John"')
@@ -69,12 +77,16 @@ describe('exportCSV', () => {
     const blobSpy = vi.fn()
     vi.stubGlobal('Blob', blobSpy)
     vi.spyOn(document, 'createElement').mockReturnValue({
-      href: '', download: '', click: vi.fn(),
+      href: '',
+      download: '',
+      click: vi.fn(),
     } as unknown as HTMLAnchorElement)
 
-    exportCSV(makePreview({
-      rows: [{ id: 1, name: 'Say "hello"' }],
-    }))
+    exportCSV(
+      makePreview({
+        rows: [{ id: 1, name: 'Say "hello"' }],
+      })
+    )
 
     const csvContent: string = blobSpy.mock.calls[0][0][0]
     expect(csvContent).toContain('"Say ""hello"""')
@@ -84,12 +96,16 @@ describe('exportCSV', () => {
     const blobSpy = vi.fn()
     vi.stubGlobal('Blob', blobSpy)
     vi.spyOn(document, 'createElement').mockReturnValue({
-      href: '', download: '', click: vi.fn(),
+      href: '',
+      download: '',
+      click: vi.fn(),
     } as unknown as HTMLAnchorElement)
 
-    exportCSV(makePreview({
-      rows: [{ id: null, name: undefined }],
-    }))
+    exportCSV(
+      makePreview({
+        rows: [{ id: null, name: undefined }],
+      })
+    )
 
     const csvContent: string = blobSpy.mock.calls[0][0][0]
     // header row + data row with two empty values

@@ -58,9 +58,7 @@ export function RightPanel() {
             <StepHistory />
           </div>
         )}
-        {rightPanelTab === 'config' && (
-          <NodeConfigPanel />
-        )}
+        {rightPanelTab === 'config' && <NodeConfigPanel />}
       </div>
 
       {/* Vertical resize handle for SQL panel */}

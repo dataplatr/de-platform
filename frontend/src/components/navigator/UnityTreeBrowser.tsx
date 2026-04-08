@@ -50,14 +50,22 @@ interface ColNode {
 
 function ColTag({ type }: { type: string }) {
   const colors: Record<string, string> = {
-    VARCHAR: 'text-[#9cdcfe]', TEXT: 'text-[#9cdcfe]',
-    INTEGER: 'text-[#b5cea8]', FLOAT: 'text-[#b5cea8]',
-    DATE: 'text-[#ce9178]', TIMESTAMP: 'text-[#ce9178]',
+    VARCHAR: 'text-[#9cdcfe]',
+    TEXT: 'text-[#9cdcfe]',
+    INTEGER: 'text-[#b5cea8]',
+    FLOAT: 'text-[#b5cea8]',
+    DATE: 'text-[#ce9178]',
+    TIMESTAMP: 'text-[#ce9178]',
     BOOLEAN: 'text-[#569cd6]',
   }
   const abbr: Record<string, string> = {
-    VARCHAR: 'str', TEXT: 'str', INTEGER: 'int',
-    FLOAT: 'flt', DATE: 'date', TIMESTAMP: 'ts', BOOLEAN: 'bool',
+    VARCHAR: 'str',
+    TEXT: 'str',
+    INTEGER: 'int',
+    FLOAT: 'flt',
+    DATE: 'date',
+    TIMESTAMP: 'ts',
+    BOOLEAN: 'bool',
   }
   return (
     <span className={clsx('text-[10px] font-mono shrink-0', colors[type] ?? 'text-[#6a6a6a]')}>
@@ -69,7 +77,11 @@ function ColTag({ type }: { type: string }) {
 // ── TableRow ──────────────────────────────────────────────────────────────────
 
 function TableRow({
-  connection, catalog, schema, table, onUpdate,
+  connection,
+  catalog,
+  schema,
+  table,
+  onUpdate,
 }: {
   connection: DatabricksConnection
   catalog: string
@@ -97,21 +109,27 @@ function TableRow({
     onUpdate({ expanded: !table.expanded })
   }, [table.expanded, loadColumns, onUpdate])
 
-  const onDragStart = useCallback((e: React.DragEvent) => {
-    e.dataTransfer.effectAllowed = 'copy'
-    // setData MUST be called synchronously — async calls after await are ignored by browsers.
-    // Use already-loaded columns; if not yet loaded, kick off fetch for next drag.
-    const cols = table.columns ?? []
-    e.dataTransfer.setData('application/lakeflow-node', JSON.stringify({
-      connectionAlias: connection.alias,
-      tableRef: `${catalog}.${schema}.${table.name}`,
-      label: table.name,
-      sourceType: table.table_type === 'VIEW' ? 'view' : 'table',
-      columns: cols.map(c => ({ name: c.name, type: c.type, nullable: c.nullable })),
-    }))
-    // Pre-fetch columns in background so next drag or expand has them ready
-    if (!table.columns) loadColumns()
-  }, [connection.alias, catalog, schema, table, loadColumns])
+  const onDragStart = useCallback(
+    (e: React.DragEvent) => {
+      e.dataTransfer.effectAllowed = 'copy'
+      // setData MUST be called synchronously — async calls after await are ignored by browsers.
+      // Use already-loaded columns; if not yet loaded, kick off fetch for next drag.
+      const cols = table.columns ?? []
+      e.dataTransfer.setData(
+        'application/lakeflow-node',
+        JSON.stringify({
+          connectionAlias: connection.alias,
+          tableRef: `${catalog}.${schema}.${table.name}`,
+          label: table.name,
+          sourceType: table.table_type === 'VIEW' ? 'view' : 'table',
+          columns: cols.map((c) => ({ name: c.name, type: c.type, nullable: c.nullable })),
+        })
+      )
+      // Pre-fetch columns in background so next drag or expand has them ready
+      if (!table.columns) loadColumns()
+    },
+    [connection.alias, catalog, schema, table, loadColumns]
+  )
 
   return (
     <div>
@@ -122,25 +140,41 @@ function TableRow({
         className="flex items-center gap-1 px-2 py-0.5 cursor-grab active:cursor-grabbing hover:bg-[#2d2d30] rounded-sm text-xs group"
       >
         <span className="text-[#6a6a6a] w-3 shrink-0">
-          {table.loading
-            ? <Loader2 size={9} className="animate-spin" />
-            : table.expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />
-          }
+          {table.loading ? (
+            <Loader2 size={9} className="animate-spin" />
+          ) : table.expanded ? (
+            <ChevronDown size={9} />
+          ) : (
+            <ChevronRight size={9} />
+          )}
         </span>
-        <Table2 size={11} className={clsx('shrink-0', table.table_type === 'VIEW' ? 'text-[#dcdcaa]' : 'text-[#4ec9b0]')} />
+        <Table2
+          size={11}
+          className={clsx(
+            'shrink-0',
+            table.table_type === 'VIEW' ? 'text-[#dcdcaa]' : 'text-[#4ec9b0]'
+          )}
+        />
         <span className="truncate text-[#cccccc]">{table.name}</span>
         {table.table_type === 'VIEW' && (
-          <span className="ml-auto text-[9px] text-[#6a6a6a] opacity-0 group-hover:opacity-100">view</span>
+          <span className="ml-auto text-[9px] text-[#6a6a6a] opacity-0 group-hover:opacity-100">
+            view
+          </span>
         )}
       </div>
 
       {table.expanded && table.columns && (
         <div className="ml-6 border-l border-[#2d2d30]">
-          {table.columns.map(col => (
-            <div key={col.name} className="flex items-center gap-1.5 px-2 py-0.5 text-[11px] text-[#969696]">
+          {table.columns.map((col) => (
+            <div
+              key={col.name}
+              className="flex items-center gap-1.5 px-2 py-0.5 text-[11px] text-[#969696]"
+            >
               <ColTag type={col.type} />
               <span className="truncate">{col.name}</span>
-              {col.nullable === false && <span className="ml-auto text-[9px] text-[#4a4a4a]">NN</span>}
+              {col.nullable === false && (
+                <span className="ml-auto text-[9px] text-[#4a4a4a]">NN</span>
+              )}
             </div>
           ))}
           {table.columns.length === 0 && (
@@ -155,7 +189,10 @@ function TableRow({
 // ── SchemaRow ─────────────────────────────────────────────────────────────────
 
 function SchemaRow({
-  connection, catalog, schema, onUpdate,
+  connection,
+  catalog,
+  schema,
+  onUpdate,
 }: {
   connection: DatabricksConnection
   catalog: string
@@ -176,11 +213,14 @@ function SchemaRow({
     }
   }, [connection.id, catalog, schema, onUpdate])
 
-  const updateTable = useCallback((idx: number, patch: Partial<TableNode>) => {
-    const tables = [...(schema.tables ?? [])]
-    tables[idx] = { ...tables[idx], ...patch }
-    onUpdate({ tables })
-  }, [schema.tables, onUpdate])
+  const updateTable = useCallback(
+    (idx: number, patch: Partial<TableNode>) => {
+      const tables = [...(schema.tables ?? [])]
+      tables[idx] = { ...tables[idx], ...patch }
+      onUpdate({ tables })
+    },
+    [schema.tables, onUpdate]
+  )
 
   return (
     <div>
@@ -189,10 +229,13 @@ function SchemaRow({
         className="flex items-center gap-1 px-2 py-0.5 cursor-pointer hover:bg-[#2d2d30] rounded-sm text-xs text-[#969696]"
       >
         <span className="w-3 shrink-0">
-          {schema.loading
-            ? <Loader2 size={9} className="animate-spin" />
-            : schema.expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />
-          }
+          {schema.loading ? (
+            <Loader2 size={9} className="animate-spin" />
+          ) : schema.expanded ? (
+            <ChevronDown size={9} />
+          ) : (
+            <ChevronRight size={9} />
+          )}
         </span>
         <span className="truncate">{schema.name}</span>
         {schema.tables && (
@@ -209,7 +252,7 @@ function SchemaRow({
               catalog={catalog}
               schema={schema.name}
               table={t}
-              onUpdate={patch => updateTable(i, patch)}
+              onUpdate={(patch) => updateTable(i, patch)}
             />
           ))}
           {schema.tables.length === 0 && (
@@ -224,7 +267,9 @@ function SchemaRow({
 // ── CatalogRow ────────────────────────────────────────────────────────────────
 
 function CatalogRow({
-  connection, catalog, onUpdate,
+  connection,
+  catalog,
+  onUpdate,
 }: {
   connection: DatabricksConnection
   catalog: CatalogNode
@@ -244,11 +289,14 @@ function CatalogRow({
     }
   }, [connection.id, catalog, onUpdate])
 
-  const updateSchema = useCallback((idx: number, patch: Partial<SchemaNode>) => {
-    const schemas = [...(catalog.schemas ?? [])]
-    schemas[idx] = { ...schemas[idx], ...patch }
-    onUpdate({ schemas })
-  }, [catalog.schemas, onUpdate])
+  const updateSchema = useCallback(
+    (idx: number, patch: Partial<SchemaNode>) => {
+      const schemas = [...(catalog.schemas ?? [])]
+      schemas[idx] = { ...schemas[idx], ...patch }
+      onUpdate({ schemas })
+    },
+    [catalog.schemas, onUpdate]
+  )
 
   return (
     <div>
@@ -257,10 +305,13 @@ function CatalogRow({
         className="flex items-center gap-1.5 px-2 py-1 cursor-pointer hover:bg-[#2d2d30] rounded-sm text-xs font-medium text-[#cccccc]"
       >
         <span className="w-3 shrink-0">
-          {catalog.loading
-            ? <Loader2 size={9} className="animate-spin" />
-            : catalog.expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />
-          }
+          {catalog.loading ? (
+            <Loader2 size={9} className="animate-spin" />
+          ) : catalog.expanded ? (
+            <ChevronDown size={9} />
+          ) : (
+            <ChevronRight size={9} />
+          )}
         </span>
         <Database size={11} className="text-[#4ec9b0] shrink-0" />
         <span className="truncate uppercase">{catalog.name}</span>
@@ -274,7 +325,7 @@ function CatalogRow({
               connection={connection}
               catalog={catalog.name}
               schema={s}
-              onUpdate={patch => updateSchema(i, patch)}
+              onUpdate={(patch) => updateSchema(i, patch)}
             />
           ))}
           {catalog.schemas.length === 0 && (
@@ -296,14 +347,15 @@ export function UnityTreeBrowser({ connection }: { connection: DatabricksConnect
   useEffect(() => {
     setLoading(true)
     setError(null)
-    api.listCatalogs(connection.id)
-      .then(({ data }) => setCatalogs(data.map(c => ({ name: c.name }))))
+    api
+      .listCatalogs(connection.id)
+      .then(({ data }) => setCatalogs(data.map((c) => ({ name: c.name }))))
       .catch(() => setError('Could not load catalogs'))
       .finally(() => setLoading(false))
   }, [connection.id])
 
   const updateCatalog = useCallback((idx: number, patch: Partial<CatalogNode>) => {
-    setCatalogs(prev => {
+    setCatalogs((prev) => {
       const next = [...prev]
       next[idx] = { ...next[idx], ...patch }
       return next
@@ -330,7 +382,7 @@ export function UnityTreeBrowser({ connection }: { connection: DatabricksConnect
           key={c.name}
           connection={connection}
           catalog={c}
-          onUpdate={patch => updateCatalog(i, patch)}
+          onUpdate={(patch) => updateCatalog(i, patch)}
         />
       ))}
       {catalogs.length === 0 && (

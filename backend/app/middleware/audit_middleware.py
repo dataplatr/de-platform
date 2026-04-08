@@ -1,9 +1,9 @@
 import logging
 import time
 
+from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from jose import jwt, JWTError
 
 from app.config import settings
 from app.constants import AUDIT_SKIP_PATHS, FORWARDED_FOR_HEADER

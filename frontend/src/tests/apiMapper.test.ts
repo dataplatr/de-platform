@@ -1,15 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import {
-  mapPreviewResult,
-  mapPipelineSummary,
-  mapPipelineDetail,
-} from '../services/apiMapper'
+import { mapPreviewResult, mapPipelineSummary, mapPipelineDetail } from '../services/apiMapper'
 
 describe('mapPreviewResult', () => {
   it('converts row_count and execution_time_ms to camelCase', () => {
     const raw = {
-      columns: [{ name: 'id', type: 'INTEGER' }, { name: 'name', type: 'VARCHAR' }],
-      rows: [[1, 'Alice'], [2, 'Bob']],
+      columns: [
+        { name: 'id', type: 'INTEGER' },
+        { name: 'name', type: 'VARCHAR' },
+      ],
+      rows: [
+        [1, 'Alice'],
+        [2, 'Bob'],
+      ],
       row_count: 2,
       execution_time_ms: 12.5,
       is_sampled: false,
@@ -22,7 +24,10 @@ describe('mapPreviewResult', () => {
 
   it('converts row arrays to keyed objects', () => {
     const raw = {
-      columns: [{ name: 'id', type: 'INTEGER' }, { name: 'val', type: 'VARCHAR' }],
+      columns: [
+        { name: 'id', type: 'INTEGER' },
+        { name: 'val', type: 'VARCHAR' },
+      ],
       rows: [[42, 'hello']],
       row_count: 1,
       execution_time_ms: 5,

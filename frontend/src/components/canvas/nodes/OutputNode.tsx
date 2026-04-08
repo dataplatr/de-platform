@@ -13,25 +13,31 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
   const { updateNode, nodes, edges, setGeneratedSQL } = useTransformationStore()
 
   const config = (data.config ?? {}) as Partial<OutputConfig>
-  const tableName     = config.targetTable || data.label
+  const tableName = config.targetTable || data.label
   const targetCatalog = config.targetCatalog || ''
-  const targetSchema  = config.targetSchema  || ''
+  const targetSchema = config.targetSchema || ''
 
-  const inputEdges = edges.filter(e => e.target === data.id)
+  const inputEdges = edges.filter((e) => e.target === data.id)
 
   // Compile SQL whenever graph changes
   useEffect(() => {
     if (inputEdges.length === 0) return
-    api.compilePipeline(nodes, edges, data.id)
+    api
+      .compilePipeline(nodes, edges, data.id)
       .then(({ data: res }) => setGeneratedSQL(res.sql))
-      .catch(() => { /* ignore compile errors */ })
+      .catch(() => {
+        /* ignore compile errors */
+      })
   }, [data.id, nodes, edges, inputEdges.length, setGeneratedSQL])
 
   // ── Inline table-name editing ──────────────────────────────────────────────
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft]     = useState('')
+  const [draft, setDraft] = useState('')
 
-  const startEdit = () => { setDraft(tableName); setEditing(true) }
+  const startEdit = () => {
+    setDraft(tableName)
+    setEditing(true)
+  }
   const commit = () => {
     const trimmed = draft.trim() || tableName
     updateNode(data.id, {
@@ -52,9 +58,8 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
   const updateSchema = (v: string) =>
     updateNode(data.id, { config: { ...config, targetSchema: v.trim() } })
 
-  const displayRef = targetCatalog && targetSchema
-    ? `${targetCatalog}.${targetSchema}.${tableName}`
-    : undefined
+  const displayRef =
+    targetCatalog && targetSchema ? `${targetCatalog}.${targetSchema}.${tableName}` : undefined
 
   return (
     <DataObjectNode
@@ -71,7 +76,7 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
           autoFocus
           aria-label="Output table name"
           value={draft}
-          onChange={e => setDraft(e.target.value)}
+          onChange={(e) => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={handleKeyDown}
           className="w-full bg-[var(--node-output-bg)] border border-[var(--node-output-border)] rounded px-1.5 py-0.5 text-[var(--text-1)] text-[0.625rem] outline-none mt-0.5"
@@ -91,7 +96,7 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
       <input
         type="text"
         value={targetCatalog}
-        onChange={e => updateCatalog(e.target.value)}
+        onChange={(e) => updateCatalog(e.target.value)}
         placeholder="catalog"
         title="Target catalog"
         className="w-full mt-0.5 bg-[var(--bg-input)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5 text-[var(--text-1)] text-[0.5625rem] outline-none focus:border-[var(--success)]/50 placeholder-[var(--text-3)]"
@@ -101,7 +106,7 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
       <input
         type="text"
         value={targetSchema}
-        onChange={e => updateSchema(e.target.value)}
+        onChange={(e) => updateSchema(e.target.value)}
         placeholder="schema"
         title="Target schema"
         className="w-full mt-0.5 bg-[var(--bg-input)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5 text-[var(--text-1)] text-[0.5625rem] outline-none focus:border-[var(--success)]/50 placeholder-[var(--text-3)]"

@@ -49,9 +49,7 @@ export function mapPreviewResult(raw: unknown): PreviewResult {
       name: c.name,
       type: normalizeColumnType(c.type) as ColumnType,
     })),
-    rows: r.rows.map((row) =>
-      Object.fromEntries(cols.map((c, i) => [c.name, row[i]]))
-    ),
+    rows: r.rows.map((row) => Object.fromEntries(cols.map((c, i) => [c.name, row[i]]))),
     totalRows: r.row_count,
     executionMs: r.execution_time_ms,
     sampled: r.is_sampled ?? false,

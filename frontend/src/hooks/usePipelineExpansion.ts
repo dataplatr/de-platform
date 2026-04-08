@@ -19,11 +19,7 @@ import { useCallback, useMemo, useState } from 'react'
 import type { Node, Edge } from '@xyflow/react'
 import { useTransformationStore } from '../store/transformationStore'
 import type { TransformNode, TransformEdge } from '../types'
-import {
-  getSegmentIntermediateIds,
-  calcGroupBBox,
-  OUTPUT_MARGIN,
-} from '../utils/canvasUtils'
+import { getSegmentIntermediateIds, calcGroupBBox, OUTPUT_MARGIN } from '../utils/canvasUtils'
 
 export interface PipelinePair {
   srcId: string
@@ -66,27 +62,27 @@ function buildRfEdge(e: TransformEdge): Edge {
 export function usePipelineExpansion(
   nodes: TransformNode[],
   edges: TransformEdge[],
-  toRfNode: (n: TransformNode) => Node,
+  toRfNode: (n: TransformNode) => Node
 ) {
   const { expandedOutputId, setExpandedOutputId, setRightPanelTab } = useTransformationStore()
   const [expandedPipelineKey, setExpandedPipelineKey] = useState<string | null>(null)
 
   // ── Classify nodes ─────────────────────────────────────────────────────────
-  const sourceNodes = useMemo(() => nodes.filter(n => n.type === 'source'), [nodes])
-  const outputNodes = useMemo(() => nodes.filter(n => n.type === 'output'), [nodes])
-  const nodeById    = useMemo(() => new Map(nodes.map(n => [n.id, n])), [nodes])
+  const sourceNodes = useMemo(() => nodes.filter((n) => n.type === 'source'), [nodes])
+  const outputNodes = useMemo(() => nodes.filter((n) => n.type === 'output'), [nodes])
+  const nodeById = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes])
 
   // Anchors = sources + outputs — always visible, never hidden by abstraction
   const anchorIds = useMemo(
-    () => new Set([...sourceNodes.map(n => n.id), ...outputNodes.map(n => n.id)]),
-    [sourceNodes, outputNodes],
+    () => new Set([...sourceNodes.map((n) => n.id), ...outputNodes.map((n) => n.id)]),
+    [sourceNodes, outputNodes]
   )
 
   // Segment starts = sources + outputs that feed downstream
   const segmentStartIds = useMemo(() => {
-    const starts = new Set(sourceNodes.map(n => n.id))
+    const starts = new Set(sourceNodes.map((n) => n.id))
     for (const out of outputNodes) {
-      if (edges.some(e => e.source === out.id)) starts.add(out.id)
+      if (edges.some((e) => e.source === out.id)) starts.add(out.id)
     }
     return starts
   }, [sourceNodes, outputNodes, edges])
@@ -99,7 +95,7 @@ export function usePipelineExpansion(
         if (startId === out.id) continue
         const intermediateIds = getSegmentIntermediateIds(startId, out.id, edges, anchorIds)
         if (intermediateIds === null) continue
-        const stepNodes = intermediateIds.flatMap(id => {
+        const stepNodes = intermediateIds.flatMap((id) => {
           const n = nodeById.get(id)
           return n ? [n] : []
         })
@@ -118,7 +114,7 @@ export function usePipelineExpansion(
       setExpandedOutputId(null)
       setRightPanelTab('history')
     },
-    [setRightPanelTab, setExpandedOutputId],
+    [setRightPanelTab, setExpandedOutputId]
   )
 
   const handleCollapse = useCallback(() => {
@@ -128,12 +124,11 @@ export function usePipelineExpansion(
 
   // ── Derive ReactFlow nodes + edges ─────────────────────────────────────────
   const { rfNodes, rfEdges } = useMemo(() => {
-
     // ── No abstraction → raw pass-through ──────────────────────────────────
     if (!showAbstraction) {
       return {
         rfNodes: nodes.map(toRfNode),
-        rfEdges: edges.map(e => buildRfEdge(e)),
+        rfEdges: edges.map((e) => buildRfEdge(e)),
       }
     }
 
@@ -142,28 +137,29 @@ export function usePipelineExpansion(
 
     // Output-level expansion (config panel toggle)
     const outputExpandedPairs = expandedOutputId
-      ? pipelinePairs.filter(p => p.outId === expandedOutputId)
+      ? pipelinePairs.filter((p) => p.outId === expandedOutputId)
       : []
-    outputExpandedPairs.forEach(p => expandedKeys.add(`${p.srcId}-->${p.outId}`))
+    outputExpandedPairs.forEach((p) => expandedKeys.add(`${p.srcId}-->${p.outId}`))
 
     // Single chip expansion (edge chip click)
     const singleExpandedPair =
       !expandedOutputId && expandedPipelineKey
-        ? pipelinePairs.find(p => `${p.srcId}-->${p.outId}` === expandedPipelineKey) ?? null
+        ? (pipelinePairs.find((p) => `${p.srcId}-->${p.outId}` === expandedPipelineKey) ?? null)
         : null
-    if (singleExpandedPair) expandedKeys.add(`${singleExpandedPair.srcId}-->${singleExpandedPair.outId}`)
+    if (singleExpandedPair)
+      expandedKeys.add(`${singleExpandedPair.srcId}-->${singleExpandedPair.outId}`)
 
     // ── Compute visible node set ───────────────────────────────────────────
-    const allSegmentNodeIds = new Set(pipelinePairs.flatMap(p => p.intermediateIds))
+    const allSegmentNodeIds = new Set(pipelinePairs.flatMap((p) => p.intermediateIds))
     const visibleNodeIds = new Set<string>()
 
     // Rule 1: Anchors always visible
-    anchorIds.forEach(id => visibleNodeIds.add(id))
+    anchorIds.forEach((id) => visibleNodeIds.add(id))
 
     // Rule 4: Expanded segment intermediates visible
     for (const pair of pipelinePairs) {
       if (expandedKeys.has(`${pair.srcId}-->${pair.outId}`)) {
-        pair.intermediateIds.forEach(id => visibleNodeIds.add(id))
+        pair.intermediateIds.forEach((id) => visibleNodeIds.add(id))
       }
     }
 
@@ -175,35 +171,47 @@ export function usePipelineExpansion(
     }
 
     // ── Build RF nodes ─────────────────────────────────────────────────────
-    let builtNodes: Node[] = nodes.filter(n => visibleNodeIds.has(n.id)).map(toRfNode)
+    let builtNodes: Node[] = nodes.filter((n) => visibleNodeIds.has(n.id)).map(toRfNode)
 
     // FigJam group for output-level expansion (consolidated)
     if (outputExpandedPairs.length > 0) {
       const groupIds = new Set<string>()
-      outputExpandedPairs.forEach(p => p.intermediateIds.forEach(id => groupIds.add(id)))
+      outputExpandedPairs.forEach((p) => p.intermediateIds.forEach((id) => groupIds.add(id)))
       const positions = [...groupIds]
-        .map(id => nodeById.get(id)?.position)
+        .map((id) => nodeById.get(id)?.position)
         .filter((p): p is { x: number; y: number } => !!p)
 
       if (positions.length > 0) {
         const bbox = calcGroupBBox(positions)
         const outNode = nodeById.get(expandedOutputId!)
         const srcLabels = outputExpandedPairs
-          .map(p => nodeById.get(p.srcId)?.label ?? '').filter(Boolean).join(', ')
+          .map((p) => nodeById.get(p.srcId)?.label ?? '')
+          .filter(Boolean)
+          .join(', ')
 
         builtNodes.unshift({
           id: `group-output-${expandedOutputId}`,
           type: 'pipelineGroup',
           position: { x: bbox.x, y: bbox.y },
-          data: { width: bbox.width, height: bbox.height, onClose: handleCollapse, srcLabel: srcLabels, outLabel: outNode?.label },
-          draggable: false, selectable: false, focusable: false, zIndex: -1,
+          data: {
+            width: bbox.width,
+            height: bbox.height,
+            onClose: handleCollapse,
+            srcLabel: srcLabels,
+            outLabel: outNode?.label,
+          },
+          draggable: false,
+          selectable: false,
+          focusable: false,
+          zIndex: -1,
           style: { width: bbox.width, height: bbox.height },
         })
 
         const minOutX = bbox.x + bbox.width + OUTPUT_MARGIN
-        builtNodes = builtNodes.map(n =>
+        builtNodes = builtNodes.map((n) =>
           n.id === expandedOutputId && n.position.x < minOutX
-            ? { ...n, position: { x: minOutX, y: n.position.y } } : n,
+            ? { ...n, position: { x: minOutX, y: n.position.y } }
+            : n
         )
       }
     }
@@ -211,7 +219,7 @@ export function usePipelineExpansion(
     // FigJam group for single-segment expansion
     if (singleExpandedPair && singleExpandedPair.intermediateIds.length > 0) {
       const positions = singleExpandedPair.intermediateIds
-        .map(id => nodeById.get(id)?.position)
+        .map((id) => nodeById.get(id)?.position)
         .filter((p): p is { x: number; y: number } => !!p)
 
       if (positions.length > 0) {
@@ -221,18 +229,24 @@ export function usePipelineExpansion(
           type: 'pipelineGroup',
           position: { x: bbox.x, y: bbox.y },
           data: {
-            width: bbox.width, height: bbox.height, onClose: handleCollapse,
+            width: bbox.width,
+            height: bbox.height,
+            onClose: handleCollapse,
             srcLabel: nodeById.get(singleExpandedPair.srcId)?.label,
             outLabel: nodeById.get(singleExpandedPair.outId)?.label,
           },
-          draggable: false, selectable: false, focusable: false, zIndex: -1,
+          draggable: false,
+          selectable: false,
+          focusable: false,
+          zIndex: -1,
           style: { width: bbox.width, height: bbox.height },
         })
 
         const minOutX = bbox.x + bbox.width + OUTPUT_MARGIN
-        builtNodes = builtNodes.map(n =>
+        builtNodes = builtNodes.map((n) =>
           n.id === singleExpandedPair.outId && n.position.x < minOutX
-            ? { ...n, position: { x: minOutX, y: n.position.y } } : n,
+            ? { ...n, position: { x: minOutX, y: n.position.y } }
+            : n
         )
       }
     }
@@ -241,15 +255,16 @@ export function usePipelineExpansion(
 
     // Pipeline chips for COLLAPSED segments that have intermediates
     const pipelineRfEdges: Edge[] = pipelinePairs
-      .filter(p => !expandedKeys.has(`${p.srcId}-->${p.outId}`) && p.intermediateIds.length > 0)
-      .map(pair => {
+      .filter((p) => !expandedKeys.has(`${p.srcId}-->${p.outId}`) && p.intermediateIds.length > 0)
+      .map((pair) => {
         const key = `${pair.srcId}-->${pair.outId}`
         return {
           id: `pipeline-${pair.srcId}-${pair.outId}`,
-          source: pair.srcId, target: pair.outId,
+          source: pair.srcId,
+          target: pair.outId,
           type: 'pipeline',
           data: {
-            steps: pair.stepNodes.map(n => ({ type: n.type, label: n.label })),
+            steps: pair.stepNodes.map((n) => ({ type: n.type, label: n.label })),
             stepCount: pair.stepNodes.length,
             pipelineKey: key,
             onExpand: () => handleExpand(key),
@@ -259,19 +274,26 @@ export function usePipelineExpansion(
 
     // Rule 6: Edges between ANY two visible nodes always render.
     // Only skip if a pipeline chip already connects the same source→target.
-    const chipEndpoints = new Set(pipelineRfEdges.map(e => `${e.source}:::${e.target}`))
+    const chipEndpoints = new Set(pipelineRfEdges.map((e) => `${e.source}:::${e.target}`))
 
     const realEdges: Edge[] = edges
-      .filter(e => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
-      .filter(e => !chipEndpoints.has(`${e.source}:::${e.target}`))
-      .map(e => buildRfEdge(e))
+      .filter((e) => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target))
+      .filter((e) => !chipEndpoints.has(`${e.source}:::${e.target}`))
+      .map((e) => buildRfEdge(e))
 
     return { rfNodes: builtNodes, rfEdges: [...pipelineRfEdges, ...realEdges] }
   }, [
-    showAbstraction, nodes, edges, toRfNode,
-    expandedOutputId, expandedPipelineKey,
-    pipelinePairs, anchorIds, nodeById,
-    handleExpand, handleCollapse,
+    showAbstraction,
+    nodes,
+    edges,
+    toRfNode,
+    expandedOutputId,
+    expandedPipelineKey,
+    pipelinePairs,
+    anchorIds,
+    nodeById,
+    handleExpand,
+    handleCollapse,
   ])
 
   return { rfNodes, rfEdges, showAbstraction }

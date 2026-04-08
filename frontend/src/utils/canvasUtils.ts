@@ -10,7 +10,7 @@ import type { TransformEdge } from '../types'
 export function bfsReachable(
   startId: string,
   edges: TransformEdge[],
-  forward: boolean,
+  forward: boolean
 ): Set<string> {
   const visited = new Set<string>()
   const queue = [startId]
@@ -20,8 +20,12 @@ export function bfsReachable(
     visited.add(curr)
     for (const e of edges) {
       const neighbor = forward
-        ? e.source === curr ? e.target : null
-        : e.target === curr ? e.source : null
+        ? e.source === curr
+          ? e.target
+          : null
+        : e.target === curr
+          ? e.source
+          : null
       if (neighbor && !visited.has(neighbor)) queue.push(neighbor)
     }
   }
@@ -37,7 +41,7 @@ export function bfsReachableNoPassthrough(
   startId: string,
   edges: TransformEdge[],
   forward: boolean,
-  anchorIds: Set<string>,
+  anchorIds: Set<string>
 ): Set<string> {
   const visited = new Set<string>()
   const queue = [startId]
@@ -49,8 +53,12 @@ export function bfsReachableNoPassthrough(
     if (curr !== startId && anchorIds.has(curr)) continue
     for (const e of edges) {
       const neighbor = forward
-        ? e.source === curr ? e.target : null
-        : e.target === curr ? e.source : null
+        ? e.source === curr
+          ? e.target
+          : null
+        : e.target === curr
+          ? e.source
+          : null
       if (neighbor && !visited.has(neighbor)) queue.push(neighbor)
     }
   }
@@ -66,7 +74,7 @@ export function getSegmentIntermediateIds(
   srcId: string,
   outId: string,
   edges: TransformEdge[],
-  anchorIds: Set<string>,
+  anchorIds: Set<string>
 ): string[] | null {
   const forwardFromSrc = bfsReachableNoPassthrough(srcId, edges, true, anchorIds)
   if (!forwardFromSrc.has(outId)) return null // not directly reachable
@@ -87,14 +95,14 @@ export const GROUP_PAD_Y = 70
 export const OUTPUT_MARGIN = 100
 
 export function calcGroupBBox(positions: { x: number; y: number }[]) {
-  const minX = Math.min(...positions.map(p => p.x))
-  const minY = Math.min(...positions.map(p => p.y))
-  const maxX = Math.max(...positions.map(p => p.x + NODE_W))
-  const maxY = Math.max(...positions.map(p => p.y + NODE_H))
+  const minX = Math.min(...positions.map((p) => p.x))
+  const minY = Math.min(...positions.map((p) => p.y))
+  const maxX = Math.max(...positions.map((p) => p.x + NODE_W))
+  const maxY = Math.max(...positions.map((p) => p.y + NODE_H))
   return {
-    x:      minX - GROUP_PAD_X,
-    y:      minY - GROUP_PAD_Y,
-    width:  maxX - minX + GROUP_PAD_X * 2,
+    x: minX - GROUP_PAD_X,
+    y: minY - GROUP_PAD_Y,
+    width: maxX - minX + GROUP_PAD_X * 2,
     height: maxY - minY + GROUP_PAD_Y * 2,
   }
 }

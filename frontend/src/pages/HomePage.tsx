@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Plus, Folder, Trash2, Clock, Database, LogOut, User, ShieldCheck, Sun, Moon } from 'lucide-react'
+import {
+  Plus,
+  Folder,
+  Trash2,
+  Clock,
+  Database,
+  LogOut,
+  User,
+  ShieldCheck,
+  Sun,
+  Moon,
+} from 'lucide-react'
 import { useTransformationStore } from '../store/transformationStore'
 import { useAuthStore, isAdmin } from '../store/authStore'
 import { useTheme } from '../context/ThemeContext'
@@ -24,8 +35,8 @@ export function HomePage() {
   const { theme, toggleTheme } = useTheme()
 
   const [pipelines, setPipelines] = useState<PipelineMeta[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [deleting, setDeleting]   = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   const loadList = useCallback(async () => {
     setLoading(true)
@@ -39,28 +50,33 @@ export function HomePage() {
     }
   }, [])
 
-  useEffect(() => { loadList() }, [loadList])
+  useEffect(() => {
+    loadList()
+  }, [loadList])
 
-  const handleOpen = useCallback(async (meta: PipelineMeta) => {
-    try {
-      const res = await api.getPipeline(meta.id)
-      openEditor({
-        id:    res.data.id,
-        name:  res.data.name,
-        nodes: res.data.nodes as TransformNode[],
-        edges: res.data.edges as TransformEdge[],
-      })
-    } catch {
-      openEditor({ id: meta.id, name: meta.name })
-    }
-  }, [openEditor])
+  const handleOpen = useCallback(
+    async (meta: PipelineMeta) => {
+      try {
+        const res = await api.getPipeline(meta.id)
+        openEditor({
+          id: res.data.id,
+          name: res.data.name,
+          nodes: res.data.nodes as TransformNode[],
+          edges: res.data.edges as TransformEdge[],
+        })
+      } catch {
+        openEditor({ id: meta.id, name: meta.name })
+      }
+    },
+    [openEditor]
+  )
 
   const handleDelete = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation()
     setDeleting(id)
     try {
       await api.deletePipeline(id)
-      setPipelines(prev => prev.filter(p => p.id !== id))
+      setPipelines((prev) => prev.filter((p) => p.id !== id))
     } finally {
       setDeleting(null)
     }
@@ -80,12 +96,18 @@ export function HomePage() {
         <div className="flex items-center gap-2">
           {user && (
             <div className="flex items-center gap-1.5 text-xs topbar-user">
-              {isAdmin(user.role)
-                ? <ShieldCheck size={13} className="text-[#f44747]" />
-                : <User size={13} className="topbar-chevron" />
-              }
+              {isAdmin(user.role) ? (
+                <ShieldCheck size={13} className="text-[#f44747]" />
+              ) : (
+                <User size={13} className="topbar-chevron" />
+              )}
               <span className="font-medium">{user.username}</span>
-              <span className={clsx('topbar-user-role text-[10px] uppercase font-semibold', ROLE_COLOR[user.role])}>
+              <span
+                className={clsx(
+                  'topbar-user-role text-[10px] uppercase font-semibold',
+                  ROLE_COLOR[user.role]
+                )}
+              >
                 {user.role}
               </span>
             </div>
@@ -110,7 +132,9 @@ export function HomePage() {
           <div>
             <h1 className="text-lg font-semibold home-heading">Pipelines</h1>
             <p className="text-xs home-subtext mt-0.5">
-              {loading ? 'Loading…' : `${pipelines.length} pipeline${pipelines.length !== 1 ? 's' : ''}`}
+              {loading
+                ? 'Loading…'
+                : `${pipelines.length} pipeline${pipelines.length !== 1 ? 's' : ''}`}
             </p>
           </div>
           <button
@@ -126,7 +150,7 @@ export function HomePage() {
         {/* Grid */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="home-card-skeleton" />
             ))}
           </div>
@@ -138,19 +162,19 @@ export function HomePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {pipelines.map(p => (
+            {pipelines.map((p) => (
               <div
                 key={p.id}
                 role="button"
                 tabIndex={0}
                 onClick={() => handleOpen(p)}
-                onKeyDown={e => e.key === 'Enter' && handleOpen(p)}
+                onKeyDown={(e) => e.key === 'Enter' && handleOpen(p)}
                 className="home-card group"
               >
                 {/* Delete */}
                 <button
                   type="button"
-                  onClick={e => handleDelete(p.id, e)}
+                  onClick={(e) => handleDelete(p.id, e)}
                   disabled={deleting === p.id}
                   className="absolute top-2.5 right-2.5 opacity-0 group-hover:opacity-100 icon-button hover:text-[#f44747] transition-opacity"
                   title="Delete pipeline"
@@ -160,11 +184,15 @@ export function HomePage() {
 
                 <div className="flex items-center gap-2">
                   <Folder size={14} className="topbar-db-icon shrink-0" />
-                  <span className="text-sm font-medium home-heading truncate max-w-[160px]">{p.name}</span>
+                  <span className="text-sm font-medium home-heading truncate max-w-[160px]">
+                    {p.name}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-3 text-[11px] home-subtext">
-                  <span>{p.node_count} node{p.node_count !== 1 ? 's' : ''}</span>
+                  <span>
+                    {p.node_count} node{p.node_count !== 1 ? 's' : ''}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-1 text-[10px] home-empty-icon mt-auto">

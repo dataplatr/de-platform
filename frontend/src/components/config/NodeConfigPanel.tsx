@@ -31,13 +31,17 @@ function PipelineTree({ chain }: { chain: TNode[] }) {
         return (
           <div key={n.id} className="flex items-stretch">
             <div className="flex flex-col items-center w-5 shrink-0 mr-2">
-              <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${isSource ? 'bg-[var(--step-join)]' : 'bg-[var(--border)]'}`} />
+              <div
+                className={`w-2 h-2 rounded-full mt-2 shrink-0 ${isSource ? 'bg-[var(--step-join)]' : 'bg-[var(--border)]'}`}
+              />
               {!isLast && <div className="w-px flex-1 bg-[var(--border)] my-0.5" />}
             </div>
             <div className="flex items-center gap-1.5 flex-1 min-w-0 py-1.5 border-b border-theme last:border-b-0">
               <span className="text-sm leading-none shrink-0">{meta.icon}</span>
               <div className="flex flex-col min-w-0">
-                <span className={`text-[9px] font-bold uppercase tracking-wide ${meta.labelClass}`}>{n.type}</span>
+                <span className={`text-[9px] font-bold uppercase tracking-wide ${meta.labelClass}`}>
+                  {n.type}
+                </span>
                 <span className="text-[11px] text-primary truncate leading-tight">{n.label}</span>
               </div>
             </div>
@@ -48,26 +52,40 @@ function PipelineTree({ chain }: { chain: TNode[] }) {
   )
 }
 
-function OutputConfig({ nodeId, nodes, edges }: { nodeId: string; nodes: TNode[]; edges: TEdge[] }) {
+function OutputConfig({
+  nodeId,
+  nodes,
+  edges,
+}: {
+  nodeId: string
+  nodes: TNode[]
+  edges: TEdge[]
+}) {
   const { updateNode, expandedOutputId, setExpandedOutputId } = useTransformationStore()
   const [showTree, setShowTree] = useState(false)
-  const node = nodes.find(n => n.id === nodeId)
+  const node = nodes.find((n) => n.id === nodeId)
   const cfg = node?.config as { targetTable?: string } | null
 
   const isCanvasExpanded = expandedOutputId === nodeId
   const toggleCanvas = useCallback(
     () => setExpandedOutputId(isCanvasExpanded ? null : nodeId),
-    [isCanvasExpanded, nodeId, setExpandedOutputId],
+    [isCanvasExpanded, nodeId, setExpandedOutputId]
   )
 
   const allUpstream = useMemo(() => getAllUpstream(nodeId, nodes, edges), [nodeId, nodes, edges])
-  const sourceNodes = useMemo(() => allUpstream.filter(n => n.type === 'source'), [allUpstream])
-  const transformSteps = useMemo(() => allUpstream.filter(n => n.type !== 'source'), [allUpstream])
+  const sourceNodes = useMemo(() => allUpstream.filter((n) => n.type === 'source'), [allUpstream])
+  const transformSteps = useMemo(
+    () => allUpstream.filter((n) => n.type !== 'source'),
+    [allUpstream]
+  )
 
-  const commitName = useCallback((trimmed: string) => {
-    const val = trimmed.trim() || 'output'
-    updateNode(nodeId, { label: val, config: { ...(cfg ?? {}), targetTable: val } })
-  }, [nodeId, cfg, updateNode])
+  const commitName = useCallback(
+    (trimmed: string) => {
+      const val = trimmed.trim() || 'output'
+      updateNode(nodeId, { label: val, config: { ...(cfg ?? {}), targetTable: val } })
+    },
+    [nodeId, cfg, updateNode]
+  )
 
   return (
     <div className="flex flex-col gap-4">
@@ -76,8 +94,10 @@ function OutputConfig({ nodeId, nodes, edges }: { nodeId: string; nodes: TNode[]
         <input
           aria-label="Target table name"
           defaultValue={cfg?.targetTable || node?.label || 'output'}
-          onBlur={e => commitName(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') commitName((e.target as HTMLInputElement).value) }}
+          onBlur={(e) => commitName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitName((e.target as HTMLInputElement).value)
+          }}
           className="bg-elevated border border-theme rounded px-2 py-1 text-xs font-mono text-[var(--accent-fg)] outline-none focus:border-[var(--accent)]"
         />
       </div>
@@ -91,7 +111,9 @@ function OutputConfig({ nodeId, nodes, edges }: { nodeId: string; nodes: TNode[]
             </div>
           </div>
           <div className="bg-elevated border border-theme rounded-md p-2 text-center">
-            <div className="text-base font-bold text-[var(--accent-fg)]">{transformSteps.length}</div>
+            <div className="text-base font-bold text-[var(--accent-fg)]">
+              {transformSteps.length}
+            </div>
             <div className="text-[9px] text-muted uppercase tracking-wider mt-0.5">
               Transform{transformSteps.length !== 1 ? 's' : ''}
             </div>
@@ -121,7 +143,7 @@ function OutputConfig({ nodeId, nodes, edges }: { nodeId: string; nodes: TNode[]
         <div className="flex flex-col gap-1.5">
           <button
             type="button"
-            onClick={() => setShowTree(v => !v)}
+            onClick={() => setShowTree((v) => !v)}
             className="flex items-center justify-between px-2 py-1.5 bg-elevated border border-theme rounded-md text-[10px] font-semibold text-secondary uppercase tracking-wider w-full hover:text-primary transition-colors"
           >
             <span>Pipeline steps ({allUpstream.length})</span>
@@ -133,8 +155,12 @@ function OutputConfig({ nodeId, nodes, edges }: { nodeId: string; nodes: TNode[]
               <div className="flex items-center gap-1.5 px-2 py-1.5 bg-[var(--node-output-bg)] border-t border-theme">
                 <span className="text-sm">🎯</span>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-[9px] font-bold uppercase tracking-wide step-label-output">output</span>
-                  <span className="text-[11px] text-primary truncate">{cfg?.targetTable || node?.label}</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wide step-label-output">
+                    output
+                  </span>
+                  <span className="text-[11px] text-primary truncate">
+                    {cfg?.targetTable || node?.label}
+                  </span>
                 </div>
               </div>
             </div>
@@ -151,7 +177,7 @@ function OutputConfig({ nodeId, nodes, edges }: { nodeId: string; nodes: TNode[]
 
 export function NodeConfigPanel() {
   const { selectedNodeId, nodes, edges } = useTransformationStore()
-  const node = nodes.find(n => n.id === selectedNodeId)
+  const node = nodes.find((n) => n.id === selectedNodeId)
 
   const { runPreview } = useNodePreview()
   const { upstreamCols, leftCols, rightCols } = useUpstreamColumns(node)
@@ -172,7 +198,9 @@ export function NodeConfigPanel() {
       {/* Node header */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-theme bg-surface shrink-0">
         <span>{meta?.icon ?? '🎯'}</span>
-        <span className={`text-xs font-semibold ${meta?.colorClass ?? 'text-[var(--success)]'}`}>{node.label}</span>
+        <span className={`text-xs font-semibold ${meta?.colorClass ?? 'text-[var(--success)]'}`}>
+          {node.label}
+        </span>
         <span className="text-[10px] text-muted ml-1 uppercase">{node.type}</span>
         <button
           type="button"
@@ -196,9 +224,11 @@ export function NodeConfigPanel() {
             </div>
             {node.columns && node.columns.length > 0 && (
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] text-secondary uppercase tracking-wider">Schema ({node.columns.length} cols)</span>
+                <span className="text-[10px] text-secondary uppercase tracking-wider">
+                  Schema ({node.columns.length} cols)
+                </span>
                 <div className="flex flex-col gap-0.5 max-h-48 overflow-y-auto scrollbar-thin">
-                  {node.columns.map(col => (
+                  {node.columns.map((col) => (
                     <div key={col.name} className="flex items-center gap-2 px-2 py-0.5 text-xs">
                       <span className="step-label-select font-mono">{col.name}</span>
                       <span className="text-muted text-[10px] ml-auto">{col.type}</span>
@@ -221,7 +251,9 @@ export function NodeConfigPanel() {
         {node.type === 'join' && (
           <JoinConfig
             nodeId={node.id}
-            config={(node.config as JoinCfg) ?? { joinType: 'INNER', conditions: [], rightTable: '' }}
+            config={
+              (node.config as JoinCfg) ?? { joinType: 'INNER', conditions: [], rightTable: '' }
+            }
             leftColumns={leftCols}
             rightColumns={rightCols}
           />
@@ -259,9 +291,7 @@ export function NodeConfigPanel() {
           />
         )}
 
-        {node.type === 'output' && (
-          <OutputConfig nodeId={node.id} nodes={nodes} edges={edges} />
-        )}
+        {node.type === 'output' && <OutputConfig nodeId={node.id} nodes={nodes} edges={edges} />}
       </div>
     </div>
   )

@@ -1,7 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Play, Save, Database, ChevronRight, LogOut, User, ShieldCheck,
-  Home, Sun, Moon, X, Plus, CheckCircle2, Zap,
+  Play,
+  Save,
+  Database,
+  ChevronRight,
+  LogOut,
+  User,
+  ShieldCheck,
+  Home,
+  Sun,
+  Moon,
+  X,
+  Plus,
+  CheckCircle2,
+  Zap,
 } from 'lucide-react'
 import { useTransformationStore } from '../../store/transformationStore'
 import { useAuthStore, isAdmin } from '../../store/authStore'
@@ -16,13 +28,18 @@ import { DatabricksConnectModal } from '../settings/DatabricksConnectModal'
 
 function WhStateDot({ state }: { state: string }) {
   return (
-    <div className={clsx(
-      'w-1.5 h-1.5 rounded-full shrink-0',
-      state === 'RUNNING'  ? 'bg-[var(--success)]' :
-      state === 'STARTING' ? 'bg-[var(--warning)] animate-pulse' :
-      state === 'STOPPING' ? 'bg-[var(--warning)] animate-pulse' :
-      'bg-[var(--text-3)]'
-    )} />
+    <div
+      className={clsx(
+        'w-1.5 h-1.5 rounded-full shrink-0',
+        state === 'RUNNING'
+          ? 'bg-[var(--success)]'
+          : state === 'STARTING'
+            ? 'bg-[var(--warning)] animate-pulse'
+            : state === 'STOPPING'
+              ? 'bg-[var(--warning)] animate-pulse'
+              : 'bg-[var(--text-3)]'
+      )}
+    />
   )
 }
 
@@ -30,26 +47,32 @@ function WhStateDot({ state }: { state: string }) {
 
 function ConnectionPanel({ onClose }: { onClose: () => void }) {
   const {
-    connections, setConnections,
-    pipelineConnectionAlias, setPipelineConnectionAlias,
-    warehouseState, setWarehouseState,
+    connections,
+    setConnections,
+    pipelineConnectionAlias,
+    setPipelineConnectionAlias,
+    warehouseState,
+    setWarehouseState,
   } = useTransformationStore()
 
-  const [showAdd, setShowAdd]   = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
 
   const activeAlias = pipelineConnectionAlias ?? connections[0]?.alias
-  const activeConn  = connections.find(c => c.alias === activeAlias) ?? null
+  const activeConn = connections.find((c) => c.alias === activeAlias) ?? null
 
   // Warehouses for the active connection
-  const [warehouses, setWarehouses] = useState<{ id: string; name: string; state: string; cluster_size: string }[]>([])
-  const [whLoading, setWhLoading]   = useState(false)
-  const [switching, setSwitching]   = useState<string | null>(null) // warehouse id being switched to
+  const [warehouses, setWarehouses] = useState<
+    { id: string; name: string; state: string; cluster_size: string }[]
+  >([])
+  const [whLoading, setWhLoading] = useState(false)
+  const [switching, setSwitching] = useState<string | null>(null) // warehouse id being switched to
 
   useEffect(() => {
     if (!activeConn) return
     setWhLoading(true)
-    api.listWarehouses(activeConn.id)
+    api
+      .listWarehouses(activeConn.id)
       .then(({ data }) => setWarehouses(data))
       .catch(() => setWarehouses([]))
       .finally(() => setWhLoading(false))
@@ -68,12 +91,14 @@ function ConnectionPanel({ onClose }: { onClose: () => void }) {
     e.stopPropagation()
     try {
       await api.deleteConnection(id)
-      const updated = connections.filter(c => c.id !== id)
+      const updated = connections.filter((c) => c.id !== id)
       setConnections(updated)
-      if (activeAlias === connections.find(c => c.id === id)?.alias) {
+      if (activeAlias === connections.find((c) => c.id === id)?.alias) {
         setPipelineConnectionAlias(updated[0]?.alias ?? null)
       }
-    } catch { /* silent */ }
+    } catch {
+      /* silent */
+    }
   }
 
   const handleSwitchWarehouse = async (wh: { id: string; name: string }) => {
@@ -81,24 +106,33 @@ function ConnectionPanel({ onClose }: { onClose: () => void }) {
     setSwitching(wh.id)
     try {
       const { data: updated } = await api.updateConnection(activeConn.id, { warehouse_id: wh.id })
-      setConnections(connections.map(c => c.id === updated.id ? updated : c))
+      setConnections(connections.map((c) => (c.id === updated.id ? updated : c)))
       setWarehouseState('STARTING')
       api.startWarehouse(activeConn.id).catch(() => {})
-    } catch { /* silent */ } finally {
+    } catch {
+      /* silent */
+    } finally {
       setSwitching(null)
     }
   }
 
   const whStateLabel = (state: string) =>
-    state === 'RUNNING'  ? 'Running'  :
-    state === 'STARTING' ? 'Starting…' :
-    state === 'STOPPING' ? 'Stopping…' :
-    state === 'STOPPED'  ? 'Stopped'  : state
+    state === 'RUNNING'
+      ? 'Running'
+      : state === 'STARTING'
+        ? 'Starting…'
+        : state === 'STOPPING'
+          ? 'Stopping…'
+          : state === 'STOPPED'
+            ? 'Stopped'
+            : state
 
   return (
     <>
-      <div ref={panelRef} className="conn-panel absolute top-full mt-1.5 left-1/2 -translate-x-1/2 z-[200] w-80 rounded-lg shadow-2xl overflow-hidden">
-
+      <div
+        ref={panelRef}
+        className="conn-panel absolute top-full mt-1.5 left-1/2 -translate-x-1/2 z-[200] w-80 rounded-lg shadow-2xl overflow-hidden"
+      >
         {/* ── CONNECTIONS ─────────────────────────────────────── */}
         <div className="conn-panel-header flex items-center justify-between px-3 py-2">
           <span className="text-xs font-semibold">Connections</span>
@@ -111,25 +145,40 @@ function ConnectionPanel({ onClose }: { onClose: () => void }) {
           {connections.length === 0 ? (
             <p className="conn-item-host text-xs text-center py-4">No connections configured</p>
           ) : (
-            connections.map(conn => {
+            connections.map((conn) => {
               const isActive = conn.alias === activeAlias
               return (
                 <div
                   key={conn.id}
-                  onClick={() => { setPipelineConnectionAlias(conn.alias); setWarehouses([]) }}
-                  className={clsx('group conn-item flex items-center gap-2.5 px-3 py-2', isActive && 'conn-item-active')}
+                  onClick={() => {
+                    setPipelineConnectionAlias(conn.alias)
+                    setWarehouses([])
+                  }}
+                  className={clsx(
+                    'group conn-item flex items-center gap-2.5 px-3 py-2',
+                    isActive && 'conn-item-active'
+                  )}
                 >
-                  <div className={clsx('w-1.5 h-1.5 rounded-full shrink-0', isActive ? 'bg-[var(--success)]' : 'bg-[var(--text-3)]')} />
+                  <div
+                    className={clsx(
+                      'w-1.5 h-1.5 rounded-full shrink-0',
+                      isActive ? 'bg-[var(--success)]' : 'bg-[var(--text-3)]'
+                    )}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="conn-item-name text-xs font-medium truncate">{conn.name || conn.alias}</span>
-                      {isActive && <CheckCircle2 size={11} className="text-[var(--success)] shrink-0" />}
+                      <span className="conn-item-name text-xs font-medium truncate">
+                        {conn.name || conn.alias}
+                      </span>
+                      {isActive && (
+                        <CheckCircle2 size={11} className="text-[var(--success)] shrink-0" />
+                      )}
                     </div>
                     <p className="conn-item-host text-[10px] truncate">{conn.host}</p>
                   </div>
                   <button
                     type="button"
-                    onClick={e => handleDeleteConn(conn.id, e)}
+                    onClick={(e) => handleDeleteConn(conn.id, e)}
                     className="opacity-0 group-hover:opacity-100 icon-button transition-opacity"
                     title={`Remove ${conn.name || conn.alias}`}
                   >
@@ -142,7 +191,11 @@ function ConnectionPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="conn-panel-footer px-3 py-2">
-          <button type="button" onClick={() => setShowAdd(true)} className="conn-add-btn flex items-center gap-1.5 text-xs w-full px-2 py-1.5">
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="conn-add-btn flex items-center gap-1.5 text-xs w-full px-2 py-1.5"
+          >
             <Plus size={12} /> Add connection
           </button>
         </div>
@@ -153,7 +206,9 @@ function ConnectionPanel({ onClose }: { onClose: () => void }) {
             <div className="conn-wh-header px-3 py-2 flex items-center gap-1.5">
               <Zap size={11} className="text-[var(--warning)] shrink-0" />
               <span className="text-xs font-semibold text-[var(--text-1)]">SQL Warehouses</span>
-              <span className="ml-auto text-[10px] text-[var(--text-3)]">{activeConn.name || activeConn.alias}</span>
+              <span className="ml-auto text-[10px] text-[var(--text-3)]">
+                {activeConn.name || activeConn.alias}
+              </span>
             </div>
 
             <div className="max-h-52 overflow-y-auto py-1">
@@ -162,7 +217,7 @@ function ConnectionPanel({ onClose }: { onClose: () => void }) {
               ) : warehouses.length === 0 ? (
                 <p className="conn-item-host text-xs text-center py-3">No warehouses found</p>
               ) : (
-                warehouses.map(wh => {
+                warehouses.map((wh) => {
                   const isCurrent = wh.id === activeConn.warehouse_id
                   const isSwitching = switching === wh.id
                   return (
@@ -178,11 +233,16 @@ function ConnectionPanel({ onClose }: { onClose: () => void }) {
                       <WhStateDot state={wh.state} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="conn-item-name text-xs font-medium truncate">{wh.name}</span>
-                          {isCurrent && <CheckCircle2 size={11} className="text-[var(--success)] shrink-0" />}
+                          <span className="conn-item-name text-xs font-medium truncate">
+                            {wh.name}
+                          </span>
+                          {isCurrent && (
+                            <CheckCircle2 size={11} className="text-[var(--success)] shrink-0" />
+                          )}
                         </div>
                         <p className="conn-item-host text-[10px]">
-                          {wh.cluster_size} · {whStateLabel(isCurrent ? (warehouseState ?? wh.state) : wh.state)}
+                          {wh.cluster_size} ·{' '}
+                          {whStateLabel(isCurrent ? (warehouseState ?? wh.state) : wh.state)}
                         </p>
                       </div>
                       {!isCurrent && (
@@ -200,7 +260,12 @@ function ConnectionPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       {showAdd && (
-        <DatabricksConnectModal onClose={() => { setShowAdd(false); onClose() }} />
+        <DatabricksConnectModal
+          onClose={() => {
+            setShowAdd(false)
+            onClose()
+          }}
+        />
       )}
     </>
   )
@@ -210,16 +275,21 @@ function ConnectionPanel({ onClose }: { onClose: () => void }) {
 
 export function TopBar() {
   const {
-    connections, nodes, edges,
-    pipelineName, pipelineId,
-    setPipelineName, setPipelineId, closeEditor,
+    connections,
+    nodes,
+    edges,
+    pipelineName,
+    pipelineId,
+    setPipelineName,
+    setPipelineId,
+    closeEditor,
     warehouseState,
   } = useTransformationStore()
   const { user, logout } = useAuthStore()
   const { theme, toggleTheme } = useTheme()
 
   // ── Inline rename ────────────────────────────────────────────────────────
-  const [editing, setEditing]     = useState(false)
+  const [editing, setEditing] = useState(false)
   const [draftName, setDraftName] = useState(pipelineName)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -235,10 +305,13 @@ export function TopBar() {
     setEditing(false)
   }, [draftName, setPipelineName])
 
-  const onKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter')  commitRename()
-    if (e.key === 'Escape') setEditing(false)
-  }, [commitRename])
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') commitRename()
+      if (e.key === 'Escape') setEditing(false)
+    },
+    [commitRename]
+  )
 
   // ── Save pipeline ────────────────────────────────────────────────────────
   const [saving, setSaving] = useState(false)
@@ -254,7 +327,9 @@ export function TopBar() {
         const res = await api.savePipeline(payload)
         setPipelineId(res.data.id)
       }
-    } catch { /* silent */ } finally {
+    } catch {
+      /* silent */
+    } finally {
       setSaving(false)
     }
   }, [saving, pipelineName, pipelineId, nodes, edges, setPipelineId])
@@ -266,7 +341,6 @@ export function TopBar() {
 
   return (
     <div className="topbar flex items-center justify-between h-10 px-3 shrink-0 z-10">
-
       {/* Left: Logo + Breadcrumb */}
       <div className="topbar-breadcrumb flex items-center gap-2 text-xs min-w-0">
         <img src={logoWhite} alt="Logo" className="h-5 w-auto object-contain shrink-0" />
@@ -279,7 +353,7 @@ export function TopBar() {
           <input
             ref={inputRef}
             value={draftName}
-            onChange={e => setDraftName(e.target.value)}
+            onChange={(e) => setDraftName(e.target.value)}
             onBlur={commitRename}
             onKeyDown={onKeyDown}
             aria-label="Pipeline name"
@@ -302,21 +376,28 @@ export function TopBar() {
       <div className="relative flex items-center gap-2 shrink-0">
         <button
           type="button"
-          onClick={() => setShowConnPanel(v => !v)}
+          onClick={() => setShowConnPanel((v) => !v)}
           title="Manage connections"
           className={clsx(
             'flex items-center gap-1.5 px-2 py-1 rounded text-xs hover:opacity-80 transition-opacity',
             connections.length > 0 ? 'db-chip-connected' : 'db-chip-disconnected'
           )}
         >
-          <div className={clsx('w-1.5 h-1.5 rounded-full', connections.length > 0 ? 'bg-[var(--success)]' : 'bg-[var(--warning)]')} />
-          {connections.length > 0 ? `${connections.length} Connection${connections.length > 1 ? 's' : ''}` : 'No Connection'}
+          <div
+            className={clsx(
+              'w-1.5 h-1.5 rounded-full',
+              connections.length > 0 ? 'bg-[var(--success)]' : 'bg-[var(--warning)]'
+            )}
+          />
+          {connections.length > 0
+            ? `${connections.length} Connection${connections.length > 1 ? 's' : ''}`
+            : 'No Connection'}
         </button>
 
         {warehouseState && (
           <button
             type="button"
-            onClick={() => setShowConnPanel(v => !v)}
+            onClick={() => setShowConnPanel((v) => !v)}
             title="Manage warehouses"
             className={clsx(
               'flex items-center gap-1.5 px-2 py-1 rounded text-xs hover:opacity-80 transition-opacity',
@@ -326,10 +407,13 @@ export function TopBar() {
             )}
           >
             <WhStateDot state={warehouseState} />
-            {warehouseState === 'RUNNING'  ? 'Warehouse Ready' :
-             warehouseState === 'STARTING' ? 'Starting…' :
-             warehouseState === 'STOPPING' ? 'Stopping…' :
-             warehouseState}
+            {warehouseState === 'RUNNING'
+              ? 'Warehouse Ready'
+              : warehouseState === 'STARTING'
+                ? 'Starting…'
+                : warehouseState === 'STOPPING'
+                  ? 'Stopping…'
+                  : warehouseState}
           </button>
         )}
 
@@ -338,7 +422,12 @@ export function TopBar() {
 
       {/* Right: Actions + User */}
       <div className="flex items-center gap-1 shrink-0">
-        <button type="button" onClick={closeEditor} className="icon-button" title="Back to pipelines">
+        <button
+          type="button"
+          onClick={closeEditor}
+          className="icon-button"
+          title="Back to pipelines"
+        >
           <Home size={14} />
         </button>
 
@@ -354,7 +443,9 @@ export function TopBar() {
         >
           <Save size={13} />
           <span>{saving ? 'Saving…' : 'Save'}</span>
-          {pipelineId && <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" title="Saved" />}
+          {pipelineId && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--success)]" title="Saved" />
+          )}
         </button>
 
         <button
@@ -372,8 +463,12 @@ export function TopBar() {
 
         <div className="topbar-divider mx-1" />
 
-        <button type="button" onClick={toggleTheme} className="icon-button"
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="icon-button"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
           {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
         </button>
 
@@ -381,12 +476,18 @@ export function TopBar() {
 
         {user && (
           <div className="topbar-user flex items-center gap-1.5 px-2 py-1 rounded text-xs">
-            {isAdmin(user.role)
-              ? <ShieldCheck size={13} className="text-[#f44747]" />
-              : <User size={13} className="topbar-chevron" />
-            }
+            {isAdmin(user.role) ? (
+              <ShieldCheck size={13} className="text-[#f44747]" />
+            ) : (
+              <User size={13} className="topbar-chevron" />
+            )}
             <span className="font-medium">{user.username}</span>
-            <span className={clsx('topbar-user-role text-[10px] uppercase font-semibold', ROLE_COLOR[user.role])}>
+            <span
+              className={clsx(
+                'topbar-user-role text-[10px] uppercase font-semibold',
+                ROLE_COLOR[user.role]
+              )}
+            >
               {user.role}
             </span>
           </div>

@@ -16,7 +16,7 @@ export const SourceNode = memo(function SourceNode({ data, selected }: NodeProps
   const connectionMissing =
     !!d.connection_alias &&
     connections.length > 0 &&
-    !connections.find(c => c.alias === d.connection_alias)
+    !connections.find((c) => c.alias === d.connection_alias)
 
   return (
     <DataObjectNode

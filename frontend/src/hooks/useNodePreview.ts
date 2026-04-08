@@ -11,21 +11,32 @@ import { api } from '../services/api'
 import { mapPreviewResult } from '../services/apiMapper'
 import { notify } from '../services/notify'
 
-function findConnectionAlias(nodes: ReturnType<typeof useTransformationStore.getState>['nodes']): string | null {
-  const source = nodes.find(n => n.type === 'source' && n.connection_alias)
+function findConnectionAlias(
+  nodes: ReturnType<typeof useTransformationStore.getState>['nodes']
+): string | null {
+  const source = nodes.find((n) => n.type === 'source' && n.connection_alias)
   return source?.connection_alias ?? null
 }
 
 export function useNodePreview() {
   const {
-    selectedNodeId, nodes, edges,
-    setGeneratedSQL, setOutputPreview, setPreviewLoading, setBottomPanelTab,
+    selectedNodeId,
+    nodes,
+    edges,
+    setGeneratedSQL,
+    setOutputPreview,
+    setPreviewLoading,
+    setBottomPanelTab,
   } = useTransformationStore()
 
   // Regenerate SQL whenever the node config or graph changes
   useEffect(() => {
-    if (!selectedNodeId) { setGeneratedSQL('-- Select a node to see its SQL'); return }
-    api.compilePipeline(nodes, edges, selectedNodeId)
+    if (!selectedNodeId) {
+      setGeneratedSQL('-- Select a node to see its SQL')
+      return
+    }
+    api
+      .compilePipeline(nodes, edges, selectedNodeId)
       .then(({ data }) => setGeneratedSQL(data.sql))
       .catch(() => setGeneratedSQL('-- Could not compile SQL'))
   }, [selectedNodeId, nodes, edges, setGeneratedSQL])
@@ -35,7 +46,10 @@ export function useNodePreview() {
 
     const connectionAlias = findConnectionAlias(nodes)
     if (!connectionAlias) {
-      notify('error', 'No Databricks connection found. Add a source node from the Sources panel first.')
+      notify(
+        'error',
+        'No Databricks connection found. Add a source node from the Sources panel first.'
+      )
       return
     }
 
@@ -47,8 +61,8 @@ export function useNodePreview() {
     } catch (err: unknown) {
       setOutputPreview(null)
       const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-        ?? 'Preview failed — check node connections and config.'
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        'Preview failed — check node connections and config.'
       notify('error', detail)
     } finally {
       setPreviewLoading(false)

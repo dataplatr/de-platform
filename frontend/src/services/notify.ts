@@ -18,7 +18,7 @@ let _listeners: Listener[] = []
 
 function emit() {
   const snapshot = [..._toasts]
-  _listeners.forEach(l => l(snapshot))
+  _listeners.forEach((l) => l(snapshot))
 }
 
 export function notify(variant: ToastVariant, message: string, durationMs = 4000) {
@@ -26,7 +26,7 @@ export function notify(variant: ToastVariant, message: string, durationMs = 4000
   _toasts = [..._toasts, { id, variant, message }]
   emit()
   setTimeout(() => {
-    _toasts = _toasts.filter(t => t.id !== id)
+    _toasts = _toasts.filter((t) => t.id !== id)
     emit()
   }, durationMs)
 }
@@ -35,6 +35,6 @@ export function subscribeToasts(listener: Listener): () => void {
   _listeners = [..._listeners, listener]
   listener([..._toasts])
   return () => {
-    _listeners = _listeners.filter(l => l !== listener)
+    _listeners = _listeners.filter((l) => l !== listener)
   }
 }

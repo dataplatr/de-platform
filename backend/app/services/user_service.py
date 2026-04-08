@@ -1,4 +1,4 @@
-from typing import Optional
+
 from passlib.context import CryptContext
 
 from app.db.auth_db import get_auth_conn
@@ -6,14 +6,14 @@ from app.db.auth_db import get_auth_conn
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def get_user_by_username(username: str) -> Optional[dict]:
+def get_user_by_username(username: str) -> dict | None:
     row = get_auth_conn().execute(
         "SELECT * FROM users WHERE username = ? AND is_active = 1", (username,)
     ).fetchone()
     return dict(row) if row else None
 
 
-def get_user_by_id(user_id: int) -> Optional[dict]:
+def get_user_by_id(user_id: int) -> dict | None:
     row = get_auth_conn().execute(
         "SELECT id, username, email, role, is_active, created_at FROM users WHERE id = ?",
         (user_id,),
@@ -29,7 +29,7 @@ def hash_password(plain: str) -> str:
     return pwd_context.hash(plain)
 
 
-def create_user(username: str, email: Optional[str], password: str, role: str = "analyst") -> dict:
+def create_user(username: str, email: str | None, password: str, role: str = "analyst") -> dict:
     conn = get_auth_conn()
     conn.execute(
         "INSERT INTO users (username, email, hashed_password, role) VALUES (?,?,?,?)",

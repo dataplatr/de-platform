@@ -4,9 +4,9 @@ First implementation: DatabricksConnector.
 Adding Snowflake later = new file implementing these same ABCs, no service layer changes.
 """
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-
 
 # ── Data-transfer objects ─────────────────────────────────────────────────────
 

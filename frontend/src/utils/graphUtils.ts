@@ -21,24 +21,27 @@ import type {
 export function getUpstreamColumns(
   nodeId: string,
   nodes: TransformNode[],
-  edges: TransformEdge[],
+  edges: TransformEdge[]
 ): Column[] {
-  const node = nodes.find(n => n.id === nodeId)
+  const node = nodes.find((n) => n.id === nodeId)
   if (!node) return []
   if (node.type === 'source') return node.columns ?? []
 
-  const incoming = edges.filter(e => e.target === nodeId)
+  const incoming = edges.filter((e) => e.target === nodeId)
   if (!incoming.length) return []
 
   if (node.type === 'join') {
-    const edgeA = incoming.find(e => !e.targetHandle || e.targetHandle === 'a')
-    const edgeB = incoming.find(e => e.targetHandle === 'b')
-    const leftCols  = edgeA ? getUpstreamColumns(edgeA.source, nodes, edges) : []
+    const edgeA = incoming.find((e) => !e.targetHandle || e.targetHandle === 'a')
+    const edgeB = incoming.find((e) => e.targetHandle === 'b')
+    const leftCols = edgeA ? getUpstreamColumns(edgeA.source, nodes, edges) : []
     const rightCols = edgeB ? getUpstreamColumns(edgeB.source, nodes, edges) : []
     const seen = new Set<string>()
     const merged: Column[] = []
-    ;[...leftCols, ...rightCols].forEach(c => {
-      if (!seen.has(c.name)) { seen.add(c.name); merged.push(c) }
+    ;[...leftCols, ...rightCols].forEach((c) => {
+      if (!seen.has(c.name)) {
+        seen.add(c.name)
+        merged.push(c)
+      }
     })
     return merged
   }
@@ -50,9 +53,9 @@ export function getUpstreamColumns(
     }
     const upstream = getUpstreamColumns(incoming[0].source, nodes, edges)
     const groupCols = cfg.groupBy
-      .map(name => upstream.find(c => c.name === name))
+      .map((name) => upstream.find((c) => c.name === name))
       .filter((c): c is Column => !!c)
-    const measureCols: Column[] = cfg.measures.map(m => ({
+    const measureCols: Column[] = cfg.measures.map((m) => ({
       name: m.alias || `${m.func.toLowerCase()}_${m.column}`,
       type: m.func === 'COUNT' || m.func === 'COUNT_DISTINCT' ? 'INTEGER' : 'FLOAT',
       nullable: true,
@@ -66,8 +69,8 @@ export function getUpstreamColumns(
       return getUpstreamColumns(incoming[0].source, nodes, edges)
     }
     const upstream = getUpstreamColumns(incoming[0].source, nodes, edges)
-    return cfg.columns.map(c => {
-      const base = upstream.find(u => u.name === c.source)
+    return cfg.columns.map((c) => {
+      const base = upstream.find((u) => u.name === c.source)
       return { name: c.alias || c.source, type: base?.type ?? 'UNKNOWN', nullable: base?.nullable }
     })
   }
@@ -77,10 +80,10 @@ export function getUpstreamColumns(
     if (!cfg || !cfg.columns.length) return getUpstreamColumns(incoming[0].source, nodes, edges)
     const upstream = getUpstreamColumns(incoming[0].source, nodes, edges)
     return cfg.columns
-      .filter(c => c.enabled)
-      .map(c => {
+      .filter((c) => c.enabled)
+      .map((c) => {
         const outName = c.outputName || c.source
-        const base = upstream.find(u => u.name === c.source)
+        const base = upstream.find((u) => u.name === c.source)
         const type = c.castType || base?.type || 'UNKNOWN'
         return { name: outName, type: type as Column['type'], nullable: base?.nullable }
       })
@@ -95,11 +98,12 @@ export function getColumnsForHandle(
   nodeId: string,
   handleId: 'a' | 'b',
   nodes: TransformNode[],
-  edges: TransformEdge[],
+  edges: TransformEdge[]
 ): Column[] {
   const incoming = edges.filter(
-    e => e.target === nodeId &&
-      (handleId === 'a' ? (!e.targetHandle || e.targetHandle === 'a') : e.targetHandle === 'b'),
+    (e) =>
+      e.target === nodeId &&
+      (handleId === 'a' ? !e.targetHandle || e.targetHandle === 'a' : e.targetHandle === 'b')
   )
   if (!incoming.length) return []
   return getUpstreamColumns(incoming[0].source, nodes, edges)
@@ -109,7 +113,7 @@ export function getColumnsForHandle(
 export function getAllUpstream(
   nodeId: string,
   nodes: TransformNode[],
-  edges: TransformEdge[],
+  edges: TransformEdge[]
 ): TransformNode[] {
   const result: TransformNode[] = []
   const visited = new Set<string>()
@@ -118,9 +122,9 @@ export function getAllUpstream(
     const id = queue.shift()!
     if (visited.has(id)) continue
     visited.add(id)
-    const node = nodes.find(n => n.id === id)
+    const node = nodes.find((n) => n.id === id)
     if (node && id !== nodeId) result.push(node)
-    edges.filter(e => e.target === id).forEach(e => queue.push(e.source))
+    edges.filter((e) => e.target === id).forEach((e) => queue.push(e.source))
   }
   return result
 }
