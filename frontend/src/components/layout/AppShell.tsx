@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TopBar } from './TopBar'
 import { LeftPanel } from './LeftPanel'
 import { CenterPanel } from './CenterPanel'
 import { RightPanel } from './RightPanel'
+import { WarehousePickerModal } from '../settings/WarehousePickerModal'
 import { useResize } from '../../hooks/useResize'
 import { useTransformationStore } from '../../store/transformationStore'
 import { api } from '../../services/api'
@@ -40,6 +41,7 @@ function ResizeHandle({
 
 export function AppShell() {
   const { setConnections, connections, pipelineConnectionAlias, setWarehouseState } = useTransformationStore()
+  const [warehousePickTarget, setWarehousePickTarget] = useState<DatabricksConnection | null>(null)
 
   // Horizontal: left panel (min 160, max 480, default 260)
   const left = useResize(260, 160, 480, 'x', false)
@@ -53,34 +55,61 @@ export function AppShell() {
       .catch(() => { /* backend unreachable — connections stay empty */ })
   }, [setConnections])
 
-  // Warehouse warmup: start on mount, stop on leave
+  // After connections load: auto-start the warehouse and poll until RUNNING.
+  // Shows WarehousePickerModal if the connection has no warehouse_id configured.
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
     const conn = connections.find(c => c.alias === pipelineConnectionAlias) ?? connections[0]
     if (!conn) return
 
-    api.startWarehouse(conn.id).catch(() => {})
-    setWarehouseState('STARTING')
+    if (!conn.warehouse_id) {
+      setWarehousePickTarget(conn)
+      return
+    }
 
-    const poll = setInterval(() => {
-      api.getWarehouseStatus(conn.id)
-        .then(({ data }) => {
-          setWarehouseState(data.state)
-          if (data.state === 'RUNNING') clearInterval(poll)
-        })
-        .catch(() => {})
-    }, 3000)
+    let cancelled = false
+    let polls = 0
+    const MAX_POLLS = 20 // 20 × 3 s = 60 s max warm-up
+
+    setWarehouseState('STARTING')
+    // Fire-and-forget — backend returns immediately; warehouse starts async
+    api.startWarehouse(conn.id).catch(() => {})
+
+    const poll = async () => {
+      if (cancelled) return
+      try {
+        const { data } = await api.getWarehouseStatus(conn.id)
+        if (cancelled) return
+        setWarehouseState(data.state)
+        polls++
+        if (data.state !== 'RUNNING' && polls < MAX_POLLS) {
+          pollTimerRef.current = setTimeout(poll, 3000)
+        }
+      } catch {
+        if (!cancelled) setWarehouseState(null)
+      }
+    }
+
+    // First check after 1 s (warehouse may already be RUNNING)
+    pollTimerRef.current = setTimeout(poll, 1000)
 
     return () => {
-      clearInterval(poll)
-      api.stopWarehouse(conn.id).catch(() => {})
-      setWarehouseState(null)
+      cancelled = true
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [connections.length])  // re-run only when connections list changes (not on every render)
+  }, [connections, pipelineConnectionAlias, setWarehouseState])
 
   return (
     <div className="app-shell flex flex-col h-full select-none">
       <TopBar />
+
+      {warehousePickTarget && (
+        <WarehousePickerModal
+          connection={warehousePickTarget}
+          onClose={() => setWarehousePickTarget(null)}
+        />
+      )}
 
       {/* Main 3-panel layout */}
       <div className="flex flex-1 overflow-hidden">

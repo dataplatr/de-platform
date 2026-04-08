@@ -113,6 +113,28 @@ class DatabricksConnector(CatalogProvider, QueryExecutor, UploadProvider):
             if t.name
         ]
 
+    def list_volumes(self, catalog: str, schema: str) -> list[dict]:
+        """List Unity Catalog volumes in a given catalog.schema."""
+        try:
+            return [
+                {"name": v.name, "full_name": v.full_name or f"{catalog}.{schema}.{v.name}"}
+                for v in self.client.volumes.list(catalog_name=catalog, schema_name=schema)
+                if v.name
+            ]
+        except Exception:
+            return []
+
+    def create_volume(self, catalog: str, schema: str, name: str) -> dict:
+        """Create a managed Unity Catalog volume."""
+        from databricks.sdk.service.catalog import VolumeType
+        vol = self.client.volumes.create(
+            catalog_name=catalog,
+            schema_name=schema,
+            name=name,
+            volume_type=VolumeType.MANAGED,
+        )
+        return {"name": vol.name, "full_name": vol.full_name or f"{catalog}.{schema}.{vol.name}"}
+
     def list_columns(self, catalog: str, schema: str, table: str) -> list[ColumnInfo]:
         full_name = f"{catalog}.{schema}.{table}"
         tbl = self.client.tables.get(full_name)
@@ -134,8 +156,41 @@ class DatabricksConnector(CatalogProvider, QueryExecutor, UploadProvider):
     def execute_materialize(self, sql: str) -> MaterializeResult:
         return self._run_materialize(sql)
 
+    def _resolve_warehouse(self) -> None:
+        """
+        Ensure self.warehouse_id is set.
+        If it is empty, auto-discover the first RUNNING warehouse on the account.
+        Raises ValueError only if no warehouse is available at all.
+        """
+        if self.warehouse_id:
+            return
+        try:
+            warehouses = list(self.client.warehouses.list())
+        except Exception as exc:
+            raise ValueError(
+                "No SQL warehouse configured and could not list warehouses: "
+                f"{exc}. Open the connection panel and select a warehouse."
+            ) from exc
+
+        if not warehouses:
+            raise ValueError(
+                "No SQL warehouses found on this Databricks account. "
+                "Create a warehouse in the Databricks UI first."
+            )
+
+        # Prefer a running warehouse; fall back to the first one in the list
+        running = [w for w in warehouses if _state_str(getattr(w, "state", None)) == "RUNNING"]
+        chosen = running[0] if running else warehouses[0]
+        self.warehouse_id = chosen.id or ""
+        logger.info(
+            "Auto-selected warehouse: %s (%s) — save this in connection settings to avoid future auto-discovery",
+            chosen.name, self.warehouse_id,
+        )
+
     def _run_statement(self, sql: str, is_preview: bool) -> PreviewResult:
         """Execute SQL on the warehouse, poll until done, return structured result."""
+        self._resolve_warehouse()
+
         start = time.monotonic()
 
         logger.debug("Executing statement on warehouse %s:\n%s", self.warehouse_id, sql[:500])
@@ -192,6 +247,8 @@ class DatabricksConnector(CatalogProvider, QueryExecutor, UploadProvider):
 
     def _run_materialize(self, sql: str) -> MaterializeResult:
         """Execute a DDL/DML statement (CREATE TABLE AS SELECT) on the warehouse."""
+        self._resolve_warehouse()
+
         start = time.monotonic()
         logger.debug("Materializing on warehouse %s:\n%s", self.warehouse_id, sql[:500])
 

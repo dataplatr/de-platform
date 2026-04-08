@@ -74,14 +74,14 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
           onChange={e => setDraft(e.target.value)}
           onBlur={commit}
           onKeyDown={handleKeyDown}
-          className="w-full bg-[#1e3a2b] border border-[#4ec9b0]/40 rounded px-1.5 py-0.5 text-[#cccccc] text-[0.625rem] outline-none mt-0.5"
+          className="w-full bg-[var(--node-output-bg)] border border-[var(--node-output-border)] rounded px-1.5 py-0.5 text-[var(--text-1)] text-[0.625rem] outline-none mt-0.5"
         />
       ) : (
         <button
           type="button"
           onDoubleClick={startEdit}
           title="Double-click to rename"
-          className="w-full text-left text-[0.5625rem] text-[#4a6a5a] italic hover:text-[#4ec9b0] transition-colors"
+          className="w-full text-left text-[0.5625rem] text-[var(--text-3)] italic hover:text-[var(--success)] transition-colors"
         >
           double-click to rename
         </button>
@@ -94,7 +94,7 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
         onChange={e => updateCatalog(e.target.value)}
         placeholder="catalog"
         title="Target catalog"
-        className="w-full mt-0.5 bg-[#1a2a22] border border-[#2d4a3a] rounded px-1.5 py-0.5 text-[#cccccc] text-[0.5625rem] outline-none focus:border-[#4ec9b0]/50 placeholder-[#3a5a4a]"
+        className="w-full mt-0.5 bg-[var(--bg-input)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5 text-[var(--text-1)] text-[0.5625rem] outline-none focus:border-[var(--success)]/50 placeholder-[var(--text-3)]"
       />
 
       {/* Schema */}
@@ -104,7 +104,7 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
         onChange={e => updateSchema(e.target.value)}
         placeholder="schema"
         title="Target schema"
-        className="w-full mt-0.5 bg-[#1a2a22] border border-[#2d4a3a] rounded px-1.5 py-0.5 text-[#cccccc] text-[0.5625rem] outline-none focus:border-[#4ec9b0]/50 placeholder-[#3a5a4a]"
+        className="w-full mt-0.5 bg-[var(--bg-input)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5 text-[var(--text-1)] text-[0.5625rem] outline-none focus:border-[var(--success)]/50 placeholder-[var(--text-3)]"
       />
     </DataObjectNode>
   )

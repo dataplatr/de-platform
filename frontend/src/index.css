@@ -429,6 +429,45 @@
     color: var(--text-3);
   }
 
+  /* ── Connection manager panel ── */
+  .conn-panel {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+  }
+  .conn-panel-header {
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-1);
+  }
+  .conn-panel-footer {
+    border-top: 1px solid var(--border-subtle);
+  }
+  .conn-item { color: var(--text-1); cursor: pointer; transition: background 0.1s; }
+  .conn-item:hover, .conn-item-active { background: var(--bg-elevated); }
+  .conn-item-host      { color: var(--text-3); }
+  .conn-item-name      { color: var(--text-1); }
+  .conn-item-wh-ready  { color: var(--success); }
+  .conn-item-wh-other  { color: var(--text-3); }
+  .conn-add-btn        { color: var(--accent-fg); transition: background 0.1s; border-radius: 4px; }
+  .conn-add-btn:hover  { background: var(--bg-elevated); }
+  .conn-wh-header {
+    border-top: 2px solid var(--border);
+    background: var(--bg-app);
+  }
+
+  /* ── Source import modal dropdowns ── */
+  .schema-dropdown {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+  }
+  .schema-dropdown-search {
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .vol-tip {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+  }
+
   /* ── CanvasToolbar ── */
   .toolbar-wrap {
     background: var(--bg-surface);

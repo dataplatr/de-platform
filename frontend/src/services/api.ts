@@ -116,6 +116,15 @@ export const api = {
     apiClient.get<{ name: string; catalog: string; schema: string; table_type: string }[]>(
       `/api/connections/${connectionId}/tree/${catalog}/${schema}`
     ),
+  listVolumes: (connectionId: string, catalog: string, schema: string) =>
+    apiClient.get<{ name: string; full_name: string }[]>(
+      `/api/connections/${connectionId}/tree/${catalog}/${schema}/volumes`
+    ),
+  createVolume: (connectionId: string, catalog: string, schema: string, name: string) =>
+    apiClient.post<{ name: string; full_name: string }>(
+      `/api/connections/${connectionId}/tree/${catalog}/${schema}/volumes`,
+      { name }
+    ),
   listColumns: (connectionId: string, catalog: string, schema: string, table: string) =>
     apiClient.get<{ name: string; type: string; nullable: boolean }[]>(
       `/api/connections/${connectionId}/tree/${catalog}/${schema}/${table}/columns`
@@ -125,13 +134,14 @@ export const api = {
   uploadCSV: (
     connectionId: string,
     file: File,
-    opts?: { targetCatalog?: string; targetSchema?: string; tableName?: string },
+    opts?: { targetCatalog?: string; targetSchema?: string; tableName?: string; uploadVolume?: string },
   ) => {
     const form = new FormData()
     form.append('file', file)
     if (opts?.targetCatalog) form.append('target_catalog', opts.targetCatalog)
     if (opts?.targetSchema)  form.append('target_schema',  opts.targetSchema)
     if (opts?.tableName)     form.append('table_name',     opts.tableName)
+    if (opts?.uploadVolume)  form.append('upload_volume',  opts.uploadVolume)
     return apiClient.post<{ table_ref: string; row_count: number; columns: { name: string; type: string; nullable: boolean }[] }>(
       `/api/connections/${connectionId}/upload-csv`,
       form,

@@ -372,6 +372,30 @@ def list_tables(connection_id: str, catalog: str, schema: str, current: dict = D
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
+@router.get("/connections/{connection_id}/tree/{catalog}/{schema}/volumes")
+def list_volumes(connection_id: str, catalog: str, schema: str, current: dict = Depends(get_current_user)):
+    conn = _get_conn(connection_id, current["id"])
+    connector = get_connector(conn)
+    try:
+        return connector.list_volumes(catalog, schema)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+class CreateVolumeRequest(BaseModel):
+    name: str
+
+
+@router.post("/connections/{connection_id}/tree/{catalog}/{schema}/volumes")
+def create_volume(connection_id: str, catalog: str, schema: str, req: CreateVolumeRequest, current: dict = Depends(get_current_user)):
+    conn = _get_conn(connection_id, current["id"])
+    connector = get_connector(conn)
+    try:
+        return connector.create_volume(catalog, schema, req.name.strip())
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
 @router.get("/connections/{connection_id}/tree/{catalog}/{schema}/{table}/columns")
 def list_columns(connection_id: str, catalog: str, schema: str, table: str, current: dict = Depends(get_current_user)):
     conn = _get_conn(connection_id, current["id"])
@@ -388,27 +412,35 @@ def list_columns(connection_id: str, catalog: str, schema: str, table: str, curr
 async def upload_csv(
     connection_id: str,
     file: UploadFile = File(...),
-    target_catalog: str = Form(""),
-    target_schema:  str = Form(""),
-    table_name:     str = Form(""),
+    target_catalog:  str = Form(""),
+    target_schema:   str = Form(""),
+    table_name:      str = Form(""),
+    upload_volume:   str = Form(""),   # staging volume — sent explicitly from the UI
     current: dict = Depends(get_current_user),
 ):
-    conn = _get_conn(connection_id, current["id"])
-    # Volume (staging) is always from connection config — only the Delta table destination can be overridden
-    if not conn.get("upload_volume", "").strip():
+    conn      = _get_conn(connection_id, current["id"])
+    connector = get_connector(conn)
+
+    # ── Validate BEFORE reading file bytes (fail fast, no partial upload) ──
+    try:
+        connector._resolve_warehouse()  # auto-discovers if warehouse_id is empty
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    # Volume: prefer the value passed from the UI, fall back to saved connection config
+    staging_volume = upload_volume.strip() or conn.get("upload_volume", "").strip()
+    if not staging_volume:
         raise HTTPException(
             status_code=422,
-            detail=(
-                "CSV upload location is not configured for this connection. "
-                "Set upload_catalog, upload_schema, and upload_volume in the connection settings."
-            ),
+            detail="No staging volume configured. Select a volume in the upload form.",
         )
-    # Per-upload destination overrides connection defaults when provided
+
+    # Catalog/schema: prefer form values, fall back to saved defaults
     final_catalog = target_catalog.strip() or conn.get("upload_catalog", "").strip()
     final_schema  = target_schema.strip()  or conn.get("upload_schema",  "").strip()
     if not final_catalog or not final_schema:
         raise HTTPException(status_code=422, detail="Target catalog and schema are required.")
-    connector = get_connector(conn)
+
     try:
         content = await file.read()
         result = connector.upload_csv(
@@ -416,7 +448,7 @@ async def upload_csv(
             filename=table_name.strip() or file.filename or "upload.csv",
             upload_catalog=final_catalog,
             upload_schema=final_schema,
-            upload_volume=conn["upload_volume"],
+            upload_volume=staging_volume,
         )
         return {
             "table_ref": result.table_ref,
