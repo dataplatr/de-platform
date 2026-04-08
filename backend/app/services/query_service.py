@@ -1,66 +1,47 @@
-"""Query execution — previews SQL with a single fetch (no double-query)."""
-import time
-from typing import Any
+"""
+Query execution service — wraps QueryExecutor for use by routes.
+Maps connector PreviewResult to the schema expected by the frontend.
 
-from app.db.connection import get_connection
-from app.models.schemas import PreviewColumnInfo, PreviewResult
+Type mapping is handled in the connector layer (DatabricksConnector._map_type).
+Here we only convert the final PreviewResult DTO to a JSON-serializable dict.
+"""
+from __future__ import annotations
 
-
-def _map_duckdb_type(dtype: str) -> str:
-    """Map a DuckDB type name to our frontend ColumnType enum string."""
-    t = dtype.upper().split("(")[0].strip()
-    if t in ("INTEGER", "INT", "INT4", "INT2", "INT1", "BIGINT", "HUGEINT",
-             "SMALLINT", "TINYINT", "UBIGINT", "UINTEGER", "USMALLINT", "UTINYINT"):
-        return "INTEGER"
-    if t in ("DOUBLE", "FLOAT", "FLOAT4", "FLOAT8", "REAL"):
-        return "FLOAT"
-    if t in ("DECIMAL", "NUMERIC"):
-        return "NUMBER"
-    if t in ("VARCHAR", "TEXT", "STRING", "CHAR", "BPCHAR"):
-        return "VARCHAR"
-    if t in ("BOOLEAN", "BOOL", "LOGICAL"):
-        return "BOOLEAN"
-    if t == "DATE":
-        return "DATE"
-    if t.startswith("TIMESTAMP"):
-        return "TIMESTAMP"
-    if t == "JSON":
-        return "OBJECT"
-    if t.endswith("[]") or t.startswith("LIST") or t.startswith("ARRAY"):
-        return "ARRAY"
-    return "UNKNOWN"
+from app.connectors.base import QueryExecutor, MaterializeResult
 
 
-def _serialize(value: Any) -> Any:
-    if value is None:
-        return None
-    if isinstance(value, (int, float, str, bool)):
-        return value
-    return str(value)
+def preview(executor: QueryExecutor, sql: str, limit: int = 100) -> dict:
+    """
+    Run a preview query (SELECT * FROM (...) LIMIT n) and return structured result.
+
+    Returns the dict shape expected by the frontend PreviewResult interface:
+      { columns, rows, row_count, execution_time_ms, is_sampled }
+    """
+    result = executor.execute_preview(sql, limit)
+    return {
+        "columns": [{"name": c.name, "type": c.type_text} for c in result.columns],
+        "rows": result.rows,
+        "row_count": result.row_count,
+        "execution_time_ms": result.execution_ms,
+        "is_sampled": result.truncated,
+    }
 
 
-def preview_sql(sql: str, limit: int = 100) -> PreviewResult:
-    """Execute SQL once and derive column metadata from the result description."""
-    conn = get_connection()
-    start = time.perf_counter()
+def materialize(executor: QueryExecutor, create_sql: str, target_table: str) -> dict:
+    """
+    Execute a CREATE OR REPLACE TABLE ... AS SELECT ... statement.
 
-    # Single execution — use rel.description for column metadata (no DESCRIBE needed)
-    wrapped = f"SELECT * FROM ({sql}) __q LIMIT {limit}"
-    rel = conn.execute(wrapped)
-    rows = rel.fetchall()
+    Does NOT promise an accurate row_count from the CTAS metadata alone.
+    row_count is omitted — the plan documents this as intentional for P0.
+    Callers can run a separate COUNT(*) if needed.
 
-    col_info = [
-        PreviewColumnInfo(name=desc[0], type=_map_duckdb_type(desc[1]))
-        for desc in rel.description
-    ]
-
-    elapsed_ms = (time.perf_counter() - start) * 1000
-    serialized = [[_serialize(v) for v in row] for row in rows]
-
-    return PreviewResult(
-        columns=col_info,
-        rows=serialized,
-        row_count=len(rows),
-        execution_time_ms=round(elapsed_ms, 2),
-        is_sampled=len(rows) == limit,
-    )
+    Returns: { execution_ms, statement_id, target_table, status }
+    """
+    result: MaterializeResult = executor.execute_materialize(create_sql)
+    result.target_table = target_table
+    return {
+        "execution_ms": result.execution_ms,
+        "statement_id": result.statement_id,
+        "target_table": result.target_table,
+        "status": result.status,
+    }

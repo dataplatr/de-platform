@@ -1,45 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
-  mapDatabaseTree,
   mapPreviewResult,
   mapPipelineSummary,
   mapPipelineDetail,
 } from '../services/apiMapper'
-
-describe('mapDatabaseTree', () => {
-  it('converts snake_case API response to DatabaseTree[]', () => {
-    const raw = [
-      {
-        name: 'demo',
-        schemas: [
-          {
-            name: 'public',
-            tables: [
-              {
-                name: 'orders',
-                columns: [
-                  { name: 'id', type: 'INTEGER', nullable: false },
-                  { name: 'amount', type: 'DOUBLE', nullable: true },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ]
-    const result = mapDatabaseTree(raw)
-    expect(result).toHaveLength(1)
-    expect(result[0].name).toBe('demo')
-    expect(result[0].schemas[0].tables[0].columns[0].type).toBe('INTEGER')
-    expect(result[0].schemas[0].tables[0].columns[1].type).toBe('FLOAT')
-  })
-
-  it('handles missing columns gracefully', () => {
-    const raw = [{ name: 'db', schemas: [{ name: 's', tables: [{ name: 't' }] }] }]
-    const result = mapDatabaseTree(raw)
-    expect(result[0].schemas[0].tables[0].columns).toEqual([])
-  })
-})
 
 describe('mapPreviewResult', () => {
   it('converts row_count and execution_time_ms to camelCase', () => {

@@ -31,7 +31,9 @@ export interface DatabaseTree {
 export type NodeType = 'source' | 'filter' | 'join' | 'aggregate' | 'select' | 'transform' | 'deduplicate' | 'output'
 
 export interface OutputConfig {
-  targetTable: string   // name of the destination table / model
+  targetTable: string    // name of the destination table
+  targetCatalog: string  // Unity Catalog catalog
+  targetSchema: string   // Unity Catalog schema
 }
 
 export interface FilterCondition {
@@ -82,12 +84,13 @@ export interface TransformNode {
   id: string
   type: NodeType
   label: string
-  tableRef?: string       // for source nodes
+  tableRef?: string              // for source nodes: "catalog.schema.table"
+  connection_alias?: string      // for source nodes: immutable alias of the connection
   sourceType?: 'table' | 'view' | 'csv'  // source nodes: which data object variant to render
-  columns?: Column[]      // output schema (filled for source nodes from DB tree)
+  columns?: Column[]             // output schema (filled for source nodes from DB tree)
   config: NodeConfig
   position: { x: number; y: number }
-  sql?: string            // generated SQL for this node
+  sql?: string                   // generated SQL for this node
   status?: 'idle' | 'running' | 'success' | 'error'
   errorMessage?: string
 }
@@ -148,18 +151,18 @@ export interface ChatMessage {
 
 // ─── Connection ───────────────────────────────────────────────────────────────
 
-export interface SnowflakeConnection {
-  account: string
-  username: string
-  warehouse?: string
-  database?: string
-  schema?: string
-}
-
-export interface CSVSource {
+export interface DatabricksConnection {
   id: string
-  filename: string
-  size: number
-  columns: Column[]
-  rowCount: number
+  alias: string           // immutable slug — what source nodes reference
+  name: string            // display only
+  connector_type: 'databricks'
+  host: string
+  warehouse_id: string
+  default_catalog?: string
+  default_schema?: string
+  upload_catalog: string
+  upload_schema: string
+  upload_volume: string
+  created_at: string
+  updated_at: string
 }

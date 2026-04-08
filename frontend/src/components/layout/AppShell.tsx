@@ -6,7 +6,7 @@ import { RightPanel } from './RightPanel'
 import { useResize } from '../../hooks/useResize'
 import { useTransformationStore } from '../../store/transformationStore'
 import { api } from '../../services/api'
-import { mapDatabaseTree } from '../../services/apiMapper'
+import type { DatabricksConnection } from '../../types'
 
 function ResizeHandle({
   axis,
@@ -39,25 +39,44 @@ function ResizeHandle({
 }
 
 export function AppShell() {
-  const { setConnected, setDatabaseTree } = useTransformationStore()
+  const { setConnections, connections, pipelineConnectionAlias, setWarehouseState } = useTransformationStore()
 
   // Horizontal: left panel (min 160, max 480, default 260)
   const left = useResize(260, 160, 480, 'x', false)
   // Horizontal: right panel (min 180, max 520, default 288) — inverted (drag left = grow)
   const right = useResize(288, 180, 520, 'x', true)
 
-  // Auto-connect to backend on mount and load real DB tree
+  // Load connections on mount
   useEffect(() => {
-    api.getDbTree()
-      .then(({ data }) => {
-        setDatabaseTree(mapDatabaseTree(data))
-        setConnected(true)
-      })
-      .catch(() => {
-        // Backend unreachable — keep disconnected state
-        setConnected(false)
-      })
-  }, [setConnected, setDatabaseTree])
+    api.listConnections()
+      .then(({ data }) => setConnections(data as DatabricksConnection[]))
+      .catch(() => { /* backend unreachable — connections stay empty */ })
+  }, [setConnections])
+
+  // Warehouse warmup: start on mount, stop on leave
+  useEffect(() => {
+    const conn = connections.find(c => c.alias === pipelineConnectionAlias) ?? connections[0]
+    if (!conn) return
+
+    api.startWarehouse(conn.id).catch(() => {})
+    setWarehouseState('STARTING')
+
+    const poll = setInterval(() => {
+      api.getWarehouseStatus(conn.id)
+        .then(({ data }) => {
+          setWarehouseState(data.state)
+          if (data.state === 'RUNNING') clearInterval(poll)
+        })
+        .catch(() => {})
+    }, 3000)
+
+    return () => {
+      clearInterval(poll)
+      api.stopWarehouse(conn.id).catch(() => {})
+      setWarehouseState(null)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connections.length])  // re-run only when connections list changes (not on every render)
 
   return (
     <div className="app-shell flex flex-col h-full select-none">

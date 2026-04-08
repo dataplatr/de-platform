@@ -3,7 +3,7 @@
  * converted to typed frontend models. No component should access raw API
  * response shapes directly; use these mappers at the call site.
  */
-import type { DatabaseTree, PreviewResult, ColumnType } from '../types'
+import type { PreviewResult, ColumnType } from '../types'
 import { normalizeColumnType } from '../utils/typeUtils'
 
 // ─── Raw API shapes (what the backend actually sends) ─────────────────────────
@@ -12,21 +12,6 @@ interface RawColumn {
   name: string
   type: string
   nullable?: boolean
-}
-
-interface RawTable {
-  name: string
-  columns?: RawColumn[]
-}
-
-interface RawSchema {
-  name: string
-  tables: RawTable[]
-}
-
-interface RawDatabase {
-  name: string
-  schemas: RawSchema[]
 }
 
 interface RawPreviewResult {
@@ -55,23 +40,6 @@ export interface PipelineDetail {
 }
 
 // ─── Mappers ──────────────────────────────────────────────────────────────────
-
-export function mapDatabaseTree(raw: unknown): DatabaseTree[] {
-  return (raw as RawDatabase[]).map((db) => ({
-    name: db.name,
-    schemas: db.schemas.map((schema) => ({
-      name: schema.name,
-      tables: schema.tables.map((table) => ({
-        name: table.name,
-        columns: (table.columns ?? []).map((col) => ({
-          name: col.name,
-          type: normalizeColumnType(col.type) as ColumnType,
-          nullable: col.nullable ?? true,
-        })),
-      })),
-    })),
-  }))
-}
 
 export function mapPreviewResult(raw: unknown): PreviewResult {
   const r = raw as RawPreviewResult

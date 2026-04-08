@@ -2,16 +2,51 @@
 Pipeline compile service — walks the node graph from a target node upstream
 and produces a single SQL string using nested subqueries.
 
-This is the authoritative SQL generator; the frontend's sqlGenerator.ts is
-kept temporarily as a fallback during Phase 4 migration and will be deleted
-once all call sites are updated.
+Dialect support:
+  - 'databricks': backtick-quoted identifiers (`catalog`.`schema`.`table`)
+  - 'ansi': double-quoted identifiers ("catalog"."schema"."table")
+
+P0 identifier constraint: catalog/schema/table names must NOT contain embedded dots.
+  _qualified_name() splits on '.' and quotes each segment — this is safe as long as
+  no segment itself contains a dot. Validated at connection-setup and drag-drop time.
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
-from app.services.sql_builder import _qi, _validate_identifier
 
+# ── Identifier quoting ────────────────────────────────────────────────────────
+
+def _quote_identifier(name: str, dialect: str) -> str:
+    """Quote a single identifier segment (no dots allowed inside)."""
+    if dialect == "databricks":
+        return "`" + name.replace("`", "``") + "`"
+    # ANSI / fallback
+    return '"' + name.replace('"', '""') + '"'
+
+
+def _qualified_name(table_ref: str, dialect: str) -> str:
+    """
+    Quote each dot-separated segment of a table reference.
+    Works for 2-part (schema.table) and 3-part (catalog.schema.table) refs.
+
+    P0 constraint: segments themselves must not contain dots.
+    Example:
+      databricks: "catalog.schema.table" → `catalog`.`schema`.`table`
+      ansi:       "catalog.schema.table" → "catalog"."schema"."table"
+    """
+    return ".".join(_quote_identifier(seg, dialect) for seg in table_ref.split("."))
+
+
+def _validate_identifier(name: str, label: str = "identifier") -> str:
+    """Ensure an identifier is non-empty and contains only safe characters."""
+    if not name or not re.match(r'^[\w\s.]+$', name):
+        raise ValueError(f"Invalid {label}: {name!r}")
+    return name
+
+
+# ── Graph helpers ─────────────────────────────────────────────────────────────
 
 def _find_node(node_id: str, nodes: list[dict[str, Any]]) -> dict[str, Any] | None:
     for n in nodes:
@@ -44,10 +79,13 @@ def _indent(sql: str, spaces: int = 2) -> str:
     return sql.replace("\n", f"\n{pad}")
 
 
+# ── SQL generation per node type ──────────────────────────────────────────────
+
 def _sql_for(
     node_id: str,
     nodes: list[dict[str, Any]],
     edges: list[dict[str, Any]],
+    dialect: str,
     depth: int = 0,
 ) -> str:
     if depth > 50:
@@ -63,20 +101,21 @@ def _sql_for(
     ea = _edge_a(inc)
     eb = _edge_b(inc)
 
+    def _qi(name: str) -> str:
+        return _quote_identifier(name, dialect)
+
     def upstream(edge: dict[str, Any] | None) -> str | None:
         if edge is None:
             return None
-        return _sql_for(edge["source"], nodes, edges, depth + 1)
+        return _sql_for(edge["source"], nodes, edges, dialect, depth + 1)
 
+    # ── source ────────────────────────────────────────────────────────────────
     if node_type == "source":
         table = node.get("tableRef") or node.get("label") or "undefined_table"
         _validate_identifier(table, "table")
-        # Quote each part of a schema-qualified name separately:
-        # "demo.orders" → "demo"."orders", not "demo.orders" (which DuckDB treats as one literal name)
-        parts = table.split(".")
-        quoted = ".".join(_qi(p) for p in parts)
-        return f"SELECT *\nFROM {quoted}"
+        return f"SELECT *\nFROM {_qualified_name(table, dialect)}"
 
+    # ── filter ────────────────────────────────────────────────────────────────
     if node_type == "filter":
         up = upstream(ea)
         if not up:
@@ -113,6 +152,7 @@ def _sql_for(
         where = f"\n  {logic} ".join(parts)
         return f"SELECT *\nFROM (\n  {_indent(up)}\n) _f\nWHERE {where}"
 
+    # ── join ──────────────────────────────────────────────────────────────────
     if node_type == "join":
         lsql = upstream(ea)
         rsql = upstream(eb)
@@ -138,6 +178,7 @@ def _sql_for(
             f"  ON {on}"
         )
 
+    # ── aggregate ─────────────────────────────────────────────────────────────
     if node_type == "aggregate":
         up = upstream(ea)
         if not up:
@@ -160,6 +201,7 @@ def _sql_for(
         cols_str = ",\n  ".join(selects)
         return f"SELECT\n  {cols_str}\nFROM (\n  {_indent(up)}\n) _a{gb}"
 
+    # ── select ────────────────────────────────────────────────────────────────
     if node_type == "select":
         up = upstream(ea)
         if not up:
@@ -176,6 +218,7 @@ def _sql_for(
         cols_str = ",\n  ".join(col_parts)
         return f"SELECT\n  {cols_str}\nFROM (\n  {_indent(up)}\n) _s"
 
+    # ── transform ─────────────────────────────────────────────────────────────
     if node_type == "transform":
         up = upstream(ea)
         if not up:
@@ -199,6 +242,7 @@ def _sql_for(
         cols_str = ",\n  ".join(col_parts)
         return f"SELECT\n  {cols_str}\nFROM (\n  {_indent(up)}\n) _t"
 
+    # ── deduplicate ───────────────────────────────────────────────────────────
     if node_type == "deduplicate":
         up = upstream(ea)
         if not up:
@@ -220,6 +264,7 @@ def _sql_for(
             f") _dedup\nWHERE _rn = 1"
         )
 
+    # ── output ────────────────────────────────────────────────────────────────
     if node_type == "output":
         if not inc:
             return "-- ⚠ Connect at least one node to the Output"
@@ -230,22 +275,70 @@ def _sql_for(
             if not up:
                 return "-- ⚠ No upstream node"
             return f"-- Output: {table}\n{up}"
-        parts = [_sql_for(e["source"], nodes, edges, depth + 1) for e in inc]
+        parts = [_sql_for(e["source"], nodes, edges, dialect, depth + 1) for e in inc]
         return f"-- Output: {table} ({len(parts)} sources)\n" + "\n\nUNION ALL\n\n".join(parts)
 
     return f"-- Unknown node type: {node_type}"
 
 
+# ── Public API ────────────────────────────────────────────────────────────────
+
 def compile_pipeline(
     nodes: list[dict[str, Any]],
     edges: list[dict[str, Any]],
     target_node_id: str,
+    dialect: str = "databricks",
 ) -> str:
     """
-    Walk the node graph from target_node_id upstream and return the
-    composed SQL string. Raises ValueError for invalid graphs.
+    Walk the node graph from target_node_id upstream and return the composed SQL.
+    Raises ValueError for invalid graphs or identifiers.
     """
     node = _find_node(target_node_id, nodes)
     if node is None:
         raise ValueError(f"Target node {target_node_id!r} not found in pipeline")
-    return _sql_for(target_node_id, nodes, edges)
+    return _sql_for(target_node_id, nodes, edges, dialect)
+
+
+def compile_to_cte(
+    nodes: list[dict[str, Any]],
+    edges: list[dict[str, Any]],
+    output_node_id: str,
+    dialect: str = "databricks",
+) -> str:
+    """
+    Compile the full pipeline to a CREATE OR REPLACE TABLE … AS (…) statement.
+
+    Calls compile_pipeline on the output node directly to preserve all output-node
+    semantics (e.g. UNION ALL for multiple inputs). The output node's config provides
+    the target catalog, schema, and table name.
+
+    Requires OutputConfig fields: targetCatalog, targetSchema, targetTable.
+    """
+    out_node = _find_node(output_node_id, nodes)
+    if out_node is None:
+        raise ValueError(f"Output node {output_node_id!r} not found")
+
+    cfg = out_node.get("config") or {}
+    target_catalog = cfg.get("targetCatalog", "").strip()
+    target_schema = cfg.get("targetSchema", "").strip()
+    target_table = cfg.get("targetTable", "").strip()
+
+    if not target_catalog or not target_schema or not target_table:
+        raise ValueError(
+            "Output node must have targetCatalog, targetSchema, and targetTable configured"
+        )
+
+    # Build quoted 3-part target identifier
+    target_ref = f"{target_catalog}.{target_schema}.{target_table}"
+    quoted_target = _qualified_name(target_ref, dialect)
+
+    # compile_pipeline on the output node — output handler emits SELECT from upstream
+    inner_sql = compile_pipeline(nodes, edges, output_node_id, dialect)
+
+    # Strip the "-- Output: <table>" comment prefix emitted by the output node handler
+    # so we get clean SQL for wrapping
+    lines = inner_sql.splitlines()
+    if lines and lines[0].startswith("-- Output:"):
+        inner_sql = "\n".join(lines[1:]).lstrip("\n")
+
+    return f"CREATE OR REPLACE TABLE {quoted_target} AS (\n  {_indent(inner_sql)}\n)"

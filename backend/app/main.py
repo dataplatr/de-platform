@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -5,15 +6,24 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routes.main_routes import router
-from app.db.connection import get_connection
 from app.db.auth_db import init_auth_db
 from app.middleware.audit_middleware import AuditMiddleware
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.DEBUG if settings.ENV != "production" else logging.INFO,
+    format="%(asctime)s  %(levelname)-8s  %(name)s — %(message)s",
+    datefmt="%H:%M:%S",
+)
+# Quieten noisy third-party loggers
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+logging.getLogger("databricks").setLevel(logging.INFO)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ARG001
-    init_auth_db()    # Create users/sessions/audit tables, seed default users
-    get_connection()  # Open DuckDB and seed demo tables
+    init_auth_db()  # Create users/sessions/connections/audit tables, seed default users
     yield
 
 

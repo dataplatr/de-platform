@@ -26,6 +26,8 @@ interface DataObjectNodeProps {
   rowCount?: number
   /** Short descriptive subtitle shown below the label */
   description?: string
+  /** If set, renders a red error strip at the bottom of the node */
+  errorMessage?: string
   selected?: boolean
   hasInput?: boolean
   hasOutput?: boolean
@@ -35,7 +37,7 @@ interface DataObjectNodeProps {
 }
 
 export const DataObjectNode = memo(function DataObjectNode({
-  variant, label, colCount, rowCount, description,
+  variant, label, colCount, rowCount, description, errorMessage,
   selected = false,
   hasInput = true,
   hasOutput = true,
@@ -43,7 +45,7 @@ export const DataObjectNode = memo(function DataObjectNode({
   children,
 }: DataObjectNodeProps) {
   return (
-    <div className={clsx('data-object-node', `variant-${variant}`, selected && 'node-selected')}>
+    <div className={clsx('data-object-node', `variant-${variant}`, selected && 'node-selected', errorMessage && 'border-[#f44747]')}>
       {hasInput && (
         <Handle
           type="target"
@@ -71,6 +73,9 @@ export const DataObjectNode = memo(function DataObjectNode({
           <span className="text-[0.5625rem] italic opacity-70 truncate">{description}</span>
         )}
         {children}
+        {errorMessage && (
+          <span className="text-[0.5625rem] text-[#f44747] truncate">{errorMessage}</span>
+        )}
       </div>
 
       {hasOutput && (

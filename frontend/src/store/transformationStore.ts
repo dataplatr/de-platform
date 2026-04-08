@@ -7,9 +7,7 @@ import type {
   StepHistoryEntry,
   PreviewResult,
   ChatMessage,
-  DatabaseTree,
-  CSVSource,
-  TableSchema,
+  DatabricksConnection,
 } from '../types'
 
 type HistorySnapshot = { nodes: TransformNode[]; edges: TransformEdge[] }
@@ -21,11 +19,10 @@ function snapshot(nodes: TransformNode[], edges: TransformEdge[]): HistorySnapsh
 }
 
 interface TransformationState {
-  // ─── Data Sources ──────────────────────────────────────────────
-  databaseTree: DatabaseTree[]
-  csvSources: CSVSource[]
-  selectedTableSchema: TableSchema | null
-  isConnected: boolean
+  // ─── Connections ───────────────────────────────────────────────
+  connections: DatabricksConnection[]
+  pipelineConnectionAlias: string | null
+  warehouseState: string | null  // 'RUNNING'|'STARTING'|'STOPPED'|'STOPPING'|null
 
   // ─── Canvas ────────────────────────────────────────────────────
   nodes: TransformNode[]
@@ -65,11 +62,10 @@ interface TransformationState {
 }
 
 interface TransformationActions {
-  // Connection
-  setConnected: (connected: boolean) => void
-  setDatabaseTree: (tree: DatabaseTree[]) => void
-  addCsvSource: (csv: CSVSource) => void
-  setSelectedTableSchema: (schema: TableSchema | null) => void
+  // Connections
+  setConnections: (connections: DatabricksConnection[]) => void
+  setPipelineConnectionAlias: (alias: string | null) => void
+  setWarehouseState: (state: string | null) => void
 
   // Canvas
   addNode: (node: TransformNode) => void
@@ -119,10 +115,9 @@ interface TransformationActions {
 export const useTransformationStore = create<TransformationState & TransformationActions>()(
   immer((set) => ({
     // ─── Initial State ───────────────────────────────────────────
-    databaseTree: [],
-    csvSources: [],
-    selectedTableSchema: null,
-    isConnected: false,
+    connections: [],
+    pipelineConnectionAlias: null,
+    warehouseState: null,
 
     nodes: [],
     edges: [],
@@ -153,10 +148,9 @@ export const useTransformationStore = create<TransformationState & Transformatio
     clipboard: [],
 
     // ─── Actions ──────────────────────────────────────────────────
-    setConnected: (connected) => set((s) => { s.isConnected = connected }),
-    setDatabaseTree: (tree) => set((s) => { s.databaseTree = tree }),
-    addCsvSource: (csv) => set((s) => { s.csvSources.push(csv) }),
-    setSelectedTableSchema: (schema) => set((s) => { s.selectedTableSchema = schema }),
+    setConnections: (connections) => set((s) => { s.connections = connections as DatabricksConnection[] }),
+    setPipelineConnectionAlias: (alias) => set((s) => { s.pipelineConnectionAlias = alias }),
+    setWarehouseState: (state) => set((s) => { s.warehouseState = state }),
 
     addNode: (node) => set((s) => {
       const snap = snapshot(current(s.nodes) as TransformNode[], current(s.edges) as TransformEdge[])
@@ -228,10 +222,12 @@ export const useTransformationStore = create<TransformationState & Transformatio
       s.pipelineName = opts?.name ?? 'Untitled Pipeline'
       s.nodes        = opts?.nodes ?? []
       s.edges        = opts?.edges ?? []
-      s.selectedNodeId   = null
-      s.generatedSQL     = ''
-      s.outputPreview    = null
-      s.expandedOutputId = null
+      s.selectedNodeId         = null
+      s.generatedSQL           = ''
+      s.outputPreview          = null
+      s.expandedOutputId       = null
+      s.pipelineConnectionAlias = null
+      s.warehouseState = null
       // Clear history when opening a new pipeline
       s._history = []
       s._future  = []
@@ -246,6 +242,8 @@ export const useTransformationStore = create<TransformationState & Transformatio
       s._future = []
       s.nodes = []; s.edges = []; s.selectedNodeId = null
       s.generatedSQL = ''; s.outputPreview = null
+      s.pipelineConnectionAlias = null
+      s.warehouseState = null
     }),
 
     // ─── Undo / Redo ─────────────────────────────────────────────

@@ -4,20 +4,20 @@
  */
 import { useCallback } from 'react'
 import type { Connection, ReactFlowInstance } from '@xyflow/react'
-import type { MutableRefObject } from 'react'
 import { useTransformationStore } from '../store/transformationStore'
 import { makeNodeId, DEFAULT_CONFIGS } from '../constants/nodeDefaults'
 import { notify } from '../services/notify'
 import type { TransformNode } from '../types'
 
 export function useCanvasEventHandlers(
-  rfInstance: MutableRefObject<ReactFlowInstance | null>,
+  rfInstance: { current: ReactFlowInstance | null },
   setImportPos: (pos: { x: number; y: number } | null) => void,
   setCtxMenu: (menu: { x: number; y: number; flowX: number; flowY: number; nodeId?: string } | null) => void,
 ) {
   const {
     nodes, edges, addNode, removeNode, addEdge,
     setSelectedNode, setRightPanelTab,
+    pipelineConnectionAlias, setPipelineConnectionAlias,
   } = useTransformationStore()
 
   const closeCtx = useCallback(() => setCtxMenu(null), [setCtxMenu])
@@ -71,8 +71,6 @@ export function useCanvasEventHandlers(
     (_: React.MouseEvent, node: { id: string; type?: string }) => {
       if (node.type === 'pipelineGroup') return
       setSelectedNode(node.id)
-      // Transformation nodes and output nodes open the config panel on click.
-      // Source nodes just select (schema visible in config panel too).
       const opensConfig = new Set(['output', 'filter', 'join', 'aggregate', 'select', 'transform', 'deduplicate'])
       if (node.type && opensConfig.has(node.type)) setRightPanelTab('config')
     },
@@ -111,19 +109,46 @@ export function useCanvasEventHandlers(
       e.preventDefault()
       const raw = e.dataTransfer.getData('application/lakeflow-node')
       if (!raw || !rfInstance.current) return
-      const data = JSON.parse(raw) as {
-        tableRef: string; label: string; sourceType?: 'table' | 'view' | 'csv'
+      const drag = JSON.parse(raw) as {
+        tableRef: string
+        label: string
+        sourceType?: 'table' | 'view' | 'csv'
         columns: { name: string; type: string; nullable: boolean }[]
+        connectionAlias?: string
       }
+
+      // ── Single-connection enforcement ──────────────────────────────────────
+      if (drag.connectionAlias) {
+        if (pipelineConnectionAlias && drag.connectionAlias !== pipelineConnectionAlias) {
+          notify(
+            'error',
+            `Pipeline already uses "${pipelineConnectionAlias}". All sources must share one connection.`,
+          )
+          return
+        }
+        if (!pipelineConnectionAlias) {
+          setPipelineConnectionAlias(drag.connectionAlias)
+        }
+      }
+
       const position = rfInstance.current.screenToFlowPosition({ x: e.clientX, y: e.clientY })
       addNode({
-        id: makeNodeId(), type: 'source', label: data.label, tableRef: data.tableRef,
-        sourceType: data.sourceType ?? 'table',
-        columns: data.columns.map(c => ({ name: c.name, type: c.type as TransformNode['columns'] extends { type: infer T }[] ? T : never, nullable: c.nullable })),
-        config: null, position,
+        id: makeNodeId(),
+        type: 'source',
+        label: drag.label,
+        tableRef: drag.tableRef,
+        connection_alias: drag.connectionAlias,
+        sourceType: drag.sourceType ?? 'table',
+        columns: drag.columns.map(c => ({
+          name: c.name,
+          type: c.type as TransformNode['columns'] extends { type: infer T }[] ? T : never,
+          nullable: c.nullable,
+        })),
+        config: null,
+        position,
       })
     },
-    [addNode, rfInstance],
+    [addNode, rfInstance, pipelineConnectionAlias, setPipelineConnectionAlias],
   )
 
   const buildMenuItems = useCallback(

@@ -10,9 +10,10 @@ import { ROLE_COLOR } from '../../constants/nodeMetadata'
 
 export function TopBar() {
   const {
-    isConnected, nodes, edges,
+    connections, nodes, edges,
     pipelineName, pipelineId,
     setPipelineName, setPipelineId, closeEditor,
+    warehouseState,
   } = useTransformationStore()
   const { user, logout } = useAuthStore()
   const { theme, toggleTheme } = useTheme()
@@ -94,15 +95,36 @@ export function TopBar() {
         )}
       </div>
 
-      {/* Center: Connection status */}
+      {/* Center: Connection + Warehouse status */}
       <div className="flex items-center gap-2 shrink-0">
         <div className={clsx(
           'flex items-center gap-1.5 px-2 py-1 rounded text-xs',
-          isConnected ? 'db-chip-connected' : 'db-chip-disconnected'
+          connections.length > 0 ? 'db-chip-connected' : 'db-chip-disconnected'
         )}>
-          <div className={clsx('w-1.5 h-1.5 rounded-full', isConnected ? 'bg-[var(--success)]' : 'bg-[var(--warning)]')} />
-          {isConnected ? 'DuckDB Connected' : 'No Connection'}
+          <div className={clsx('w-1.5 h-1.5 rounded-full', connections.length > 0 ? 'bg-[var(--success)]' : 'bg-[var(--warning)]')} />
+          {connections.length > 0 ? `${connections.length} Connection${connections.length > 1 ? 's' : ''}` : 'No Connection'}
         </div>
+
+        {warehouseState && (
+          <div className={clsx(
+            'flex items-center gap-1.5 px-2 py-1 rounded text-xs',
+            warehouseState === 'RUNNING'
+              ? 'bg-[#1e3a2b] text-[#4ec9b0]'
+              : 'bg-[#2d2d30] text-[#969696]'
+          )}>
+            <div className={clsx(
+              'w-1.5 h-1.5 rounded-full shrink-0',
+              warehouseState === 'RUNNING'   ? 'bg-[#4ec9b0]' :
+              warehouseState === 'STARTING'  ? 'bg-[#dcdcaa] animate-pulse' :
+              warehouseState === 'STOPPING'  ? 'bg-[#ce9178] animate-pulse' :
+              'bg-[#6a6a6a]'
+            )} />
+            {warehouseState === 'RUNNING'  ? 'Warehouse Ready' :
+             warehouseState === 'STARTING' ? 'Starting…' :
+             warehouseState === 'STOPPING' ? 'Stopping…' :
+             warehouseState}
+          </div>
+        )}
       </div>
 
       {/* Right: Actions + User */}

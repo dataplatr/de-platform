@@ -161,7 +161,66 @@ class PipelinePreviewRequest(BaseModel):
     nodes: list[dict[str, Any]]
     edges: list[dict[str, Any]]
     target_node_id: str
+    connection_alias: str
     limit: int = Field(default=100, ge=1, le=1000)
+
+
+# --- Connections ---
+
+class CreateConnectionRequest(BaseModel):
+    alias: str
+    name: str = ""
+    host: str
+    token: str
+    warehouse_id: str
+    default_catalog: Optional[str] = None
+    default_schema: Optional[str] = None
+    upload_catalog: str = ""
+    upload_schema: str = ""
+    upload_volume: str = ""
+    connector_type: str = "databricks"
+
+
+class DiscoverWarehousesRequest(BaseModel):
+    host: str
+    token: str
+
+
+class TestConnectionRequest(BaseModel):
+    host: str
+    token: str
+    warehouse_id: str
+
+
+class TestConnectionResult(BaseModel):
+    success: bool
+    error: str = ""
+
+
+class ConnectionResponse(BaseModel):
+    id: str
+    alias: str
+    name: str
+    connector_type: str
+    host: str
+    warehouse_id: str
+    default_catalog: Optional[str]
+    default_schema: Optional[str]
+    upload_catalog: str
+    upload_schema: str
+    upload_volume: str
+    created_at: str
+    updated_at: str
+
+
+# --- Pipeline run ---
+
+class PipelineRunRequest(BaseModel):
+    nodes: list[dict[str, Any]]
+    edges: list[dict[str, Any]]
+    output_node_id: str
+    connection_alias: str
+    dialect: str = "databricks"
 
 
 # --- Audit ---
