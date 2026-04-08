@@ -431,7 +431,7 @@ export function TransformConfig({ nodeId, config, columns }: Props) {
                 {castWarn && (
                   <AlertTriangle
                     size={10}
-                    title={castWarn.msg}
+                    aria-label={castWarn.msg}
                     className={
                       castWarn.level === 'error'
                         ? 'text-error shrink-0'

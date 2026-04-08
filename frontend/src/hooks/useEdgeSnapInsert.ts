@@ -44,10 +44,6 @@ interface SnapResult {
   dist: number
 }
 
-function getNodeCenter(node: TransformNode): { x: number; y: number } {
-  return { x: node.position.x + NODE_W / 2, y: node.position.y + NODE_H / 2 }
-}
-
 function edgeMidpoint(
   e: TransformEdge,
   nodeById: Map<string, TransformNode>

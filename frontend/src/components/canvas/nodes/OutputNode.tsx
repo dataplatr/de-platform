@@ -42,7 +42,7 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
     const trimmed = draft.trim() || tableName
     updateNode(data.id, {
       label: trimmed,
-      config: { ...config, targetTable: trimmed },
+      config: { ...config, targetTable: trimmed } as OutputConfig,
     })
     setEditing(false)
   }
@@ -53,10 +53,10 @@ export const OutputNode = memo(function OutputNode({ data, selected }: OutputNod
 
   // ── Target location fields (catalog + schema) ──────────────────────────────
   const updateCatalog = (v: string) =>
-    updateNode(data.id, { config: { ...config, targetCatalog: v.trim() } })
+    updateNode(data.id, { config: { ...config, targetCatalog: v.trim() } as OutputConfig })
 
   const updateSchema = (v: string) =>
-    updateNode(data.id, { config: { ...config, targetSchema: v.trim() } })
+    updateNode(data.id, { config: { ...config, targetSchema: v.trim() } as OutputConfig })
 
   const displayRef =
     targetCatalog && targetSchema ? `${targetCatalog}.${targetSchema}.${tableName}` : undefined

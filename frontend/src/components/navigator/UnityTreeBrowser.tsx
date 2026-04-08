@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { ChevronDown, ChevronRight, Database, Loader2, Table2 } from 'lucide-react'
 import { api } from '../../services/api'
-import type { DatabricksConnection, ColumnType } from '../../types'
+import type { DatabricksConnection } from '../../types'
 import clsx from 'clsx'
 
 // ── Type aliases ──────────────────────────────────────────────────────────────

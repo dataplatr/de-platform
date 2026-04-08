@@ -5,7 +5,7 @@ import { useTransformationStore } from '../../../store/transformationStore'
 import type { TransformNode } from '../../../types'
 
 export const SourceNode = memo(function SourceNode({ data, selected }: NodeProps) {
-  const d = data as TransformNode
+  const d = data as unknown as TransformNode
   const { connections } = useTransformationStore()
 
   const variant: DataObjectVariant = d.sourceType ?? 'table'

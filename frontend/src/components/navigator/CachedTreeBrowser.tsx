@@ -267,7 +267,7 @@ export function CachedTreeBrowser({
                     const schKey = `${catalog}.${ss.schema}`
                     const allSchemaTables = schemaMap.get(ss.schema) ?? []
                     const schemaTables = searchLower
-                      ? allSchemaTables.filter((t) =>
+                      ? allSchemaTables.filter((t: CachedTable) =>
                           t.table_name.toLowerCase().includes(searchLower)
                         )
                       : allSchemaTables
@@ -362,7 +362,7 @@ export function CachedTreeBrowser({
                               </div>
                             )}
 
-                            {schemaTables.map((table) => {
+                            {schemaTables.map((table: CachedTable) => {
                               const tKey = `${catalog}.${ss.schema}.${table.table_name}`
                               const tExpanded = expandedTables.has(tKey)
 
@@ -400,7 +400,7 @@ export function CachedTreeBrowser({
 
                                   {tExpanded && table.columns.length > 0 && (
                                     <div className="ml-6 border-l border-[#2d2d30]">
-                                      {table.columns.map((col) => (
+                                      {table.columns.map((col: CachedTable['columns'][number]) => (
                                         <div
                                           key={col.name}
                                           className="flex items-center gap-1.5 px-2 py-0.5 text-[11px] text-[#969696]"

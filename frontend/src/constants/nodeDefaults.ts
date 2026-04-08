@@ -11,7 +11,7 @@ export const DEFAULT_CONFIGS: Record<string, TransformNode['config']> = {
   select: { columns: [] },
   transform: { columns: [] },
   deduplicate: { partitionBy: [], orderBy: '', orderDir: 'DESC' },
-  output: { targetTable: 'output' },
+  output: { targetTable: 'output', targetCatalog: '', targetSchema: '' },
   source: null,
 }
 

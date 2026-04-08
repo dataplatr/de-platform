@@ -8,12 +8,6 @@ import { normalizeColumnType } from '../utils/typeUtils'
 
 // ─── Raw API shapes (what the backend actually sends) ─────────────────────────
 
-interface RawColumn {
-  name: string
-  type: string
-  nullable?: boolean
-}
-
 interface RawPreviewResult {
   columns: { name: string; type: string }[]
   rows: unknown[][]

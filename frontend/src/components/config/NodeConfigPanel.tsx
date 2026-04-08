@@ -16,6 +16,7 @@ import type {
   SelectConfig as SelectCfg,
   TransformConfig as TransformCfg,
   DeduplicateConfig as DedupCfg,
+  OutputConfig,
 } from '../../types'
 import { useNodePreview } from '../../hooks/useNodePreview'
 import { useUpstreamColumns } from '../../hooks/useUpstreamColumns'
@@ -82,7 +83,10 @@ function OutputConfig({
   const commitName = useCallback(
     (trimmed: string) => {
       const val = trimmed.trim() || 'output'
-      updateNode(nodeId, { label: val, config: { ...(cfg ?? {}), targetTable: val } })
+      updateNode(nodeId, {
+        label: val,
+        config: { ...(cfg ?? {}), targetTable: val } as OutputConfig,
+      })
     },
     [nodeId, cfg, updateNode]
   )
