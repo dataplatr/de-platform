@@ -129,6 +129,13 @@ def _run_migrations(conn: sqlite3.Connection) -> None:
         except Exception:
             pass  # Column already exists — ignore
 
+    # Remove any previously cached volume/foreign entries (now excluded from sync)
+    try:
+        conn.execute("DELETE FROM table_metadata_cache WHERE table_type IN ('VOLUME','FOREIGN')")
+        conn.commit()
+    except Exception:
+        pass  # Table may not exist yet on first run
+
     # New tables for schema metadata caching
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS selected_schemas (

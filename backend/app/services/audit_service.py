@@ -1,7 +1,46 @@
+"""
+Audit logging service.
+
+Writes are fire-and-forget: submitted to a single-threaded background executor
+so they never contend with schema-cache sync writes on the same SQLite file.
+"""
+import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
 from app.constants import AUDIT_MAX_LIMIT
 from app.db.auth_db import get_auth_conn
+
+logger = logging.getLogger(__name__)
+
+# Single writer thread — SQLite only allows one concurrent writer anyway.
+# This serialises all audit INSERTs and keeps them off the request thread.
+_audit_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="audit-writer")
+
+
+def _write_log(
+    action: str,
+    user_id: Optional[int],
+    username: Optional[str],
+    method: Optional[str],
+    path: Optional[str],
+    status_code: Optional[int],
+    ip_address,
+    user_agent: Optional[str],
+    details: Optional[str],
+) -> None:
+    """Runs inside the single audit writer thread."""
+    try:
+        conn = get_auth_conn()
+        conn.execute(
+            """INSERT INTO audit_log
+               (user_id, username, action, method, path, status_code, ip_address, user_agent, details)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
+            (user_id, username, action, method, path, status_code, ip_address, user_agent, details),
+        )
+        conn.commit()
+    except Exception:
+        logger.debug("Audit write failed (non-fatal)", exc_info=True)
 
 
 def log_activity(
@@ -11,18 +50,15 @@ def log_activity(
     method: Optional[str] = None,
     path: Optional[str] = None,
     status_code: Optional[int] = None,
-    ip_address: Optional[str] = None,
+    ip_address=None,
     user_agent: Optional[str] = None,
     details: Optional[str] = None,
 ) -> None:
-    conn = get_auth_conn()
-    conn.execute(
-        """INSERT INTO audit_log
-           (user_id, username, action, method, path, status_code, ip_address, user_agent, details)
-           VALUES (?,?,?,?,?,?,?,?,?)""",
-        (user_id, username, action, method, path, status_code, ip_address, user_agent, details),
+    """Non-blocking: submits the write to the background audit thread."""
+    _audit_executor.submit(
+        _write_log, action, user_id, username, method, path,
+        status_code, ip_address, user_agent, details,
     )
-    conn.commit()
 
 
 def get_audit_log(limit: int = 200, offset: int = 0) -> list[dict]:

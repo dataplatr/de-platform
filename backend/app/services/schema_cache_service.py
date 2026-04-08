@@ -79,8 +79,11 @@ def sync_schema(
 ) -> int:
     """
     Fetch all tables + columns for a schema from Databricks and persist to cache.
-    Runs eagerly (called from a background thread). Returns table count.
-    Row counts are NOT fetched (too slow for large schemas).
+    Runs in a background thread. Returns table count.
+
+    Strategy: fetch ALL data from Databricks first (pure network I/O, no DB lock),
+    then write everything in ONE batched transaction (hold the SQLite write lock
+    for < 5ms regardless of schema size). This prevents contention with audit writes.
     """
     logger.info("Syncing schema %s.%s for connection %s", catalog, schema, connection_id)
     try:
@@ -90,10 +93,10 @@ def sync_schema(
         return 0
 
     synced_at = datetime.now(timezone.utc).isoformat()
-    count = 0
 
+    # ── Phase 1: fetch all column metadata from Databricks (no DB writes) ────
+    rows: list[tuple] = []
     for table in tables:
-        # ── 1. Fetch columns from Databricks (no DB writes, lock is free) ──────
         try:
             cols = connector.list_columns(catalog, schema, table.name)
             columns_json = json.dumps([
@@ -101,14 +104,19 @@ def sync_schema(
                 for c in cols
             ])
         except Exception as exc:
-            logger.warning("Failed to fetch columns for %s.%s.%s: %s", catalog, schema, table.name, exc)
+            logger.warning("Skipping columns for %s.%s.%s: %s", catalog, schema, table.name, exc)
             columns_json = "[]"
 
-        # ── 2. Write to DB and commit immediately (hold lock < 1ms) ──────────
-        row_id = str(uuid.uuid4())
+        rows.append((
+            str(uuid.uuid4()), connection_id, catalog, schema,
+            table.name, table.table_type, columns_json, synced_at,
+        ))
+
+    # ── Phase 2: write everything in one transaction (lock held < 5ms) ───────
+    if rows:
         try:
             db = get_auth_conn()
-            db.execute(
+            db.executemany(
                 """INSERT INTO table_metadata_cache
                    (id, connection_id, catalog, schema, table_name, table_type, columns_json, synced_at)
                    VALUES (?,?,?,?,?,?,?,?)
@@ -116,23 +124,23 @@ def sync_schema(
                    DO UPDATE SET table_type=excluded.table_type,
                                  columns_json=excluded.columns_json,
                                  synced_at=excluded.synced_at""",
-                (row_id, connection_id, catalog, schema, table.name,
-                 table.table_type, columns_json, synced_at),
+                rows,
             )
-            db.commit()   # release write lock immediately between tables
-            count += 1
+            db.execute(
+                "UPDATE selected_schemas SET synced_at=? WHERE connection_id=? AND catalog=? AND schema=?",
+                (synced_at, connection_id, catalog, schema),
+            )
+            db.commit()
         except Exception as exc:
-            logger.warning("Failed to cache table %s: %s", table.name, exc)
+            logger.error("Failed to persist cache for %s.%s: %s", catalog, schema, exc)
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            return 0
 
-    # ── Mark schema as fully synced ───────────────────────────────────────────
-    db = get_auth_conn()
-    db.execute(
-        "UPDATE selected_schemas SET synced_at=? WHERE connection_id=? AND catalog=? AND schema=?",
-        (synced_at, connection_id, catalog, schema),
-    )
-    db.commit()
-    logger.info("Synced %d tables for %s.%s", count, catalog, schema)
-    return count
+    logger.info("Synced %d tables for %s.%s", len(rows), catalog, schema)
+    return len(rows)
 
 
 def sync_all_schemas(connector: DatabricksConnector, connection_id: str) -> int:
@@ -147,9 +155,9 @@ def sync_all_schemas(connector: DatabricksConnector, connection_id: str) -> int:
 # ── Read cache ────────────────────────────────────────────────────────────────
 
 def get_cached_tables(connection_id: str, catalog: str | None = None, schema: str | None = None) -> list[dict]:
-    """Return cached tables, optionally filtered by catalog/schema."""
+    """Return cached tables, optionally filtered by catalog/schema. Volumes are excluded."""
     db = get_auth_conn()
-    query = "SELECT * FROM table_metadata_cache WHERE connection_id=?"
+    query = "SELECT * FROM table_metadata_cache WHERE connection_id=? AND table_type NOT IN ('VOLUME','FOREIGN')"
     params: list = [connection_id]
     if catalog:
         query += " AND catalog=?"

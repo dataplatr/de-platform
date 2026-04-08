@@ -97,6 +97,9 @@ class DatabricksConnector(CatalogProvider, QueryExecutor, UploadProvider):
             if s.name
         ]
 
+    # Table types that are NOT queryable tables — exclude from explorer
+    _EXCLUDED_TABLE_TYPES = frozenset({"VOLUME", "FOREIGN"})
+
     def list_tables(self, catalog: str, schema: str) -> list[TableInfo]:
         return [
             TableInfo(
@@ -110,7 +113,7 @@ class DatabricksConnector(CatalogProvider, QueryExecutor, UploadProvider):
                 schema_name=schema,
                 omit_columns=True,  # lazy — columns only fetched on explicit request
             )
-            if t.name
+            if t.name and (t.table_type is None or t.table_type.value not in self._EXCLUDED_TABLE_TYPES)
         ]
 
     def list_volumes(self, catalog: str, schema: str) -> list[dict]:
