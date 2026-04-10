@@ -64,7 +64,7 @@ export function SelectConfig({ nodeId, config, columns }: Props) {
             </button>
           </div>
 
-          <div className="flex flex-col gap-1 max-h-60 overflow-y-auto scrollbar-thin">
+          <div className="flex flex-col gap-1">
             {columns.map((col) => {
               const sel = config.columns.find((c) => c.source === col.name)
               const checked = !!sel

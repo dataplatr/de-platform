@@ -331,16 +331,18 @@ export function NodeConfigPanel() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Node header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-theme bg-surface shrink-0">
-        <span>{meta?.icon ?? '🎯'}</span>
-        <span className={`text-xs font-semibold ${meta?.colorClass ?? 'text-[var(--success)]'}`}>
-          {node.label}
-        </span>
-        <span className="text-[10px] text-muted ml-1 uppercase">{node.type}</span>
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-theme bg-surface shrink-0 min-w-0">
+        <span className="shrink-0">{meta?.icon ?? '🎯'}</span>
+        <div className="flex items-center gap-1 min-w-0 flex-1 overflow-hidden">
+          <span className={`text-xs font-semibold truncate ${meta?.colorClass ?? 'text-[var(--success)]'}`}>
+            {node.label}
+          </span>
+          <span className="text-[10px] text-muted uppercase shrink-0">{node.type}</span>
+        </div>
         <button
           type="button"
           onClick={runPreview}
-          className="ml-auto flex items-center gap-1 px-2 py-1 rounded text-[11px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors"
+          className="shrink-0 flex items-center gap-1 px-2 py-1 rounded text-[11px] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors"
           title="Run preview for this node"
         >
           <Play size={11} /> Preview

@@ -75,48 +75,47 @@ export function AggregateConfig({ nodeId, config, columns }: Props) {
         )}
 
         {config.measures.map((m, i) => (
-          <div key={i} className="flex items-center gap-1">
-            <select
-              value={m.func}
-              onChange={(e) => updateMeasure(i, { func: e.target.value as (typeof FUNCS)[number] })}
-              title="Aggregation function"
-              className="bg-[var(--node-aggregate-bg)] border border-[var(--node-aggregate-border)] text-[var(--step-aggregate)] text-xs rounded px-1.5 py-1 outline-none"
-            >
-              {FUNCS.map((f) => (
-                <option key={f} value={f}>
-                  {f}
-                </option>
-              ))}
-            </select>
-            <span className="text-muted">(</span>
-            <select
-              value={m.column}
-              onChange={(e) => updateMeasure(i, { column: e.target.value })}
-              title="Column to aggregate"
-              className="flex-1 bg-elevated border border-theme text-[var(--step-select)] text-xs rounded px-1.5 py-1 outline-none"
-            >
-              {columns.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <span className="text-muted">)</span>
-            <input
-              type="text"
-              value={m.alias ?? ''}
-              onChange={(e) => updateMeasure(i, { alias: e.target.value })}
-              placeholder="alias"
-              className="w-20 bg-elevated border border-theme text-secondary text-xs rounded px-1.5 py-1 outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => removeMeasure(i)}
-              title="Remove measure"
-              className="p-1 rounded hover:bg-[var(--node-filter-bg)] text-muted hover:text-error transition-colors"
-            >
-              <X size={12} />
-            </button>
+          <div key={i} className="flex flex-col gap-1 bg-app border border-theme rounded p-1.5">
+            {/* Row 1: func( column ) */}
+            <div className="flex items-center gap-1 min-w-0">
+              <select
+                value={m.func}
+                onChange={(e) => updateMeasure(i, { func: e.target.value as (typeof FUNCS)[number] })}
+                title="Aggregation function"
+                className="shrink-0 bg-[var(--node-aggregate-bg)] border border-[var(--node-aggregate-border)] text-[var(--step-aggregate)] text-xs rounded px-1.5 py-1 outline-none"
+              >
+                {FUNCS.map((f) => <option key={f} value={f}>{f}</option>)}
+              </select>
+              <span className="text-muted text-xs shrink-0">(</span>
+              <select
+                value={m.column}
+                onChange={(e) => updateMeasure(i, { column: e.target.value })}
+                title="Column to aggregate"
+                className="flex-1 min-w-0 bg-elevated border border-theme text-[var(--step-select)] text-xs rounded px-1.5 py-1 outline-none"
+              >
+                {columns.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+              </select>
+              <span className="text-muted text-xs shrink-0">)</span>
+            </div>
+            {/* Row 2: alias + delete */}
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-[9px] text-muted shrink-0">AS</span>
+              <input
+                type="text"
+                value={m.alias ?? ''}
+                onChange={(e) => updateMeasure(i, { alias: e.target.value })}
+                placeholder="alias (optional)"
+                className="flex-1 min-w-0 bg-elevated border border-theme text-secondary text-xs rounded px-1.5 py-1 outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => removeMeasure(i)}
+                title="Remove measure"
+                className="shrink-0 p-1 rounded hover:bg-[var(--node-filter-bg)] text-muted hover:text-error transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </div>
           </div>
         ))}
       </div>

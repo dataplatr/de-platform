@@ -87,39 +87,45 @@ export function JoinConfig({ nodeId, config, leftColumns, rightColumns }: Props)
         )}
 
         {config.conditions.map((cond, i) => (
-          <div key={i} className="flex items-center gap-1">
-            <select
-              value={cond.leftCol}
-              onChange={(e) => updateCond(i, { leftCol: e.target.value })}
-              className="flex-1 bg-elevated border border-theme text-[var(--step-select)] text-xs rounded px-1.5 py-1 outline-none"
-            >
-              {leftColumns.length === 0 && <option value="">-- connect left --</option>}
-              {leftColumns.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <span className="text-muted text-xs shrink-0">=</span>
-            <select
-              value={cond.rightCol}
-              onChange={(e) => updateCond(i, { rightCol: e.target.value })}
-              className="flex-1 bg-elevated border border-theme text-[var(--success)] text-xs rounded px-1.5 py-1 outline-none"
-            >
-              {rightColumns.length === 0 && <option value="">-- connect right --</option>}
-              {rightColumns.map((c) => (
-                <option key={c.name} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => removeCond(i)}
-              className="p-1 rounded hover:bg-[var(--node-filter-bg)] text-muted hover:text-error transition-colors"
-            >
-              <X size={12} />
-            </button>
+          <div key={i} className="flex flex-col gap-1 bg-app border border-theme rounded p-1.5">
+            {/* Left column */}
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-[9px] text-muted uppercase tracking-wider shrink-0 w-8">Left</span>
+              <select
+                value={cond.leftCol}
+                onChange={(e) => updateCond(i, { leftCol: e.target.value })}
+                aria-label="Left join column"
+                className="flex-1 min-w-0 bg-elevated border border-theme text-[var(--step-select)] text-xs rounded px-1.5 py-1 outline-none"
+              >
+                {leftColumns.length === 0 && <option value="">-- connect left --</option>}
+                {leftColumns.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            {/* Right column + delete */}
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-[9px] text-muted uppercase tracking-wider shrink-0 w-8">=</span>
+              <select
+                value={cond.rightCol}
+                onChange={(e) => updateCond(i, { rightCol: e.target.value })}
+                aria-label="Right join column"
+                className="flex-1 min-w-0 bg-elevated border border-theme text-[var(--success)] text-xs rounded px-1.5 py-1 outline-none"
+              >
+                {rightColumns.length === 0 && <option value="">-- connect right --</option>}
+                {rightColumns.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => removeCond(i)}
+                title="Remove condition"
+                className="shrink-0 p-1 rounded hover:bg-[var(--node-filter-bg)] text-muted hover:text-error transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </div>
           </div>
         ))}
       </div>

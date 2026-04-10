@@ -498,7 +498,7 @@ def preview_pipeline_route(req: PipelinePreviewRequest, current: dict = Depends(
         logger.warning("Preview timeout: %s", exc)
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
-        logger.exception("Preview failed")
+        logger.error("Preview failed: %s", exc)
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
@@ -524,7 +524,7 @@ def run_pipeline_route(req: PipelineRunRequest, current: dict = Depends(get_curr
         logger.warning("Run timeout: %s", exc)
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
-        logger.exception("Run failed")
+        logger.error("Run failed: %s", exc)
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 

@@ -227,7 +227,9 @@ class DatabricksConnector(CatalogProvider, QueryExecutor, UploadProvider):
         if final_state == "FAILED":
             err = resp.status.error if resp.status else None
             msg = err.message if err else "Unknown Databricks error"
-            raise RuntimeError(f"Databricks SQL error: {msg}")
+            # Strip the "== SQL ==" section which dumps the full query + all column names
+            clean_msg = msg.split('\n\n== SQL ==')[0].strip()
+            raise RuntimeError(f"Databricks SQL error: {clean_msg}")
 
         elapsed_ms = (time.monotonic() - start) * 1000
 

@@ -51,28 +51,27 @@ export function DeduplicateConfig({ nodeId, config, columns }: Props) {
           Keep <span className="text-muted normal-case">(order by)</span>
         </span>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-1">
           <select
             value={config.orderBy}
             onChange={(e) => set({ orderBy: e.target.value })}
-            className="flex-1 bg-elevated border border-theme text-[var(--step-select)] text-xs rounded px-2 py-1 outline-none"
+            aria-label="Order by column"
+            className="w-full min-w-0 bg-elevated border border-theme text-[var(--step-select)] text-xs rounded px-2 py-1 outline-none"
           >
             <option value="">— no ordering —</option>
             {names.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
+              <option key={n} value={n}>{n}</option>
             ))}
           </select>
-
           <select
             value={config.orderDir}
             onChange={(e) => set({ orderDir: e.target.value as Cfg['orderDir'] })}
             disabled={!config.orderBy}
-            className="bg-elevated border border-theme text-secondary text-xs rounded px-2 py-1 outline-none disabled:opacity-40"
+            aria-label="Order direction"
+            className="w-full min-w-0 bg-elevated border border-theme text-secondary text-xs rounded px-2 py-1 outline-none disabled:opacity-40"
           >
-            <option value="DESC">DESC (keep latest/highest)</option>
-            <option value="ASC">ASC (keep earliest/lowest)</option>
+            <option value="DESC">DESC — keep latest / highest</option>
+            <option value="ASC">ASC — keep earliest / lowest</option>
           </select>
         </div>
 
