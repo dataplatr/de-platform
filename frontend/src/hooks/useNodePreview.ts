@@ -1,9 +1,12 @@
 /**
  * Node preview hook — SQL compilation trigger and preview execution.
- * Reads selected node + graph from store; writes back generated SQL and preview result.
  *
+ * When the user clicks Preview:
+ *   - output tab: runs the selected node's full upstream SQL (what comes OUT)
+ *   - input tab:  runs the primary upstream node's SQL (what goes IN)
+ *
+ * Both run in parallel so the user can switch tabs immediately after.
  * Preview uses the connection_alias from the first source node in the pipeline.
- * If no connection alias is found (no sources yet), preview is skipped with a toast.
  */
 import { useCallback, useEffect } from 'react'
 import { useTransformationStore } from '../store/transformationStore'
@@ -25,6 +28,7 @@ export function useNodePreview() {
     edges,
     setGeneratedSQL,
     setOutputPreview,
+    setInputPreview,
     setPreviewLoading,
     setBottomPanelTab,
   } = useTransformationStore()
@@ -55,11 +59,53 @@ export function useNodePreview() {
 
     setPreviewLoading(true)
     setBottomPanelTab('output')
+
+    // Find the primary upstream node to use as the "input" preview.
+    // For Join nodes, prefer handle 'a' (left / primary input).
+    const inputEdge =
+      edges.find((e) => e.target === selectedNodeId && (e.targetHandle === 'a' || !e.targetHandle)) ??
+      edges.find((e) => e.target === selectedNodeId)
+    const inputNodeId = inputEdge?.source ?? null
+
     try {
-      const { data } = await api.previewPipeline(nodes, edges, selectedNodeId, connectionAlias, 100)
-      setOutputPreview(mapPreviewResult(data))
+      // Run output preview (selected node) and input preview (upstream) in parallel
+      const outputPromise = api.previewPipeline(
+        nodes,
+        edges,
+        selectedNodeId,
+        connectionAlias,
+        100
+      )
+      const inputPromise = inputNodeId
+        ? api.previewPipeline(nodes, edges, inputNodeId, connectionAlias, 100)
+        : Promise.resolve(null)
+
+      const [outputResult, inputResult] = await Promise.allSettled([outputPromise, inputPromise])
+
+      // Output preview
+      if (outputResult.status === 'fulfilled') {
+        setOutputPreview(mapPreviewResult(outputResult.value.data))
+      } else {
+        setOutputPreview(null)
+        const detail =
+          (
+            outputResult.reason as {
+              response?: { data?: { detail?: string } }
+            }
+          )?.response?.data?.detail ?? 'Preview failed — check node connections and config.'
+        notify('error', detail)
+      }
+
+      // Input preview
+      if (inputResult.status === 'fulfilled' && inputResult.value !== null) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setInputPreview(mapPreviewResult((inputResult.value as any).data))
+      } else {
+        setInputPreview(null)
+      }
     } catch (err: unknown) {
       setOutputPreview(null)
+      setInputPreview(null)
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
         'Preview failed — check node connections and config.'
@@ -67,7 +113,15 @@ export function useNodePreview() {
     } finally {
       setPreviewLoading(false)
     }
-  }, [selectedNodeId, nodes, edges, setPreviewLoading, setBottomPanelTab, setOutputPreview])
+  }, [
+    selectedNodeId,
+    nodes,
+    edges,
+    setPreviewLoading,
+    setBottomPanelTab,
+    setOutputPreview,
+    setInputPreview,
+  ])
 
   return { runPreview }
 }

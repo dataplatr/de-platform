@@ -257,12 +257,16 @@
   .transform-col-row {
     min-height: 30px;
   }
-  /* New TransformConfig grid */
+  /* Legacy TransformConfig grid (kept for reference) */
   .tcfg-grid {
     grid-template-columns: 18px minmax(0, 1.2fr) minmax(0, 1fr) 90px 20px;
   }
   .tcfg-row {
     min-height: 28px;
+  }
+  /* Compact 3-column TransformConfig grid: checkbox | source+type | edit+remove */
+  .tcfg-grid-v2 {
+    grid-template-columns: 18px 1fr 52px;
   }
 
   /* React Flow overrides */
@@ -1635,82 +1639,7 @@
     color: #065f46;
   }
 
-  /* ── Toast notifications ── */
-  .toast-container {
-    position: fixed;
-    bottom: 1.25rem;
-    right: 1.25rem;
-    z-index: 9999;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    pointer-events: none;
-  }
-  .toast {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
-    padding: 0.625rem 0.875rem;
-    border-radius: 0.375rem;
-    border-width: 1px;
-    border-style: solid;
-    font-size: 0.75rem;
-    font-weight: 500;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-    max-width: 360px;
-    pointer-events: all;
-    animation: toast-in 0.2s ease;
-  }
-  @keyframes toast-in {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  .toast-success {
-    background: #0d2b1e;
-    border-color: #16a34a;
-    color: #4ade80;
-  }
-  .toast-info {
-    background: var(--pipe-label-bg);
-    border-color: var(--pipe-stroke);
-    color: var(--pipe-label-text);
-  }
-  .toast-warning {
-    background: #2d2200;
-    border-color: #ca8a04;
-    color: #fbbf24;
-  }
-  .toast-error {
-    background: #2b0d0d;
-    border-color: var(--error);
-    color: #f87171;
-  }
-  [data-theme='light'] .toast-success {
-    background: #f0fdf4;
-    border-color: #16a34a;
-    color: #15803d;
-  }
-  [data-theme='light'] .toast-info {
-    background: #eff6ff;
-    border-color: #3b82f6;
-    color: #1d4ed8;
-  }
-  [data-theme='light'] .toast-warning {
-    background: #fffbeb;
-    border-color: #d97706;
-    color: #92400e;
-  }
-  [data-theme='light'] .toast-error {
-    background: #fef2f2;
-    border-color: #dc2626;
-    color: #991b1b;
-  }
+  /* Toast styles moved outside @layer — see end of file */
 
   /* ── Themed panels (light mode overrides) ── */
   .themed-panel {
@@ -1839,4 +1768,81 @@
   background: rgba(28, 95, 253, 0.06) !important;
   border: 1px dashed var(--pipe-stroke) !important;
   border-radius: 4px !important;
+}
+
+/* ── Toast notifications — outside @layer so they always win ── */
+.toast-container {
+  position: fixed !important;
+  top: 1rem !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  pointer-events: none !important;
+  width: max-content !important;
+  max-width: 90vw !important;
+}
+.toast {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 0.5rem !important;
+  padding: 0.625rem 0.875rem !important;
+  border-radius: 0.375rem !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55) !important;
+  max-width: 440px !important;
+  pointer-events: all !important;
+  animation: toast-slide-in 0.2s ease !important;
+}
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Dark theme (default) */
+.toast-success {
+  background-color: #0d2b1e !important;
+  border-color: #16a34a !important;
+  color: #4ade80 !important;
+}
+.toast-info {
+  background-color: #0d1b2b !important;
+  border-color: #3b82f6 !important;
+  color: #93c5fd !important;
+}
+.toast-warning {
+  background-color: #2d2200 !important;
+  border-color: #ca8a04 !important;
+  color: #fbbf24 !important;
+}
+.toast-error {
+  background-color: #2b0d0d !important;
+  border-color: #dc2626 !important;
+  color: #f87171 !important;
+}
+/* Light theme overrides */
+[data-theme='light'] .toast-success {
+  background-color: #f0fdf4 !important;
+  border-color: #16a34a !important;
+  color: #15803d !important;
+}
+[data-theme='light'] .toast-info {
+  background-color: #eff6ff !important;
+  border-color: #3b82f6 !important;
+  color: #1d4ed8 !important;
+}
+[data-theme='light'] .toast-warning {
+  background-color: #fffbeb !important;
+  border-color: #d97706 !important;
+  color: #92400e !important;
+}
+[data-theme='light'] .toast-error {
+  background-color: #fef2f2 !important;
+  border-color: #dc2626 !important;
+  color: #991b1b !important;
 }

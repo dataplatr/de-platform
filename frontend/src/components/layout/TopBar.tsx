@@ -4,24 +4,16 @@ import {
   Save,
   Database,
   ChevronRight,
-  LogOut,
-  User,
-  ShieldCheck,
-  Home,
-  Sun,
-  Moon,
   X,
   Plus,
   CheckCircle2,
   Zap,
 } from 'lucide-react'
 import { useTransformationStore } from '../../store/transformationStore'
-import { useAuthStore, isAdmin } from '../../store/authStore'
-import { useTheme } from '../../context/ThemeContext'
+import { useAuthStore } from '../../store/authStore'
 import { api } from '../../services/api'
 import clsx from 'clsx'
 import logoWhite from '../../assets/logo-white.png'
-import { ROLE_COLOR } from '../../constants/nodeMetadata'
 import { DatabricksConnectModal } from '../settings/DatabricksConnectModal'
 
 // ── Warehouse state badge ─────────────────────────────────────────────────────
@@ -282,11 +274,9 @@ export function TopBar() {
     pipelineId,
     setPipelineName,
     setPipelineId,
-    closeEditor,
     warehouseState,
   } = useTransformationStore()
-  const { user, logout } = useAuthStore()
-  const { theme, toggleTheme } = useTheme()
+  useAuthStore() // keep subscription alive for connection state reactivity
 
   // ── Inline rename ────────────────────────────────────────────────────────
   const [editing, setEditing] = useState(false)
@@ -420,17 +410,8 @@ export function TopBar() {
         {showConnPanel && <ConnectionPanel onClose={() => setShowConnPanel(false)} />}
       </div>
 
-      {/* Right: Actions + User */}
+      {/* Right: Actions */}
       <div className="flex items-center gap-1 shrink-0">
-        <button
-          type="button"
-          onClick={closeEditor}
-          className="icon-button"
-          title="Back to pipelines"
-        >
-          <Home size={14} />
-        </button>
-
         <button
           type="button"
           onClick={handleSave}
@@ -461,41 +442,6 @@ export function TopBar() {
           <span>Run</span>
         </button>
 
-        <div className="topbar-divider mx-1" />
-
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="icon-button"
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-        </button>
-
-        <div className="topbar-divider mx-1" />
-
-        {user && (
-          <div className="topbar-user flex items-center gap-1.5 px-2 py-1 rounded text-xs">
-            {isAdmin(user.role) ? (
-              <ShieldCheck size={13} className="text-[#f44747]" />
-            ) : (
-              <User size={13} className="topbar-chevron" />
-            )}
-            <span className="font-medium">{user.username}</span>
-            <span
-              className={clsx(
-                'topbar-user-role text-[10px] uppercase font-semibold',
-                ROLE_COLOR[user.role]
-              )}
-            >
-              {user.role}
-            </span>
-          </div>
-        )}
-
-        <button type="button" onClick={logout} className="icon-button" title="Sign out">
-          <LogOut size={13} />
-        </button>
       </div>
     </div>
   )

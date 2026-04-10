@@ -101,14 +101,16 @@ export function TransformationCanvas() {
   const prevRfNodesRef = useRef<string>('')
   const prevRfEdgesRef = useRef<string>('')
 
-  // Include config in the key: chip nodes show config summaries, so a config
-  // change must trigger a local-nodes re-sync even if position/id didn't change.
+  // Include config AND label in the key: chip nodes show the label as their
+  // visible name, and config changes affect summaries — both must trigger a
+  // local-nodes re-sync even if position/id didn't change.
   const rfNodesKey = JSON.stringify(
     rfNodes.map((n) => ({
       id: n.id,
       type: n.type,
       px: n.position.x,
       py: n.position.y,
+      lbl: (n.data as { label?: string })?.label ?? '',
       cfg: (n.data as { config?: unknown })?.config ?? null,
     }))
   )

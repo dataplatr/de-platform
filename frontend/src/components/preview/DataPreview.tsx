@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { RefreshCw, Table2, Download } from 'lucide-react'
 import { useTransformationStore } from '../../store/transformationStore'
+import { useNodePreview } from '../../hooks/useNodePreview'
 import clsx from 'clsx'
 import { exportCSV } from '../../utils/csvExport'
 
@@ -12,7 +13,10 @@ export function DataPreview() {
     bottomPanelTab,
     setBottomPanelTab,
     pipelineName,
+    selectedNodeId,
   } = useTransformationStore()
+
+  const { runPreview } = useNodePreview()
 
   const activePreview = bottomPanelTab === 'input' ? inputPreview : outputPreview
 
@@ -21,6 +25,9 @@ export function DataPreview() {
     const name = `${pipelineName.replace(/\s+/g, '_')}_${bottomPanelTab}.csv`
     exportCSV(activePreview, name)
   }, [activePreview, pipelineName, bottomPanelTab])
+
+  const hasInput = !!inputPreview
+  const hasOutput = !!outputPreview
 
   return (
     <div className="preview-panel flex flex-col h-full border-t border-theme">
@@ -31,28 +38,37 @@ export function DataPreview() {
             type="button"
             onClick={() => setBottomPanelTab('input')}
             className={clsx(
-              'preview-tab px-3 py-2 text-xs',
+              'preview-tab px-3 py-2 text-xs flex items-center gap-1',
               bottomPanelTab === 'input' && 'active'
             )}
           >
             Input
+            {hasInput && (
+              <span className="text-[9px] text-muted">
+                ({inputPreview!.totalRows.toLocaleString()})
+              </span>
+            )}
           </button>
           <button
             type="button"
             onClick={() => setBottomPanelTab('output')}
             className={clsx(
-              'preview-tab px-3 py-2 text-xs',
+              'preview-tab px-3 py-2 text-xs flex items-center gap-1',
               bottomPanelTab === 'output' && 'active'
             )}
           >
             Output
+            {hasOutput && (
+              <span className="text-[9px] text-muted">
+                ({outputPreview!.totalRows.toLocaleString()})
+              </span>
+            )}
           </button>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-muted">
           {activePreview && (
             <>
-              <span>{activePreview.totalRows.toLocaleString()} rows</span>
               {activePreview.sampled && (
                 <span className="bg-elevated border border-theme text-warning px-1.5 py-0.5 rounded text-[10px]">
                   sampled
@@ -72,7 +88,13 @@ export function DataPreview() {
               </button>
             </>
           )}
-          <button type="button" className="icon-button" title="Refresh preview">
+          <button
+            type="button"
+            className="icon-button"
+            title="Refresh preview"
+            onClick={selectedNodeId ? runPreview : undefined}
+            disabled={!selectedNodeId || isPreviewLoading}
+          >
             <RefreshCw size={11} className={isPreviewLoading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -123,7 +145,13 @@ export function DataPreview() {
         ) : (
           <div className="preview-empty flex flex-col items-center justify-center h-full gap-2">
             <Table2 size={20} />
-            <p className="text-xs">Select a node and click Preview</p>
+            <p className="text-xs">
+              {selectedNodeId
+                ? bottomPanelTab === 'input'
+                  ? 'No input preview — click Preview in the Config panel'
+                  : 'Select a node and click Preview'
+                : 'Select a node and click Preview'}
+            </p>
           </div>
         )}
       </div>

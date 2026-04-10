@@ -5,20 +5,16 @@ import {
   Trash2,
   Clock,
   Database,
-  LogOut,
-  User,
-  ShieldCheck,
   Sun,
   Moon,
 } from 'lucide-react'
 import { useTransformationStore } from '../store/transformationStore'
-import { useAuthStore, isAdmin } from '../store/authStore'
+import { useAuthStore } from '../store/authStore'
 import { useTheme } from '../context/ThemeContext'
 import { api } from '../services/api'
 import type { TransformNode, TransformEdge } from '../types'
 import clsx from 'clsx'
 import logoWhite from '../assets/logo-white.png'
-import { ROLE_COLOR } from '../constants/nodeMetadata'
 import { timeAgo } from '../utils/dateUtils'
 
 interface PipelineMeta {
@@ -31,7 +27,7 @@ interface PipelineMeta {
 
 export function HomePage() {
   const { openEditor } = useTransformationStore()
-  const { user, logout } = useAuthStore()
+  useAuthStore() // keep subscription alive
   const { theme, toggleTheme } = useTheme()
 
   const [pipelines, setPipelines] = useState<PipelineMeta[]>([])
@@ -94,24 +90,6 @@ export function HomePage() {
           <span className="topbar-chevron text-xs">/ Pipelines</span>
         </div>
         <div className="flex items-center gap-2">
-          {user && (
-            <div className="flex items-center gap-1.5 text-xs topbar-user">
-              {isAdmin(user.role) ? (
-                <ShieldCheck size={13} className="text-[#f44747]" />
-              ) : (
-                <User size={13} className="topbar-chevron" />
-              )}
-              <span className="font-medium">{user.username}</span>
-              <span
-                className={clsx(
-                  'topbar-user-role text-[10px] uppercase font-semibold',
-                  ROLE_COLOR[user.role]
-                )}
-              >
-                {user.role}
-              </span>
-            </div>
-          )}
           <button
             type="button"
             onClick={toggleTheme}
@@ -119,9 +97,6 @@ export function HomePage() {
             title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
             {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
-          </button>
-          <button type="button" onClick={logout} className="icon-button" title="Sign out">
-            <LogOut size={13} />
           </button>
         </div>
       </div>

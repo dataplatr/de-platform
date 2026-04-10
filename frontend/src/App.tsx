@@ -3,6 +3,7 @@ import { AppShell } from './components/layout/AppShell'
 import { LoginPage } from './pages/LoginPage'
 import { HomePage } from './pages/HomePage'
 import { Toaster } from './components/Toaster'
+import { NavSidebar } from './components/layout/NavSidebar'
 import { useAuthStore } from './store/authStore'
 import { useTransformationStore } from './store/transformationStore'
 import { ThemeProvider } from './context/ThemeContext'
@@ -13,14 +14,24 @@ const queryClient = new QueryClient({
   },
 })
 
+// Authenticated layout: NavSidebar is always present on the left.
+function AuthenticatedApp() {
+  const editorOpen = useTransformationStore((s) => s.editorOpen)
+  return (
+    <div className="flex h-full overflow-hidden">
+      <NavSidebar />
+      <div className="flex-1 overflow-hidden min-w-0">
+        {editorOpen ? <AppShell /> : <HomePage />}
+      </div>
+    </div>
+  )
+}
+
 // Session is restored synchronously in authStore — no useEffect flash needed.
 function AppRouter() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
-  const editorOpen = useTransformationStore((s) => s.editorOpen)
-
   if (!isAuthenticated) return <LoginPage />
-  if (!editorOpen) return <HomePage />
-  return <AppShell />
+  return <AuthenticatedApp />
 }
 
 function App() {

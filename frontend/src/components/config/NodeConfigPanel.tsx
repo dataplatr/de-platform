@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { Play, Info, Workflow, ChevronDown, ChevronRight } from 'lucide-react'
+import { Play, Info, Workflow, ChevronDown, ChevronRight, Upload, Loader2 } from 'lucide-react'
 import type { TransformNode as TNode, TransformEdge as TEdge } from '../../types'
 import { useTransformationStore } from '../../store/transformationStore'
 import { FilterConfig } from './FilterConfig'
@@ -21,6 +21,8 @@ import type {
 import { useNodePreview } from '../../hooks/useNodePreview'
 import { useUpstreamColumns } from '../../hooks/useUpstreamColumns'
 import { NODE_META } from '../../constants/nodeMetadata'
+import { api } from '../../services/api'
+import { notify } from '../../services/notify'
 
 function PipelineTree({ chain }: { chain: TNode[] }) {
   return (
@@ -53,6 +55,15 @@ function PipelineTree({ chain }: { chain: TNode[] }) {
   )
 }
 
+// Validate Databricks table/catalog/schema name: alphanumeric + underscores only
+function isValidIdentifier(name: string) {
+  return /^[a-zA-Z0-9_]+$/.test(name)
+}
+
+function sanitizeIdentifier(name: string) {
+  return name.trim().replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '')
+}
+
 function OutputConfig({
   nodeId,
   nodes,
@@ -64,8 +75,13 @@ function OutputConfig({
 }) {
   const { updateNode, expandedOutputId, setExpandedOutputId } = useTransformationStore()
   const [showTree, setShowTree] = useState(false)
+  const [isWriting, setIsWriting] = useState(false)
   const node = nodes.find((n) => n.id === nodeId)
-  const cfg = node?.config as { targetTable?: string } | null
+  const cfg = node?.config as {
+    targetTable?: string
+    targetCatalog?: string
+    targetSchema?: string
+  } | null
 
   const isCanvasExpanded = expandedOutputId === nodeId
   const toggleCanvas = useCallback(
@@ -80,30 +96,145 @@ function OutputConfig({
     [allUpstream]
   )
 
-  const commitName = useCallback(
-    (trimmed: string) => {
-      const val = trimmed.trim() || 'output'
-      updateNode(nodeId, {
-        label: val,
-        config: { ...(cfg ?? {}), targetTable: val } as OutputConfig,
-      })
+  // Resolve connection alias from the first source node
+  const connectionAlias = useMemo(() => {
+    const src = nodes.find((n) => n.type === 'source' && n.connection_alias)
+    return src?.connection_alias ?? null
+  }, [nodes])
+
+  const hasInputEdge = edges.some((e) => e.target === nodeId)
+  const tableName = cfg?.targetTable || node?.label || ''
+  const targetCatalog = cfg?.targetCatalog ?? ''
+  const targetSchema = cfg?.targetSchema ?? ''
+
+  const tableNameInvalid = tableName ? !isValidIdentifier(tableName) : false
+  const hasCatalog = targetCatalog.trim().length > 0
+  const hasSchema = targetSchema.trim().length > 0
+  const canWrite = !!(connectionAlias && hasInputEdge && tableName && !tableNameInvalid && hasCatalog && hasSchema)
+
+  const writeTable = useCallback(async () => {
+    if (!connectionAlias || !nodeId) return
+    setIsWriting(true)
+    try {
+      const { data } = await api.runPipeline(nodes, edges, nodeId, connectionAlias)
+      notify('success', `Table written: ${data.target_table} (${data.execution_ms}ms)`)
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        'Write failed — check your catalog, schema, and connection.'
+      notify('error', detail)
+    } finally {
+      setIsWriting(false)
+    }
+  }, [nodes, edges, nodeId, connectionAlias])
+
+  const commitField = useCallback(
+    (field: 'targetTable' | 'targetCatalog' | 'targetSchema', raw: string) => {
+      const val = field === 'targetTable' ? sanitizeIdentifier(raw) || 'output' : raw.trim()
+      const patch = { ...(cfg ?? {}), [field]: val }
+      if (field === 'targetTable') {
+        updateNode(nodeId, { label: val, config: patch as OutputConfig })
+      } else {
+        updateNode(nodeId, { config: patch as OutputConfig })
+      }
     },
     [nodeId, cfg, updateNode]
   )
 
+  const writeDisabledReason = !connectionAlias
+    ? 'No Databricks connection found — add a source node first'
+    : !hasInputEdge
+      ? 'Connect a source node first'
+      : !hasCatalog
+        ? 'Set a target catalog first'
+        : !hasSchema
+          ? 'Set a target schema first'
+          : !tableName
+            ? 'Set a target table name first'
+            : tableNameInvalid
+              ? 'Table name must be alphanumeric + underscores only'
+              : 'Write table to Databricks'
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <span className="text-[10px] text-secondary uppercase tracking-wider">Target Table</span>
+    <div className="flex flex-col gap-3">
+      {/* Catalog */}
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] text-secondary uppercase tracking-wider">Catalog</span>
+        <input
+          aria-label="Target catalog"
+          defaultValue={targetCatalog}
+          placeholder="e.g. main"
+          onBlur={(e) => commitField('targetCatalog', e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitField('targetCatalog', (e.target as HTMLInputElement).value)
+          }}
+          className="bg-elevated border border-theme rounded px-2 py-1 text-xs font-mono text-primary outline-none focus:border-[var(--accent)]"
+        />
+      </div>
+
+      {/* Schema */}
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] text-secondary uppercase tracking-wider">Schema</span>
+        <input
+          aria-label="Target schema"
+          defaultValue={targetSchema}
+          placeholder="e.g. analytics"
+          onBlur={(e) => commitField('targetSchema', e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') commitField('targetSchema', (e.target as HTMLInputElement).value)
+          }}
+          className="bg-elevated border border-theme rounded px-2 py-1 text-xs font-mono text-primary outline-none focus:border-[var(--accent)]"
+        />
+      </div>
+
+      {/* Table name */}
+      <div className="flex flex-col gap-1">
+        <span className="text-[10px] text-secondary uppercase tracking-wider">Table Name</span>
         <input
           aria-label="Target table name"
-          defaultValue={cfg?.targetTable || node?.label || 'output'}
-          onBlur={(e) => commitName(e.target.value)}
+          defaultValue={tableName}
+          placeholder="e.g. daily_report"
+          onBlur={(e) => commitField('targetTable', e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') commitName((e.target as HTMLInputElement).value)
+            if (e.key === 'Enter') commitField('targetTable', (e.target as HTMLInputElement).value)
           }}
-          className="bg-elevated border border-theme rounded px-2 py-1 text-xs font-mono text-[var(--accent-fg)] outline-none focus:border-[var(--accent)]"
+          className={`bg-elevated border rounded px-2 py-1 text-xs font-mono outline-none focus:border-[var(--accent)] ${
+            tableNameInvalid ? 'border-error text-error' : 'border-theme text-[var(--accent-fg)]'
+          }`}
         />
+        {tableNameInvalid && (
+          <p className="text-[10px] text-error">Letters, numbers, underscores only — spaces are not allowed.</p>
+        )}
+        {hasCatalog && hasSchema && tableName && !tableNameInvalid && (
+          <p className="text-[10px] text-muted font-mono truncate">
+            {targetCatalog}.{targetSchema}.{tableName}
+          </p>
+        )}
+      </div>
+
+      {/* Write to Databricks button */}
+      <div className="flex flex-col gap-1.5">
+        <button
+          type="button"
+          onClick={writeTable}
+          disabled={!canWrite || isWriting}
+          title={writeDisabledReason}
+          className={`flex items-center justify-center gap-2 w-full px-3 py-2 rounded-md border text-xs font-semibold transition-all ${
+            canWrite && !isWriting
+              ? 'bg-[var(--node-output-bg)] border-[var(--success)]/40 text-[var(--success)] hover:border-[var(--success)] hover:bg-[var(--success)]/10 cursor-pointer'
+              : 'bg-elevated border-theme text-muted cursor-not-allowed opacity-50'
+          }`}
+        >
+          {isWriting ? (
+            <Loader2 size={13} className="animate-spin shrink-0" />
+          ) : (
+            <Upload size={13} className="shrink-0" />
+          )}
+          {isWriting ? 'Writing table…' : 'Write to Databricks'}
+        </button>
+        {!canWrite && !isWriting && (
+          <p className="text-[10px] text-muted italic">{writeDisabledReason}</p>
+        )}
       </div>
 
       {allUpstream.length > 0 && (
