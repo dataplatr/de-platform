@@ -282,6 +282,17 @@ def _sql_for(
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
+def _check_warnings(sql: str) -> None:
+    """Raise ValueError if the SQL contains any ⚠ placeholder comments."""
+    warnings = [
+        line.strip()[len("--"):].strip()
+        for line in sql.splitlines()
+        if line.strip().startswith("--") and "⚠" in line
+    ]
+    if warnings:
+        raise ValueError("Pipeline has configuration errors:\n" + "\n".join(f"  • {w}" for w in warnings))
+
+
 def compile_pipeline(
     nodes: list[dict[str, Any]],
     edges: list[dict[str, Any]],
@@ -295,7 +306,9 @@ def compile_pipeline(
     node = _find_node(target_node_id, nodes)
     if node is None:
         raise ValueError(f"Target node {target_node_id!r} not found in pipeline")
-    return _sql_for(target_node_id, nodes, edges, dialect)
+    sql = _sql_for(target_node_id, nodes, edges, dialect)
+    _check_warnings(sql)
+    return sql
 
 
 def compile_to_cte(

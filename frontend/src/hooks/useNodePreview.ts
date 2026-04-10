@@ -68,48 +68,32 @@ export function useNodePreview() {
     const inputNodeId = inputEdge?.source ?? null
 
     try {
-      // Run output preview (selected node) and input preview (upstream) in parallel
-      const outputPromise = api.previewPipeline(
-        nodes,
-        edges,
-        selectedNodeId,
-        connectionAlias,
-        100
-      )
-      const inputPromise = inputNodeId
-        ? api.previewPipeline(nodes, edges, inputNodeId, connectionAlias, 100)
-        : Promise.resolve(null)
-
-      const [outputResult, inputResult] = await Promise.allSettled([outputPromise, inputPromise])
-
-      // Output preview
-      if (outputResult.status === 'fulfilled') {
-        setOutputPreview(mapPreviewResult(outputResult.value.data))
-      } else {
+      // Run output preview first — if validation fails (400), bail without
+      // touching Databricks for the input preview.
+      let outputOk = false
+      try {
+        const outputResponse = await api.previewPipeline(nodes, edges, selectedNodeId, connectionAlias, 100)
+        setOutputPreview(mapPreviewResult(outputResponse.data))
+        outputOk = true
+      } catch (outputErr: unknown) {
         setOutputPreview(null)
         const detail =
-          (
-            outputResult.reason as {
-              response?: { data?: { detail?: string } }
-            }
-          )?.response?.data?.detail ?? 'Preview failed — check node connections and config.'
+          (outputErr as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+          'Preview failed — check node connections and config.'
         notify('error', detail)
       }
 
-      // Input preview
-      if (inputResult.status === 'fulfilled' && inputResult.value !== null) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setInputPreview(mapPreviewResult((inputResult.value as any).data))
-      } else {
+      // Only fetch input preview when the output succeeded
+      if (outputOk && inputNodeId) {
+        try {
+          const inputResponse = await api.previewPipeline(nodes, edges, inputNodeId, connectionAlias, 100)
+          setInputPreview(mapPreviewResult(inputResponse.data))
+        } catch {
+          setInputPreview(null)
+        }
+      } else if (!outputOk) {
         setInputPreview(null)
       }
-    } catch (err: unknown) {
-      setOutputPreview(null)
-      setInputPreview(null)
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        'Preview failed — check node connections and config.'
-      notify('error', detail)
     } finally {
       setPreviewLoading(false)
     }
