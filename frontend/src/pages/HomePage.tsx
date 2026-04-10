@@ -13,7 +13,6 @@ import { useAuthStore } from '../store/authStore'
 import { useTheme } from '../context/ThemeContext'
 import { api } from '../services/api'
 import type { TransformNode, TransformEdge } from '../types'
-import clsx from 'clsx'
 import logoWhite from '../assets/logo-white.png'
 import { timeAgo } from '../utils/dateUtils'
 

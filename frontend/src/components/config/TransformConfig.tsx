@@ -18,8 +18,8 @@
  * The detail panel replaces the old always-visible expression tab, making it
  * obvious that clicking a row lets you edit its properties — not its source name.
  */
-import { useCallback, useState, useRef, useEffect } from 'react'
-import { Plus, Search, X, AlertTriangle, Pencil, Check, ArrowLeft } from 'lucide-react'
+import { useCallback, useState, useRef } from 'react'
+import { Plus, Search, X, AlertTriangle, Pencil, ArrowLeft } from 'lucide-react'
 import { useTransformationStore } from '../../store/transformationStore'
 import type { TransformConfig as Cfg, TransformColumnDef, Column } from '../../types'
 import clsx from 'clsx'
@@ -166,14 +166,12 @@ function typeBadgeClass(t: string | undefined) {
 
 interface DetailPanelProps {
   row: TransformColumnDef
-  rowIndex: number
   colType: string | undefined
   onUpdate: (patch: Partial<TransformColumnDef>) => void
   onClose: () => void
-  columns: Column[]
 }
 
-function ColumnDetailPanel({ row, rowIndex, colType, onUpdate, onClose, columns }: DetailPanelProps) {
+function ColumnDetailPanel({ row, colType, onUpdate, onClose }: DetailPanelProps) {
   const exprRef = useRef<HTMLInputElement>(null)
   const isDerived = !row.source
   const colCategory = toCategory(colType)
@@ -285,11 +283,12 @@ function ColumnDetailPanel({ row, rowIndex, colType, onUpdate, onClose, columns 
               ))}
             </select>
             {castWarn && (
-              <AlertTriangle
-                size={12}
-                className={castWarn.level === 'error' ? 'text-error shrink-0' : 'text-[var(--warning)] shrink-0'}
-                title={castWarn.msg}
-              />
+              <span title={castWarn.msg}>
+                <AlertTriangle
+                  size={12}
+                  className={castWarn.level === 'error' ? 'text-error shrink-0' : 'text-[var(--warning)] shrink-0'}
+                />
+              </span>
             )}
           </div>
           {castWarn && (
@@ -552,11 +551,12 @@ export function TransformConfig({ nodeId, config, columns }: Props) {
                   <span className="text-[9px] text-[var(--step-transform)] shrink-0" title="Has SQL expression">ƒ</span>
                 )}
                 {castWarn && (
-                  <AlertTriangle
-                    size={9}
-                    className={clsx('shrink-0', castWarn.level === 'error' ? 'text-error' : 'text-[var(--warning)]')}
-                    title={castWarn.msg}
-                  />
+                  <span title={castWarn.msg}>
+                    <AlertTriangle
+                      size={9}
+                      className={clsx('shrink-0', castWarn.level === 'error' ? 'text-error' : 'text-[var(--warning)]')}
+                    />
+                  </span>
                 )}
               </div>
 
@@ -605,11 +605,9 @@ export function TransformConfig({ nodeId, config, columns }: Props) {
       {selectedRow !== null && selectedIdx !== null && (
         <ColumnDetailPanel
           row={selectedRow}
-          rowIndex={selectedIdx}
           colType={selectedColType}
           onUpdate={(patch) => update(selectedIdx, patch)}
           onClose={() => setSelectedIdx(null)}
-          columns={columns}
         />
       )}
     </div>
